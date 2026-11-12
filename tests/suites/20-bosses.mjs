@@ -40,7 +40,7 @@ export const tests = [
     const c = await arena(ctx, b);
     if (b.type === 'dragon') await c.until(() => { const e = __dbg.ENEMIES.find(x => x.boss); return e && e.st !== 'dance'; }, null, { timeout: 25000 });
     await c.js(() => { const e = __dbg.ENEMIES.find(x => x.boss); e.inv = false; e.hp = 1; __dbg.killEnemy(e, 1, 0, 'x'); });
-    const gone = await c.until(() => !__dbg.ENEMIES.some(x => x.boss && !x.dead) && document.querySelector('#bossBar').hidden, null, { timeout: 20000 });
+    const gone = await c.until(() => !__dbg.ENEMIES.some(x => x.boss && !x.dead) && document.querySelector('#bossBar').hidden, null, { timeout: 45000 }); // the Hornet falls first, then explodes
     await c.shot('death');
     assert(gone, 'boss still present or bar still visible after death');
   } })),
