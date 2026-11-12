@@ -21,13 +21,14 @@ function gfxLoad(){ try{ const d=JSON.parse(localStorage.getItem(GFX_KEY)||'null
 function gfxSave(){ try{ localStorage.setItem(GFX_KEY,JSON.stringify({mode:qMode,q:Q,locked:AQ.locked})); }catch(_){} }
 function aqReset(skip){ AQ.s.length=0; AQ.t=0; AQ.fr=0; AQ.skip=skip==null?2.5:skip; }
 function aqSet(q,msg){ saveLocState(); rebuild(q); toast(msg); aqReset(3); gfxSave(); }
-function aqCalm(){ if(LOC.safe) return true; for(const e of ENEMIES) if(!e.dead&&Math.hypot(e.x-TK.x,e.z-TK.z)<30) return false; return true; }
+/* review: a quality switch rebuilds the whole level (enemies included) — never during a boss fight or near enemies */
+function aqCalm(){ if(LOC.safe) return true; for(const e of ENEMIES) if(e.boss&&!e.dead) return false; for(const e of ENEMIES) if(!e.dead&&Math.hypot(e.x-TK.x,e.z-TK.z)<30) return false; return true; }
 function autoQ(rdt){ if(qMode!=='auto'||!ready||transit||document.hidden) return; if(AQ.skip>0){ AQ.skip-=rdt; return; }
   AQ.t+=rdt; AQ.fr++; if(AQ.t<1) return; AQ.s.push(AQ.fr/AQ.t); AQ.t=0; AQ.fr=0; if(AQ.s.length>12) AQ.s.shift();
   const S=AQ.s, n=S.length, srt=S.slice().sort((a,b)=>a-b), med=srt[n>>1], qi=Q_ORD.indexOf(Q);
   if(AQ.phase==='calib'){ if(n<3) return; const avg=S.reduce((a,b)=>a+b,0)/n; AQ.phase='watch'; if(avg<40&&qi>0) aqSet(Q_ORD[qi-1],`Авто: ${Math.round(avg)} FPS → ${QUALITY[Q_ORD[qi-1]].label}`); else aqReset(0); return; }
   if(AQ.up){ const last=S.slice(-5).sort((a,b)=>a-b), lm=last[last.length>>1], comfort=Math.min(50,AQ.base*0.85);
-    if(S.length>=5&&(lm<comfort||DYN.scale<0.8)){ AQ.up=false; AQ.locked=true; aqSet(AQ.from,`Авто: FPS просел до ${Math.round(lm)} → ${QUALITY[AQ.from].label}. Дальше графику меняешь сам в меню`); return; } }
+    if(S.length>=5&&(lm<comfort||DYN.scale<0.8)&&aqCalm()){ AQ.up=false; AQ.locked=true; aqSet(AQ.from,`Авто: FPS просел до ${Math.round(lm)} → ${QUALITY[AQ.from].label}. Дальше графику меняешь сам в меню`); return; } }
   if(AQ.locked||qi>=2||n<10) return;
   const steady=srt[n-1]-srt[0]<=3&&med>=45, fast=srt[0]>=61;
   if((steady||fast)&&DYN.scale>=0.999&&aqCalm()){ AQ.from=Q; AQ.base=med; AQ.up=true; aqSet(Q_ORD[qi+1],`Авто: стабильно ${Math.round(med)} FPS → ${QUALITY[Q_ORD[qi+1]].label}`); } }

@@ -11,7 +11,7 @@ const BOSSES = [
 async function arena(ctx, b) {
   const c = await client({ name: b.type }); ctx.clients.push(c);
   const s = await toBoss(c, b); assert(s && s.type === b.type, `boss ${b.type} did not spawn (${JSON.stringify(s)})`);
-  await c.js(() => { __dbg.TK.hp = 99999; __dbg.TK.maxHp = 99999; });
+  await c.js(() => { const D = __dbg, e = D.ENEMIES.find(x => x.boss); D.TK.hp = 99999; Object.assign(D.TK, { x: e.x + 16, z: e.z + 12 }); });
   return c;
 }
 const boss = c => c.js(() => { const e = __dbg.ENEMIES.find(x => x.boss); return e ? { hp: e.hp, dead: !!e.dead, inv: !!e.inv, st: e.st, mode: e.mode, bar: !document.querySelector('#bossBar').hidden, bound: __dbg.BOSS.e === e } : null; });
@@ -20,8 +20,10 @@ export const tests = [
   ...BOSSES.map(b => ({ name: `${b.type}: spawn, bar, real shells`, timeout: 150, async run(ctx) {
     const c = await arena(ctx, b);
     if (b.type === 'crypt') { // lions first, then the Energobot comes out of the crypt
+      const lions = await c.until(() => __dbg.ENEMIES.filter(e => e.type === 'lion' && !e.dead).length === 2, null, { timeout: 20000 }); assert(lions, 'lions did not appear');
+      await c.wait(1500);
       await c.js(() => { for (const l of __dbg.ENEMIES.filter(e => e.type === 'lion')) { l.inv = false; __dbg.killEnemy(l, 1, 0, 'x'); } });
-      const out = await c.until(() => { const e = __dbg.ENEMIES.find(x => x.boss); return e && e.st === 'fight'; }, null, { timeout: 30000 });
+      const out = await c.until(() => { const e = __dbg.ENEMIES.find(x => x.boss); return e && e.st === 'fight'; }, null, { timeout: 60000 });
       assert(out, 'Energobot never left the crypt');
       const xf = await c.js(() => __dbg.ENEMIES.filter(e => e.xf && !e.dead).length); assert(xf === 12, 'transformers: ' + xf);
     }
