@@ -121,7 +121,26 @@
           <dt>ОГОНЬ</dt><dd>стрельба</dd>
         </dl></div>
     </div>
-    <div class="crow"><button class="go" id="bGo">Поехали</button><button class="ghost" id="bReset">Начать заново</button></div>
+    <div class="crow"><button class="go" id="bGo">Поехали</button><button class="go alt" id="bOnline">С другом</button><button class="ghost" id="bReset">Начать заново</button></div>
+  </div>
+</div>
+
+<div id="lobby" hidden role="dialog" aria-label="Игра с другом">
+  <div class="card">
+    <h1>Игра с <em>другом</em></h1>
+    <div class="lbs" id="lbMenu">
+      <p>Один создаёт комнату и называет код, второй вводит его. Играете вдвоём против роботов.</p>
+      <div class="crow"><button class="go" id="lbCreate">Создать комнату</button></div>
+      <div class="lbjoin"><input id="lbCode" maxlength="9" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="КОД" aria-label="Код комнаты"><button class="go" id="lbJoin">Войти</button></div>
+      <div class="crow"><button class="ghost" id="lbBack">Назад</button></div>
+    </div>
+    <div class="lbs" id="lbRoom" hidden>
+      <div class="lbcode"><small>Код комнаты</small><b id="lbCodeBig">·····</b></div>
+      <ul class="lbpl"><li><span>Ты</span><em id="lbMe">не готов</em></li><li><span>Друг</span><em id="lbPeer">ждём…</em></li></ul>
+      <p id="lbHint"></p>
+      <div class="crow"><button class="go" id="lbReady">Готов</button><button class="go alt" id="lbStart" hidden disabled>Старт</button><button class="ghost" id="lbLeave">Выйти</button></div>
+    </div>
+    <div class="lbs" id="lbMsg" hidden><p id="lbMsgTx"></p><div class="crow"><button class="go" id="lbOk">Ок</button></div></div>
   </div>
 </div>
 
