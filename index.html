@@ -1,0 +1,134 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"><style>html,body{margin:0;padding:0}body{font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Шаротанк Онлайн</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@700;900&text=%E4%B8%83%E5%8F%B7%E8%90%A5%E5%9C%B0%E9%87%91%E6%B5%B7%E5%B7%A5%E4%B8%9A%E5%8C%BA%E4%B9%9D%E9%BE%99%E6%B9%BE%E6%A1%83%E8%8A%B1%E6%9D%91%E7%81%B5%E6%B0%B4%E9%95%87%E8%BD%A6%E5%BA%93%E5%87%BB%E6%AF%81%E5%AE%89%E5%85%A8%E7%94%B5%E5%8E%82%E5%8C%97%E7%AB%99%E4%B8%9C%E6%B8%AF%E6%96%B0%E8%8C%B6%E5%B1%B1%E5%AF%BA%E4%BB%BB%E5%8A%A1%E5%AE%8C%E6%88%90&display=swap" rel="stylesheet">
+</head><body>
+
+<canvas id="c" tabindex="0" aria-label="Игровое поле"></canvas>
+
+<div class="tl">
+  <div class="tlh"><div class="rank" id="rank" title="Звание"><svg id="rankIco" viewBox="0 0 30 30" aria-hidden="true"></svg><b id="rankName">Рядовой</b></div>
+  <div class="scrap"><i class="nut" aria-hidden="true"></i><b id="scrapTxt">0</b><em id="scrapGain"></em></div></div>
+  <div class="hp">
+    <div class="hprow"><span class="lbl">Броня<span class="cr">· критично</span></span><b id="hpTxt">100<small> / 100</small></b></div>
+    <div class="hpbar" id="hpBar"><i id="hpFill" style="width:100%"></i></div>
+  </div>
+  <div class="obj" id="obj" hidden></div>
+  <div class="wbox"><div class="wdrum" id="wdrum" title="Сменить оружие (Q)"><div class="wd" id="wdIn"></div></div>
+  <div class="wstate"><span class="chm" id="wchm"></span><div class="bar"><i id="wbar"></i></div><span id="wst">Готов</span></div></div>
+  <div class="abil" id="abil" hidden></div>
+</div>
+
+<div class="tr">
+  <div class="trh"><div class="fps" id="fps">— FPS</div><button class="chip mbtn" id="bMenu" aria-expanded="false" aria-controls="trMenu"><span class="burg" aria-hidden="true"><i></i><i></i><i></i></span>Меню</button></div>
+  <div class="trm" id="trMenu" hidden>
+  <div class="seg" id="qseg" role="group" aria-label="Качество">
+    <button data-q="auto">Авто</button><button data-q="low">Низ</button><button data-q="med">Сред</button><button data-q="high">Выс</button>
+  </div>
+  <div class="row">
+    <button class="chip" id="bPal" title="Сменить палитру (P)"><span class="dots" id="pdots"><i></i><i></i><i></i></span><span id="pname">Кобальт</span></button>
+  </div>
+  <div class="row">
+    <button class="chip on" id="bTouch">Кнопки</button>
+    <button class="chip on" id="bSnd">Звук</button>
+    <button class="chip" id="bHelp">?</button>
+  </div>
+  <div class="where" id="where"></div>
+  <div class="dbgx"><button class="chip" id="bDbg" type="button">Отладка ▸</button><div class="row" id="dbgBoss" hidden><button class="chip" data-boss="crypt">Склеп</button><button class="chip" data-boss="krot">Крот</button><button class="chip" data-boss="hornet">Шершень</button><button class="chip" data-boss="dragon">Дракон</button></div></div>
+  </div>
+</div>
+
+<div class="kits" id="kits"><button class="kit" id="kRep" title="Экстренный ремонт (R)" aria-label="Экстренный ремонт"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke-width="3"/><circle cx="12" cy="12" r="10" stroke-width="1.4"/></svg><b hidden></b></button><button class="kit" id="kAmmo" title="Сброс боеприпасов (T)" aria-label="Сброс боеприпасов"><svg viewBox="0 0 24 24"><rect x="3" y="9" width="18" height="11" rx="1" stroke-width="1.6"/><path d="M3 13h18M8 9V5h2v4M12 9V4h2v5M16 9V5h2v4" stroke-width="1.4"/></svg><b hidden></b></button><button class="kit" id="kArt" title="Артудар (G)" aria-label="Артиллерийский удар"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5" stroke-width="1.6"/><circle cx="12" cy="12" r="2.6" stroke-width="1.6"/><path d="M12 1.5v5M12 17.5v5M1.5 12h5M17.5 12h5" stroke-width="1.6"/></svg><b hidden></b></button><button class="kit" id="kAbil" title="Щит (E)" aria-label="Поднять щит" hidden><svg viewBox="0 0 24 24"><path d="M12 2.5l8 3v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10v-6z" stroke-width="1.6"/><path d="M8 12l3 3 5-6" stroke-width="1.6"/></svg></button></div>
+
+<div class="bc">
+  <div class="gauge"><div class="big" id="spd">0</div><div class="lbl">км/ч</div></div>
+  <div class="gauge">
+    <svg id="hz" viewBox="0 0 84 46" aria-hidden="true">
+      <rect x="0.5" y="0.5" width="83" height="45" fill="none" stroke="rgba(234,242,255,.22)"/>
+      <line x1="42" y1="4" x2="42" y2="10" stroke="rgba(234,242,255,.4)"/>
+      <line x1="42" y1="36" x2="42" y2="42" stroke="rgba(234,242,255,.4)"/>
+      <g id="hzg"><line x1="8" y1="23" x2="76" y2="23" stroke="currentColor" stroke-width="1.6"/><line x1="36" y1="27" x2="48" y2="27" stroke="currentColor" stroke-width="1"/></g>
+      <circle cx="42" cy="23" r="2" fill="#eaf2ff"/>
+    </svg>
+    <div class="stab" id="stab">Стаб ●</div>
+  </div>
+  <div class="gauge"><div class="lbl">откл <b id="err">0.0</b> м</div><div class="lbl">снесено <b id="dst">0.0</b> м³</div></div>
+</div>
+
+<div id="ret"><i></i><i></i><i></i><i></i></div>
+<div id="imp"><b></b></div>
+<div id="armNum" hidden></div><div id="ammoNum" hidden><span class="rv"></span></div>
+<div id="lock" hidden><i></i><i></i><i></i><i></i><span id="lockN"></span><div class="lh"><b id="lockHp"></b></div></div>
+<div id="tgtArrow" hidden><div class="ar"></div><small id="tgtD"></small></div>
+<div id="flash"></div><div id="critV"></div><div id="tap" hidden></div>
+<div id="hqMark" hidden><div class="hm"><div class="dia"><b>!</b></div><small>ШТАБ</small></div></div>
+<div id="win" hidden><div class="wbx"><span class="wk" id="winK">任务完成</span><b id="winH">Задание выполнено</b><em id="winT"></em><div class="wr"><i class="nut" aria-hidden="true"></i><span id="winR">+0</span><small>лома</small></div><div class="wrank" id="winRank" hidden><svg id="winRankIco" viewBox="0 0 30 30" aria-hidden="true"></svg><span>Новое звание<b id="winRankN"></b></span></div><small id="winNext"></small></div></div>
+<div id="radio" hidden aria-live="polite"><div class="rav talk" id="radioAv"><svg viewBox="0 0 48 48" aria-hidden="true"><path class="wv w1" d="M33 17a8 8 0 0 1 0 12"/><path class="wv w2" d="M37 13a13 13 0 0 1 0 20"/><path class="wv w3" d="M41 9a18 18 0 0 1 0 28"/><path d="M15 12V2.5" stroke-width="2.4" stroke-linecap="round"/><rect x="9" y="12" width="20" height="33" rx="3.5"/><rect x="12.5" y="16" width="13" height="8" rx="1"/><path d="M13 29h12M13 32.5h12M13 36h12M13 39.5h12" stroke-width="1.4"/><circle class="led" cx="24.5" cy="9" r="1.6"/></svg></div><div><b class="who">Генерал Джао</b><span id="radioTx"></span></div></div>
+<div id="mcard" hidden role="dialog" aria-label="Задание штаба"><div class="mch"><span>Штаб · <span id="mcKind">Новое задание</span></span><em>任务</em></div><div class="mcbrief"><div class="rav" id="mcRav"><svg viewBox="0 0 48 48" aria-hidden="true"><path class="wv w1" d="M33 17a8 8 0 0 1 0 12"/><path class="wv w2" d="M37 13a13 13 0 0 1 0 20"/><path class="wv w3" d="M41 9a18 18 0 0 1 0 28"/><path d="M15 12V2.5" stroke-width="2.4" stroke-linecap="round"/><rect x="9" y="12" width="20" height="33" rx="3.5"/><rect x="12.5" y="16" width="13" height="8" rx="1"/><path d="M13 29h12M13 32.5h12M13 36h12M13 39.5h12" stroke-width="1.4"/><circle class="led" cx="24.5" cy="9" r="1.6"/></svg></div><div><b class="who">Генерал Джао · на связи</b><p id="mcBrief"></p></div></div><div class="mcr"><canvas id="mcPrev" width="96" height="96" aria-hidden="true"></canvas><div><h2 id="mcTitle"></h2><p id="mcObj"></p><p id="mcName"></p><p id="mcInfo"></p></div></div><div class="mcb"><button class="btn solid" id="mcOk">Принять</button><button class="btn" id="mcLater">Позже</button></div></div>
+
+<div class="pad" id="padL">
+  <div class="stick" id="moveStick" aria-label="Джойстик движения"><span class="stl">ДВИЖЕНИЕ</span><span class="knob">ХОД</span></div>
+</div>
+<div class="pad" id="padR">
+  <button class="tb" id="bShield" aria-label="Поднять щит" hidden><svg viewBox="0 0 24 24"><path d="M12 2.5l8 3v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10v-6z"/><path d="M8 12l3 3 5-6"/></svg></button>
+  <div class="frow"><button class="tb" id="bSwap" aria-label="Сменить оружие"><svg viewBox="0 0 24 24"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg><small>СМЕНА</small></button><button class="tb fire" id="bFire" aria-label="Огонь">ОГОНЬ</button></div>
+  <div class="stick" id="aimStick" aria-label="Джойстик прицела"><span class="stl">ПРИЦЕЛ</span><span class="knob">ЦЕЛЬ</span></div>
+</div>
+
+<div id="banner"><div class="bx"><div class="bcn" id="bnCn"></div><div class="bru" id="bnRu"></div><div class="bsub" id="bnSub"></div></div></div>
+
+<div id="garage" hidden>
+  <div class="gtop"><div class="gtitle" id="gTitle">ГАРАЖ <span class="cjk">车库</span></div><div class="ghint">тяни по экрану, чтобы покрутить танк</div></div>
+  <div class="gpick" id="gPick" hidden></div>
+  <aside class="gpanel" id="gpanel">
+    <div class="gscrap"><i class="nut" aria-hidden="true"></i><b id="gScrap">0</b><span>лома</span></div>
+    <section class="gcard" id="gHull">
+      <div class="ghead"><h3>Корпус</h3><span id="gHpTxt"></span></div>
+      <div class="hpbar"><i id="gHpFill"></i></div>
+      <div class="sides" id="gSides"></div>
+      <button class="btn solid" id="gRepair"></button>
+    </section>
+    <div id="gUps" style="display:flex;flex-direction:column;gap:12px"></div>
+    <p class="gnote">Лом падает только с роботов: обломки, детали, ящики. Подъедь ближе, магнит сам притянет. Боезапас пополняется при каждом возвращении в лагерь. Улучшения сохраняются в этом браузере.</p>
+    <button class="gexit" id="gExit">Выехать из гаража</button>
+  </aside>
+</div>
+
+<div id="toast" hidden></div>
+
+<div id="help" hidden>
+  <div class="card">
+    <h1>Шаротанк <em>Онлайн</em></h1>
+    <p>Город захватили шагающие роботы. Выезжай из лагеря, бери задания в штабе и возвращай районы. Лом с роботов идёт на апгрейды в гараже.</p>
+    <div class="cols">
+      <div><h2>Клавиатура и мышь</h2>
+        <dl class="kv">
+          <dt><kbd>W</kbd> <kbd>S</kbd></dt><dd>газ и задний ход</dd>
+          <dt><kbd>A</kbd> <kbd>D</kbd></dt><dd>руль</dd>
+          <dt><kbd>Пробел</kbd></dt><dd>ручник</dd>
+          <dt>мышь, ЛКМ / <kbd>F</kbd></dt><dd>прицел и огонь</dd>
+          <dt>средняя кнопка</dt><dd>захват цели · по пустому месту — сброс</dd>
+          <dt><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>Q</kbd></dt><dd>смена оружия</dd>
+          <dt><kbd>R</kbd> <kbd>T</kbd></dt><dd>ремонт и ящик патронов</dd>
+        </dl></div>
+      <div><h2>Сенсорный экран</h2>
+        <dl class="kv">
+          <dt>левый стик</dt><dd>движение</dd>
+          <dt>правый стик</dt><dd>прицел</dd>
+          <dt>тап по врагу</dt><dd>выбрать цель, тап мимо — сброс</dd>
+          <dt>ОГОНЬ</dt><dd>стрельба</dd>
+        </dl></div>
+    </div>
+    <div class="crow"><button class="go" id="bGo">Поехали</button><button class="ghost" id="bReset">Начать заново</button></div>
+  </div>
+</div>
+
+<div id="bossBar" hidden><div class="bbH"><b id="bbName"></b><i id="bbPh"></i></div><div class="bbT"><div id="bbF"></div></div></div>
+<div id="spotFx"></div>
+<div id="fade"></div>
+<div id="load"><div class="ld"><div class="lcn" id="loadCn">Sharotank Online</div><div class="big" style="font-size:16px" id="loadRu">ЗАГРУЗКА</div><div class="bar"><i></i></div><div class="lbl" id="loadq">воксели · фонари · такси</div></div></div>
+
+<script type="module" src="/src/main.js"></script>
+</body></html>
