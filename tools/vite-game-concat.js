@@ -14,6 +14,9 @@ export function gameFiles(dir) {
 
 export function joinGame(dir) {
   const b = new Bundle();
+  /* imports.mjs — заголовок: import-ы из src/lib (настоящие модули). Не нумерован, поэтому в gameFiles не попадает. */
+  const head = path.join(dir, 'imports.mjs');
+  if (fs.existsSync(head)) b.addSource({ filename: head, content: new MagicString(fs.readFileSync(head, 'utf8') + '\n') });
   for (const file of gameFiles(dir)) {
     b.addSource({ filename: file, content: new MagicString(fs.readFileSync(file, 'utf8')) });
   }
@@ -30,6 +33,7 @@ export default function gameConcat({ dir = 'src/game' } = {}) {
       if (id !== RID) return null;
       const d = path.resolve(root, dir);
       for (const f of gameFiles(d)) this.addWatchFile(f);
+      this.addWatchFile(path.join(d, 'imports.mjs'));
       return joinGame(d);
     },
     handleHotUpdate(ctx) {

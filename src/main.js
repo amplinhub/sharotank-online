@@ -2,4 +2,5 @@
    the files in src/game/ are joined in name order into a single ES module. */
 import './styles.css';
 import './three-global.js';
+import './net/expose.js';
 import 'virtual:sharotank-game';
