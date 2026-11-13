@@ -34,7 +34,7 @@ function lbToMenu(){
   const wasGame=LB.inGame; lbReset(); $('#lobby').hidden=true; helpOpen=true; $('#help').hidden=false;
   if(wasGame){ let n=0; const go=()=>{ if(LOC_ID==='camp') return; if(transit&&n++<40) return setTimeout(go,300); goLocation('camp',null,{x:40,z:44,h:Math.PI}); }; go(); }
 }
-function lbFail(code){ lbReset(); $('#lbCreate').disabled=$('#lbJoin').disabled=false; $('#lbJoin').textContent='Войти'; lbSec('lbMsg',NET_TXT[code]||NET_TXT.server); LB.afterMsg='lbMenu'; }
+function lbFail(code,detail){ lbReset(); $('#lbCreate').disabled=$('#lbJoin').disabled=false; $('#lbJoin').textContent='Войти'; lbSec('lbMsg',(NET_TXT[code]||NET_TXT.server)+(detail?' ['+detail+']':'')); LB.afterMsg='lbMenu'; }  /* в скобках — техническая причина (для диагностики) */
 
 function lbStartGame(){
   LB.inGame=true; $('#lobby').hidden=true; closeHelp();
@@ -69,7 +69,7 @@ $('#lbCreate').addEventListener('click',async()=>{
   if(LB.busy) return; sfxClick(); LB.busy=true; $('#lbCreate').disabled=$('#lbJoin').disabled=true;
   const t=window.SHT_NET.createTransport(); LB.t=t; LB.role='host'; lbWire(t);
   try{ LB.code=await t.host(); LB.busy=false; lbSec('lbRoom'); lbRender(); }
-  catch(err){ if(LB.t!==t) return; LB.busy=false; lbFail(err.code); }
+  catch(err){ if(LB.t!==t) return; LB.busy=false; lbFail(err.code,err.message); }
 });
 $('#lbJoin').addEventListener('click',async()=>{
   if(LB.busy) return; sfxClick();
@@ -77,7 +77,7 @@ $('#lbJoin').addEventListener('click',async()=>{
   LB.busy=true; $('#lbCreate').disabled=$('#lbJoin').disabled=true; $('#lbJoin').textContent='Соединяюсь…';
   const t=window.SHT_NET.createTransport(); LB.t=t; LB.role='guest'; LB.code=code; lbWire(t);
   try{ await t.join(code); LB.busy=false; lbSec('lbRoom'); lbRender(); }
-  catch(err){ if(LB.t!==t) return; LB.busy=false; lbFail(err.code); }
+  catch(err){ if(LB.t!==t) return; LB.busy=false; lbFail(err.code,err.message); }
 });
 $('#lbReady').addEventListener('click',()=>{
   sfxClick(); if(!LB.t||!LB.t.open) return;

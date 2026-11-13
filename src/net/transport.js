@@ -126,18 +126,20 @@ export function createTransport() {
       const code = normalizeCode(rawCode);
       if (!code) return Promise.reject(fail(ERR.BAD_CODE));
       return new Promise((resolve, reject) => {
-        let settled = false;
+        let settled = false, signalingUp = false;
         const done = (err) => {
           if (settled) return; settled = true; clearTimeout(to);
           if (err) { try { peer && peer.destroy(); } catch (e) { /* ок */ } closed = true; reject(err); } else resolve();
         };
-        const to = setTimeout(() => done(fail(ERR.TIMEOUT)), CONNECT_TIMEOUT);
+        // Если сервер сигналинга так и не ответил — это «сервер недоступен», а не «прямая связь не поднялась».
+        const to = setTimeout(() => done(signalingUp ? fail(ERR.TIMEOUT, 'p2p timeout') : fail(ERR.SERVER, 'signaling timeout')), CONNECT_TIMEOUT);
         try { peer = new Peer(peerOptions()); } catch (e) { return done(fail(ERR.SERVER, String(e))); }
         peer.on('error', e => {
           if (!settled) return done(fail(e.type === 'peer-unavailable' ? ERR.NO_ROOM : ERR.SERVER, e.type));
           fireClose('error');
         });
         peer.on('open', () => {
+          signalingUp = true;
           const c = peer.connect(PREFIX + code, { serialization: 'json', reliable: true });
           wire(c);
           c.on('data', d => { if (d && d.__full && !settled) { done(fail(ERR.FULL)); } });
