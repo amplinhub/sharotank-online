@@ -1,0 +1,22 @@
+# Сервер комнат + Caddy (сам получает сертификат Let's Encrypt для вашего домена).
+# Запуск: cp .env.example .env, вписать DOMAIN, затем docker compose up -d --build
+services:
+  signaling:
+    build: .
+    restart: unless-stopped
+    environment:
+      PORT: "9000"
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      DOMAIN: ${DOMAIN:?впишите DOMAIN в файл .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [signaling]
+volumes:
+  caddy_data:
+  caddy_config:
