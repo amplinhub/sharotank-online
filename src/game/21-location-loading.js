@@ -36,7 +36,7 @@ function rebuild(q){ ready=false; Q=q; mapResize(LOC.size||80); bossFxClear(); A
   for(const p of proj) freeProj(p); proj.length=0; rkQ=0;
   debInit(qq.debris); spkInit(qq.sparks);
   if(SMOKE){ scene.remove(SMOKE.mesh); scene.remove(FIRE.mesh); SMOKE.geo.dispose(); FIRE.geo.dispose(); }
-  SMOKE=new Puffs(qq.puffs,false); FIRE=new Puffs(Math.round(qq.puffs*0.5),true);
+  setSmoke(new Puffs(qq.puffs,false),new Puffs(Math.round(qq.puffs*0.5),true));
   marks.length=0; destroyed=0; dirty.clear(); FLOORS.length=0; VEHS.length=0; tracksClear(); for(const m of TRINGS) m.visible=false;
   LOC.gen(mulberry32(7)); streetDress(LOC_ID,mulberry32(11)); for(const cr of CARS) cr.n0=carCount(cr); lastDestroyed=0;
   const st=LOC.safe?null:LOC_STATE[LOC_ID]; if(st&&st.Q===q){ grid=st.grid; st.cars.forEach((d,i)=>{ if(CARS[i]&&d) CARS[i].dead=true; }); }
