@@ -1,0 +1,10 @@
+{
+  "name": "sharotank-signaling",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Сервер комнат (сигналинг) для Шаротанк Онлайн: только рукопожатия WebRTC, игровых данных не видит",
+  "scripts": { "start": "node server.mjs" },
+  "dependencies": { "peer": "^1.0.2" },
+  "engines": { "node": ">=20" }
+}

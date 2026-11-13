@@ -1,0 +1,9 @@
+# Render Blueprint: бесплатный сервер комнат. New → Blueprint → выбрать этот репозиторий.
+services:
+  - type: web
+    name: sharotank-signaling
+    runtime: docker
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: ./server
+    plan: free
+    healthCheckPath: /
