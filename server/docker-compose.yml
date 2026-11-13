@@ -1,5 +1,5 @@
 # Сервер комнат + Caddy (сам получает сертификат Let's Encrypt для вашего домена).
-# Запуск: cp .env.example .env, вписать DOMAIN, затем docker compose up -d --build
+# Обычно файл .env создаёт install.sh. Вручную: cp .env.example .env, вписать DOMAIN, docker compose up -d --build
 services:
   signaling:
     build: .
