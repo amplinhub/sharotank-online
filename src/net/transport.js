@@ -141,7 +141,8 @@ export function createTransport() {
         };
         // Если сервер сигналинга так и не ответил — это «сервер недоступен», а не «прямая связь не поднялась».
         let to = setTimeout(() => done(fail(ERR.SERVER, 'signaling timeout')), sigTimeout()); // фаза 1: ждём сервер комнат
-        try { peer = new Peer(peerOptions()); } catch (e) { return done(fail(ERR.SERVER, String(e))); }
+        // Свой id, чтобы PeerJS не делал отдельный HTTP-запрос GET /id (он не проходит из file:// и content://, а WebSocket проходит).
+        try { peer = new Peer(PREFIX + 'g-' + makeCode() + makeCode() + makeCode(), peerOptions()); } catch (e) { return done(fail(ERR.SERVER, String(e))); }
         peer.on('error', e => {
           if (!settled) return done(fail(e.type === 'peer-unavailable' ? ERR.NO_ROOM : ERR.SERVER, e.type));
           fireClose('error');
