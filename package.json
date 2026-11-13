@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build && vite build --mode single",
     "preview": "vite preview",
-    "lint": "node tools/lint-game.mjs && eslint tests tools src/*.js src/net vite.config.js",
+    "lint": "node tools/lint-game.mjs && eslint tests tools src/*.js src/net src/lib vite.config.js",
     "test": "node tests/run.mjs",
     "test:quick": "node tests/run.mjs --quick"
   },

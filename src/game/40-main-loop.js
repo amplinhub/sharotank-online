@@ -1,6 +1,6 @@
 /* ================= MAIN LOOP ================= */
 let last=performance.now(), fpsS=60, lampT=0, saveT=0, tankSh=null;
-function frame(now){ requestAnimationFrame(frame); FRAME_N++; let dt=(now-last)/1000; last=now; if(!ready) return; const rdt=dt; dt=Math.min(dt,window.__DT_MAX||1/30); if(hitStop>0){ hitStop-=rdt; dt*=0.12; }
+function frame(now){ requestAnimationFrame(frame); SHT.frame++; let dt=(now-last)/1000; last=now; if(!ready) return; const rdt=dt; dt=Math.min(dt,window.__DT_MAX||1/30); if(hitStop>0){ hitStop-=rdt; dt*=0.12; }
   fpsS+=((1/Math.max(rdt,1e-3))-fpsS)*0.05;
   if(GAR.open){ garUpdate(dt,now); if(SND.ctx&&!SND.muted) engineUpdate(dt,false); renderer.render(GAR.scene,GAR.cam); fpsEl.textContent=Math.round(fpsS)+' FPS'; return; }
   const inp=readInput(); if(helpOpen||transit||TK.dead){ inp.throttle=0; inp.steer=0; inp.fire=false; inp.joy=null; } if(SHD.on){ inp.throttle=0; inp.steer=0; inp.joy=null; }

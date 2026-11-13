@@ -49,8 +49,8 @@ export const tests = [
       await host.until(() => !document.querySelector('#lbStart').disabled, null, { timeout: 3000 });
       await host.page.click('#lbStart');
       for (const c of [host, guest]) {
-        const r = await c.until(() => window.__lb.inGame && !__dbg.transit && __dbg.LOC_ID === 'south', null, { timeout: 60000 });
-        assert(r, c.name + ' did not reach the village');
+        const r = await c.until(() => window.__lb.inGame && !__dbg.transit && __dbg.LOC_ID === 'junk', null, { timeout: 60000 });
+        assert(r, c.name + ' did not reach the junkyard');
         assert(await vis(c, '#lobby') === false, c.name + ': lobby still on screen');
         assert(await c.js(() => !document.querySelector('#help').hidden) === false, c.name + ': menu still on screen');
       }
@@ -64,7 +64,7 @@ export const tests = [
       await guest.page.click('#lbReady'); await host.page.click('#lbReady');
       await host.until(() => !document.querySelector('#lbStart').disabled, null, { timeout: 5000 });
       await host.page.click('#lbStart');
-      assert(await guest.until(() => window.__lb.inGame && !__dbg.transit && __dbg.LOC_ID === 'south', null, { timeout: 60000 }), 'guest not in game');
+      assert(await guest.until(() => window.__lb.inGame && !__dbg.transit && __dbg.LOC_ID === 'junk', null, { timeout: 60000 }), 'guest not in game');
       await host.close(); // как будто хост закрыл вкладку; ctx.clients закроет повторно без ошибки
       const msg = await guest.until(() => { const e = document.querySelector('#lbMsg'); return !e.hidden && !document.querySelector('#lobby').hidden ? document.querySelector('#lbMsgTx').textContent : ''; }, null, { timeout: 30000 });
       assert(/Хост отключился/.test(msg), 'guest message: ' + msg);
