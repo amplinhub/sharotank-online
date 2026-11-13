@@ -9,10 +9,12 @@
      window.SHT_NET_CFG = { host, port, path, secure, iceServers }   (тесты ставят localhost)
    или параметры адреса ?sig=host:port  */
 import Peer from 'peerjs';
+import { SIGNALING } from './config.js';
 
 export const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // без O/0, I/1
 export const CODE_LEN = 5;
-export const CONNECT_TIMEOUT = 10000; // вариант А: через 10 с — понятная ошибка
+export const CONNECT_TIMEOUT = 10000; // вариант А: прямая связь не поднялась за 10 с — понятная ошибка
+export const SIGNALING_TIMEOUT = 30000; // сервер комнат на бесплатном хостинге просыпается до ~минуты; переопределяется cfg.signalingTimeout
 export const HB_EVERY = 2000;
 export const HB_DEAD = 7000;
 const PREFIX = 'sharotank-';
@@ -36,12 +38,18 @@ export function normalizeCode(s) {
   return c.length === CODE_LEN && [...c].every(ch => ALPHABET.includes(ch)) ? c : null;
 }
 
-function peerOptions() {
-  const cfg = { ...(typeof window !== 'undefined' && window.SHT_NET_CFG ? window.SHT_NET_CFG : {}) };
+function netCfg() {
+  const cfg = { ...(SIGNALING.host ? SIGNALING : {}), ...(typeof window !== 'undefined' && window.SHT_NET_CFG ? window.SHT_NET_CFG : {}) };
   try {
     const sig = new URLSearchParams(location.search).get('sig');
     if (sig) { const [h, p] = sig.split(':'); Object.assign(cfg, { host: h, port: +p || 9000, path: '/', secure: false }); }
   } catch (e) { /* нет location — не страшно */ }
+  return cfg;
+}
+const sigTimeout = () => netCfg().signalingTimeout || SIGNALING_TIMEOUT;
+
+function peerOptions() {
+  const cfg = netCfg();
   const o = { debug: 0 }; // PeerJS сам пишет в console.error — ошибки отдаём через свои колбэки
   for (const k of ['host', 'port', 'path', 'secure', 'key']) if (cfg[k] !== undefined) o[k] = cfg[k];
   if (cfg.iceServers) o.config = { iceServers: cfg.iceServers };
@@ -100,7 +108,7 @@ export function createTransport() {
           let p;
           try { p = new Peer(PREFIX + code, peerOptions()); } catch (e) { return reject(fail(ERR.SERVER, String(e))); }
           peer = p;
-          const to = setTimeout(() => { try { p.destroy(); } catch (e) { /* ок */ } reject(fail(ERR.SERVER, 'signaling timeout')); }, CONNECT_TIMEOUT);
+          const to = setTimeout(() => { try { p.destroy(); } catch (e) { /* ок */ } reject(fail(ERR.SERVER, 'signaling timeout')); }, sigTimeout());
           p.on('open', () => { clearTimeout(to); t._code = code; hosting = true; resolve(code); });
           p.on('error', e => {
             clearTimeout(to);
@@ -126,18 +134,21 @@ export function createTransport() {
       const code = normalizeCode(rawCode);
       if (!code) return Promise.reject(fail(ERR.BAD_CODE));
       return new Promise((resolve, reject) => {
-        let settled = false;
+        let settled = false, signalingUp = false; void signalingUp;
         const done = (err) => {
           if (settled) return; settled = true; clearTimeout(to);
           if (err) { try { peer && peer.destroy(); } catch (e) { /* ок */ } closed = true; reject(err); } else resolve();
         };
-        const to = setTimeout(() => done(fail(ERR.TIMEOUT)), CONNECT_TIMEOUT);
+        // Если сервер сигналинга так и не ответил — это «сервер недоступен», а не «прямая связь не поднялась».
+        let to = setTimeout(() => done(fail(ERR.SERVER, 'signaling timeout')), sigTimeout()); // фаза 1: ждём сервер комнат
         try { peer = new Peer(peerOptions()); } catch (e) { return done(fail(ERR.SERVER, String(e))); }
         peer.on('error', e => {
           if (!settled) return done(fail(e.type === 'peer-unavailable' ? ERR.NO_ROOM : ERR.SERVER, e.type));
           fireClose('error');
         });
         peer.on('open', () => {
+          signalingUp = true; clearTimeout(to);
+          to = setTimeout(() => done(fail(ERR.TIMEOUT, 'p2p timeout')), CONNECT_TIMEOUT); // фаза 2: прямая связь с хостом
           const c = peer.connect(PREFIX + code, { serialization: 'json', reliable: true });
           wire(c);
           c.on('data', d => { if (d && d.__full && !settled) { done(fail(ERR.FULL)); } });

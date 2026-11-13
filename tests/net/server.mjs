@@ -23,5 +23,5 @@ export async function startDeafServer() {
   const port = await freePort(), socks = new Set();
   const s = net.createServer(sock => { socks.add(sock); sock.on('close', () => socks.delete(sock)); sock.on('error', () => {}); });
   await new Promise(res => s.listen(port, '127.0.0.1', res));
-  return { port, cfg: { host: '127.0.0.1', port, path: '/', secure: false, iceServers: [] }, close: () => { for (const k of socks) k.destroy(); s.close(); } };
+  return { port, cfg: { host: '127.0.0.1', port, path: '/', secure: false, iceServers: [], signalingTimeout: 10000 }, close: () => { for (const k of socks) k.destroy(); s.close(); } };
 }
