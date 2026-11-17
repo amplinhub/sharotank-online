@@ -29,4 +29,11 @@ export const tests = [
     await c.shot('bossbar');
     assert(!ov, 'boss bar overlaps objective: ' + JSON.stringify(r));
   } }
+  ,{ name: 'secret: 5 quick taps on «Выс» give 5000 scrap', timeout: 90, async run(ctx) {
+    const c = await client({ name: 'cheat' }); ctx.clients.push(c);
+    const r = await c.js(async () => { const b = document.querySelector('#qseg button[data-q="high"]'), s0 = __dbg.ST.scrap;
+      for (let i = 0; i < 4; i++) b.click(); const s4 = __dbg.ST.scrap; await new Promise(f => setTimeout(f, 2300));
+      for (let i = 0; i < 5; i++) b.click(); return { d4: s4 - s0, d5: __dbg.ST.scrap - s4 }; });
+    assert(r.d4 === 0 && r.d5 === 5000, 'cheat: ' + JSON.stringify(r));
+  } }
 ];

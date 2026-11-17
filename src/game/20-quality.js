@@ -35,6 +35,9 @@ function autoQ(rdt){ if(qMode!=='auto'||!ready||transit||document.hidden) return
 function setQualityUI(){ document.querySelectorAll('#qseg button').forEach(b=>b.classList.toggle('on',b.dataset.q===qMode)); }
 document.querySelectorAll('#qseg button').forEach(b=>b.addEventListener('click',()=>{ const q=b.dataset.q; qMode=q; setQualityUI();
   if(q==='auto'){ AQ.locked=false; AQ.up=false; AQ.phase='watch'; aqReset(1); toast('Авто: подбираю качество по FPS'); } else { AQ.up=false; if(q!==Q){ saveLocState(); rebuild(q); toast('Качество: '+QUALITY[q].label+' · район пересобран'); } } gfxSave(); }));
+/* v29.2: secret debug — 5 quick taps on «Выс» (within 2 s) give 5000 scrap */
+const DBG_TAPS=[]; $('#qseg button[data-q="high"]').addEventListener('click',()=>{ const t=performance.now(); DBG_TAPS.push(t); while(DBG_TAPS.length&&t-DBG_TAPS[0]>2000) DBG_TAPS.shift();
+  if(DBG_TAPS.length>=5){ DBG_TAPS.length=0; ST.scrap+=5000; save(); sfxBuy(); toast('Отладка: +5000 лома'); } });
 const touchDev=('ontouchstart' in window)||matchMedia('(pointer: coarse)').matches;
 let showTouch=true; $('#bTouch').addEventListener('click',()=>{ showTouch=!showTouch; $('#padL').hidden=!showTouch; $('#padR').hidden=!showTouch; $('#bTouch').classList.toggle('on',showTouch); });
 $('#bSnd').addEventListener('click',()=>{ sInit(); SND.muted=!SND.muted; if(SND.master) SND.master.gain.value=SND.muted?0:0.55; $('#bSnd').classList.toggle('on',!SND.muted); });
