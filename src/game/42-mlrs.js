@@ -74,4 +74,4 @@ function mlrsUpdate(dt){ MLRS.cd=Math.max(0,MLRS.cd-dt);
 /* rear tandem: each side's two axles share a balance beam that follows the ground */
 function rszBogies(T){ const ch=Math.cos(TK.h), sh=Math.sin(TK.h);
   for(const b of T.bogies){ const lx=b.s*1.32; let h1=0, h2=0; for(const [lz,o] of [[-0.85,0],[-1.95,1]]){ const h=groundH(TK.x+lx*ch+lz*sh,TK.z-lx*sh+lz*ch); if(o) h2=h; else h1=h; }
-    b.g.position.y=0.66+clamp((h1+h2)/2-TK.y,-0.16,0.16); b.g.rotation.x=clamp(-Math.atan2(h1-h2,1.1),-0.3,0.3); } }
+    b.g.position.y=0.66+clamp((h1+h2)/2-TK.y,-0.1,0.1); b.g.rotation.x=clamp(-Math.atan2(h1-h2,1.1),-0.18,0.18); } }

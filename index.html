@@ -33,6 +33,7 @@
   <div class="row">
     <button class="chip on" id="bTouch">Кнопки</button>
     <button class="chip on" id="bSnd">Звук</button>
+    <button class="chip" id="bDrv2">Водители</button>
     <button class="chip" id="bHelp">?</button>
   </div>
   <div class="where" id="where"></div>
@@ -121,7 +122,7 @@
           <dt>ОГОНЬ</dt><dd>стрельба</dd>
         </dl></div>
     </div>
-    <div class="crow"><button class="go" id="bGo">Поехали</button><button class="go alt" id="bOnline">С другом</button><button class="ghost" id="bReset">Начать заново</button></div>
+    <div class="crow"><button class="go" id="bGo">Поехали</button><button class="go alt" id="bOnline">С другом</button><button class="go alt" id="bDrv">Водители</button><button class="ghost" id="bReset">Начать заново</button></div>
   </div>
 </div>
 
@@ -143,6 +144,22 @@
     <div class="lbs" id="lbMsg" hidden><p id="lbMsgTx"></p><div class="crow"><button class="go" id="lbOk">Ок</button></div></div>
   </div>
 </div>
+
+<div id="drivers" hidden role="dialog" aria-label="Водители">
+  <div class="card drv">
+    <div class="drvH"><h1>Водители <em>司机</em></h1><button class="ghost" id="drvClose">Закрыть</button></div>
+    <div id="drvReg" hidden>
+      <p>Выбери позывной — под ним тебя увидят в рейтинге, вызовах и посылках. Сменить можно позже.</p>
+      <div class="lbjoin"><input id="drvNick" maxlength="16" autocomplete="off" spellcheck="false" placeholder="ПОЗЫВНОЙ" aria-label="Позывной"><button class="go" id="drvRegGo">Готово</button></div>
+    </div>
+    <div id="drvMain" hidden>
+      <div class="seg drvTabs" role="tablist"><button data-t="top">Рейтинг</button><button data-t="ch">Вызовы</button><button data-t="post">Посылки</button><button data-t="card">Карточка</button></div>
+      <div id="drvBody"></div>
+    </div>
+    <p class="drvMsg" id="drvMsg"></p>
+  </div>
+</div>
+<div id="drvOffer" hidden><span id="drvOfferTx"></span><div class="crow"><button class="go" id="drvOfferGo">Бросить вызов</button><button class="ghost" id="drvOfferX">Нет</button></div></div>
 
 <div id="bossBar" hidden><div class="bbH"><b id="bbName"></b><i id="bbPh"></i></div><div class="bbT"><div id="bbF"></div></div></div>
 <div id="spotFx"></div>

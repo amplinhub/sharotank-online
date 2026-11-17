@@ -2,10 +2,10 @@
 import { client, toBoss, shellAt } from '../harness.mjs';
 const assert = (c, m) => { if (!c) throw new Error(m); };
 const BOSSES = [
-  { type: 'krot', loc: 'junk', side: 'N', mission: 9 },
-  { type: 'hornet', loc: 'auto', side: 'E', mission: 14 },
-  { type: 'dragon', loc: 'park', side: 'S', mission: 19 },
-  { type: 'crypt', loc: 'cem', side: 'W', mission: 4 }
+  { type: 'krot', loc: 'junk', side: 'N', mission: 4 },
+  { type: 'hornet', loc: 'auto', side: 'E', mission: 9 },
+  { type: 'dragon', loc: 'park', side: 'S', mission: 14 },
+  { type: 'crypt', loc: 'cem', side: 'W', mission: 19 }
 ];
 
 async function arena(ctx, b) {

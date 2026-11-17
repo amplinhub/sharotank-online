@@ -422,3 +422,30 @@ kbd{font-family:var(--f-mono);border:1px solid var(--line);padding:0 4px;font-si
 .lbpl li{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:6px 0}
 .lbpl em{font-style:normal;color:var(--dim)}
 .lbpl em.on{color:var(--acc)}
+/* v29.3: «Водители» — рейтинг, вызовы, посылки, карточка */
+#drivers{position:fixed;inset:0;z-index:12;display:grid;place-items:center;padding:20px;background:rgba(6,12,26,.72)}
+#drivers .card{max-width:520px}
+.drvH{display:flex;justify-content:space-between;align-items:center;gap:12px}
+#drivers input{-webkit-user-select:text;user-select:text;touch-action:auto;flex:1;min-width:0;background:rgba(6,12,26,.8);border:1px solid var(--line);color:var(--ink);font:600 16px var(--f-mono);padding:9px 10px;outline:none}
+#drivers input:focus{border-color:var(--acc)}
+.drvTabs{flex-wrap:wrap}.drvTabs button{flex:1;padding:9px 6px;font-size:11px}
+#drvBody{display:flex;flex-direction:column;gap:10px;min-height:120px}
+.drvSub{display:flex;flex-wrap:wrap;gap:6px}
+.drvSub .chip{pointer-events:auto}.drvSub .chip.on{color:#0a1322;background:var(--acc);border-color:var(--acc)}
+.drvL{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.drvL li{display:grid;grid-template-columns:2em 1fr auto;gap:8px;align-items:center;border-bottom:1px solid var(--line);padding:7px 0;font-size:13px}
+.drvL li.me{color:var(--acc)}
+.drvL li .n{color:var(--dim);font-family:var(--f-mono)}
+.drvL li small{display:block;color:var(--dim);font-size:11px}
+.drvL li b{font-family:var(--f-mono);font-weight:600}
+.drvC{border:1px solid var(--line);padding:10px 12px;display:flex;flex-direction:column;gap:6px;font-size:13px}
+.drvC .row2{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.drvC em{font-style:normal;color:var(--acc)}
+.drvC small{color:var(--dim)}
+.drvMed{display:flex;flex-wrap:wrap;gap:6px}
+.drvMed span{border:1px solid var(--line);padding:3px 7px;font-size:11px;color:var(--dim)}
+.drvMed span.on{border-color:var(--acc);color:var(--acc)}
+.drvMsg{margin:0;min-height:1.2em;font-size:12px;color:var(--dim)}
+.drvMsg.err{color:var(--warn)}
+.drvKinds{display:flex;flex-wrap:wrap;gap:6px}
+#drvOffer{position:fixed;left:50%;bottom:calc(120px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:9;background:var(--deep);border:1px solid var(--acc);padding:10px 14px;display:flex;flex-direction:column;gap:8px;align-items:center;max-width:calc(100% - 32px);text-align:center;font-size:13px;pointer-events:auto}

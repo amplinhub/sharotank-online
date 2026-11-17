@@ -257,7 +257,7 @@ function enemyHit(e,dmg,dx,dz,kb,src){ if(e.dead||dmg<=0) return; if(e.inv){ if(
   if(e.hp<=0) killEnemy(e,dx,dz,src); }
 function sparkBurst(x,y,z,n){ const sc=mix3(P.glow,[1,1,1],0.5); for(let k=0;k<n;k++) spark(x,y,z,(rnd()-0.5)*8,rnd()*6,(rnd()-0.5)*8,sc[0],sc[1],sc[2],0.25+rnd()*0.2); }
 function killEnemy(e,dx,dz,src){ if(e.dead) return; e.dead=true; e.lockable=false; e.flash=0; for(const m of e.mats) m.emissive.setRGB(0,0,0); if(e.shadow) e.shadow.visible=false;
-  ETYPE[e.type].die(e,dx||0,dz||0,src); onKill(e); fxKill(e); }
+  ETYPE[e.type].die(e,dx||0,dz||0,src); onKill(e); fxKill(e); DRV.kills++; }
 
 /* ================= 1. JIAN — melee jumper ================= */
 function jianSpear(e,tipY,spread){ const fx=Math.sin(e.h)*0.15, fz=Math.cos(e.h)*0.15; let k=0; for(const L of e.legs){ if(!L.alive) continue; const a=k*1.57+0.8; L.foot.set(e.x+fx+Math.sin(a)*spread,tipY,e.z+fz+Math.cos(a)*spread); L.t=-1; k++; } }

@@ -95,7 +95,7 @@ function dieDragon(e,dx,dz,src){ e.dead=true; e.dying=true; e.lg.visible=true;
   bossDeath(e,{k:3.4,y:e.y+2.4,scrap:900,n:8,after:()=>{ fireworks(); scene.remove(e.lg); }}); }
 
 /* ---- shared: victory, spawning, registry ---- */
-function bossWin(e){ for(const o of TGTS) o.T=Math.min(o.T,o.t+0.3); let k=0; for(const m of ENEMIES.filter(m=>!m.dead&&(m.fromBoss||m.fromKrot))) later(0.6+0.25*k++,()=>{ if(!m.dead) killEnemy(m); }); BOSS.e=null; bossBarShow(false); screenFlash(0.45,false); toast(`${e.bName} уничтожен!`); }
+function bossWin(e){ for(const o of TGTS) o.T=Math.min(o.T,o.t+0.3); let k=0; for(const m of ENEMIES.filter(m=>!m.dead&&(m.fromBoss||m.fromKrot))) later(0.6+0.25*k++,()=>{ if(!m.dead) killEnemy(m); }); BOSS.e=null; bossBarShow(false); screenFlash(0.45,false); toast(`${e.bName} уничтожен!`); drvBossWin(e); }
 const BOSS_SPEC={crypt:{name:'«Энергобот»',hp:2000},krot:{name:'«Крот»',hp:2600},hornet:{name:'«Шершень»',hp:2200},dragon:{name:'«Золотой дракон»',hp:2400}};
 function spawnBoss(t){ const L=ARENA.lair||[WX/2,WZ/2]; let e;
   if(t==='crypt'){ e=newEnemy('crypt',L[0],L[1]); buildE(e); bossSetup(e,BOSS_SPEC.crypt.name,BOSS_SPEC.crypt.hp); e.barHp=()=>cryptBar(e); e.ph=1; e.g.visible=false; e.lg.visible=false;

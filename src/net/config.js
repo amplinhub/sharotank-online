@@ -7,3 +7,10 @@ export const SIGNALING = {
   secure: true,    // wss — обязательно, раз игра открывается с https (GitHub Pages)
   path: '/'
 };
+
+/* Сервер «Водителей» (рекорды, вызовы, посылки) — веб-приложение Apps Script при таблице «Шаротанк Онлайн — Водители».
+   Вставьте сюда адрес …/exec после развёртывания (server/sheets/README.md). Пусто — меню «Водители» скажет, что сервер не подключён.
+   Переопределение: ?sheets=<адрес> или window.SHT_NET_CFG.sheets. */
+export const SHEETS = {
+  url: ''
+};

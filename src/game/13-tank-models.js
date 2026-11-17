@@ -188,22 +188,21 @@ const CH_BUILD={
   add(B(2.95,0.32,0.34),K,Sp,0,0.8,2.7,true); for(const s of [-1,1]){ add(B(0.16,0.42,0.38),K2,Sp,s*1.4,0.82,2.7); add(B(0.08,0.08,0.24),M,Sp,s*0.8,0.82,2.9); if(hi) for(let k=0;k<4;k++) add(zc(Cy(0.03,0.03,0.03,6)),M,Sp,s*(0.3+k*0.28),0.92,2.875); }
   add(B(0.14,0.22,0.16),M,Sp,0,0.66,2.88); if(hi){ const hk=add(new THREE.TorusGeometry(0.09,0.03,6,10,Math.PI*1.3),M,Sp,0,0.55,2.94); hk.rotation.y=Math.PI/2; }
   /* long cab: crew cab in front + engine section with radiator grilles */
-  add(B(2.06,1.46,2.85),Y,Sp,0,1.75,1.125,true); add(B(2.2,0.1,2.95),Y2,Sp,0,2.53,1.12,true);
+  add(B(1.56,0.44,2.85),Y,Sp,0,1.24,1.125,true); add(B(2.06,1.06,2.85),Y,Sp,0,1.95,1.125,true); add(B(2.06,0.05,2.85),K2,Sp,0,1.42,1.125); add(B(2.2,0.1,2.95),Y2,Sp,0,2.53,1.12,true);
   add(B(1.96,0.66,0.05),K,Sp,0,2.12,2.565); for(const s of [-1,1]) add(B(0.88,0.56,0.04),Gl,Sp,s*0.47,2.12,2.59);
   add(B(0.08,0.62,0.07),Y,Sp,0,2.12,2.6); for(const s of [-1,1]) add(B(0.1,0.68,0.08),Y,Sp,s*1.0,2.12,2.58);
-  for(const s of [-1,1]){ add(zc(Cy(0.17,0.17,0.05,16)),K,Sp,s*0.72,1.28,2.565); add(zc(Cy(0.13,0.13,0.05,16)),HL,Sp,s*0.72,1.28,2.585); add(new THREE.SphereGeometry(0.055,8,6),OR,Sp,s*0.97,1.3,2.57);
-    const ov=add(zc(Cy(0.1,0.1,0.05,14)),Y2,Sp,s*0.36,1.5,2.57); ov.scale.x=2.0;
+  for(const s of [-1,1]){ add(zc(Cy(0.17,0.17,0.05,16)),K,Sp,s*0.72,1.28,2.565); add(zc(Cy(0.13,0.13,0.05,16)),HL,Sp,s*0.72,1.28,2.585); add(new THREE.SphereGeometry(0.055,8,6),OR,Sp,s*0.92,1.58,2.57);
+    const ov=add(zc(Cy(0.1,0.1,0.05,14)),Y2,Sp,s*0.36,1.62,2.57); ov.scale.x=2.0;
     add(B(0.04,0.5,0.8),Gl,Sp,s*1.035,2.1,2.0); add(B(0.04,0.44,0.42),Gl,Sp,s*1.035,2.12,1.35);
     add(B(0.05,0.55,0.05),K,Sp,s*1.1,2.05,2.5); add(B(0.3,0.04,0.04),K,Sp,s*1.22,2.3,2.45); add(B(0.05,0.32,0.2),K,Sp,s*1.38,2.18,2.43);
     /* radiator grilles: tall vertical slats + a slotted vent */
     add(B(0.05,0.82,0.62),K2,Sp,s*1.04,1.8,0.72); for(let k=0;k<(hi?8:4);k++) add(B(0.07,0.74,0.035),Y2,Sp,s*1.045,1.8,0.46+k*(hi?0.074:0.17));
     add(B(0.05,0.62,0.5),K2,Sp,s*1.04,1.9,0.05); for(let k=0;k<(hi?6:3);k++) add(B(0.07,0.035,0.44),Y2,Sp,s*1.045,1.65+k*(hi?0.1:0.2),0.05);
-    for(const [zc0,len] of [[1.4,2.62],[-1.4,2.62]]){ add(B(0.76,0.07,len),Y,Sp,s*WXo,1.45,zc0,true); add(B(0.05,0.16,len),K,Sp,s*(WXo+0.37),1.39,zc0); }
-    const fs=add(B(0.76,0.07,0.34),Y,Sp,s*WXo,1.37,2.84,true); fs.rotation.x=0.7;
-    add(B(0.5,0.4,0.03),K,Sp,s*WXo,1.18,0.07); }
+    for(const [zc0,len] of [[1.4,2.62],[-1.4,2.62]]){ add(B(0.76,0.07,len),Y,Sp,s*WXo,1.62,zc0,true); add(B(0.05,0.16,len),K,Sp,s*(WXo+0.37),1.56,zc0); }
+    const fs=add(B(0.76,0.07,0.34),Y,Sp,s*WXo,1.54,2.84,true); fs.rotation.x=0.7;
+    add(B(0.5,0.45,0.03),K,Sp,s*WXo,1.3,0.07); }
   { const fe=1.11; add(Cy(0.09,0.09,0.44,12),0xd8322a,Sp,fe,1.5,-0.12,true); add(Cy(0.045,0.055,0.1,8),K,Sp,fe,1.77,-0.12); add(B(0.04,0.06,0.24),K,Sp,fe-0.06,1.5,-0.12); add(B(0.06,0.5,0.4),K2,Sp,-1.08,1.45,-0.05,true); }
-  if(hi){ for(let k=0;k<6;k++){ add(B(2.0,0.012,0.012),K2,Sp,0,1.1+k*0.115,2.556); for(let j=0;j<7;j++){ const x=-0.96+j*0.32+(k%2)*0.16; if(x<1) add(B(0.012,0.11,0.012),K2,Sp,x,1.16+k*0.115,2.556); } }
-    for(const s of [-1,1]){ for(let k=0;k<5;k++) add(B(0.012,0.012,0.95),K2,Sp,s*1.032,1.12+k*0.12,2.05); add(B(0.012,0.8,0.012),K2,Sp,s*1.032,1.75,1.12); add(B(0.03,0.04,0.12),M,Sp,s*1.04,1.7,1.25);
+  if(hi){ for(const s of [-1,1]){ for(let k=0;k<5;k++) add(B(0.012,0.012,0.95),K2,Sp,s*1.032,1.12+k*0.12,2.05); add(B(0.012,0.8,0.012),K2,Sp,s*1.032,1.75,1.12); add(B(0.03,0.04,0.12),M,Sp,s*1.04,1.7,1.25);
       const wp=add(B(0.4,0.02,0.02),K,Sp,s*0.5,1.84,2.6); wp.rotation.z=s*0.5; }
     chRivets(o,Sp,K2,[[1.032,2.4,0.2,'x'],[1.032,2.4,0.9,'x'],[-1.032,2.4,0.2,'x'],[-1.032,2.4,0.9,'x']]); }
   /* roof: orange lights, spotlights, rack, beacon, exhaust */

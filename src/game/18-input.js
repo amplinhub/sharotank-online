@@ -2,7 +2,7 @@
 const keys={}; const TCH={sx:0,sy:0,active:false,amag:0,mx:0,my:0,mActive:false};
 const mouse={x:innerWidth*0.5,y:innerHeight*0.35,down:false}; let aimMode='mouse';
 let helpOpen=false;
-addEventListener('keydown',e=>{ sInit(); if(helpOpen){ closeHelp(); }
+addEventListener('keydown',e=>{ const tg=e.target&&e.target.tagName; if(tg==='INPUT'||tg==='TEXTAREA') return; sInit(); if(helpOpen){ closeHelp(); }
   if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
   if(e.repeat) return; keys[e.code]=true;
   if(GAR.open){ if(e.code==='Escape') closeGarage(); return; }

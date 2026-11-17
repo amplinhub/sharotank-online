@@ -233,9 +233,9 @@ function hqBuilding(x0,z0){ const w=13, d=7, h=3.6; FLOORS.push([x0,z0,x0+w,z0+d
   box(x0+w/2-0.3,h-0.35,z0+d+1.3,x0+w/2+0.3,h-0.1,z0+d+1.6,M.LAMP); LAMPS.push({x:x0+w/2,y:h-0.3,z:z0+d+1.5,r:3.4,col:'lamp',size:2});
   box(x0+3,0,z0+2.4,x0+w-3,0.85,z0+3.4,M.FURN); box(x0+5,0.85,z0+2.6,x0+8,1.3,z0+3.2,M.NEON); }
 /* v20: parked fleet near the motor pool — five real tank models (meshes), voxel hulls only for collision */
-const FLEET=[['base',18,55,0],['ten',22.5,55,0],['pchela',27,55,0],['igla',16.5,71.5,Math.PI],['krep',22,71.5,Math.PI],['kovch',27.5,71.5,Math.PI]];
-const FLEET_AT=FLEET.map(f=>[f[1],f[2]]);
-function fleetHull(x,z){ box(x-0.8,0.3,z-1.3,x+0.8,1.15,z+1.3,M.DARK); }
+const FLEET=[['base',18,55,0],['ten',22.5,55,0],['pchela',27,55,0],['igla',16.5,71.5,Math.PI],['krep',22,71.5,Math.PI],['kovch',27.5,71.5,Math.PI],['rszo',12,54.5,0]];
+const FLEET_AT=FLEET.map(f=>[f[1],f[2],f[0]]);
+function fleetHull(x,z,id){ const L=id==='rszo'?2.7:1.3, W=id==='rszo'?1.0:0.8; box(x-W,0.3,z-L,x+W,1.15,z+L,M.DARK); }
 function genCamp(R){
   const wall=(x0,z0,x1,z1)=>{ box(x0,0,z0,x1,1.3,z1,M.MID); box(x0,1.3,z0,x1,1.6,z1,(x,y,z)=>((x+z)%3===0)?M.METAL:-1); };
   wall(0.2,0.2,34,1.0); wall(46,0.2,79.8,1.0); wall(0.2,79,34,79.8); wall(46,79,79.8,79.8);
@@ -248,7 +248,7 @@ function genCamp(R){
   for(const tx of [50,58,66]){ tent(tx,4,6,8); tent(tx,16,6,8); }
   hqBuilding(59,25);
   watchtower(75,5); watchtower(5,75); flagpole(47.5,30.5);
-  truck(6,54,false); truck(12,54,false); for(const [x,z] of FLEET_AT) fleetHull(x,z);
+  truck(6,54,false); for(const [x,z,id] of FLEET_AT) fleetHull(x,z,id);
   truck(8,70,true); cyl(31.4,75,1.1,0,2.4,M.ARMY); cyl(33.6,73.4,1.1,0,2.4,M.ARMY);
   sandbags(46.5,71,53.5,72,1.1); sandbags(66,49,77,50,1.1); sandbags(76,50,77,58,1.1);
   crates(52,74); crates(56,75); crates(73,72);

@@ -22,7 +22,7 @@ export const tests = [
   } },
   { name: 'landscape phone: boss bar does not cover the objective', async run(ctx) {
     const c = await client({ name: 'land', w: 860, h: 412, touch: true }); ctx.clients.push(c);
-    await c.js(() => { const D = __dbg; D.MS.i = 9; D.MS.active = true; D.MS.prog = 0; D.goLocation('junk', 'N'); });
+    await c.js(() => { const D = __dbg; D.MS.i = 4; D.MS.active = true; D.MS.prog = 0; D.goLocation('junk', 'N'); });
     await c.until(() => !document.querySelector('#bossBar')?.hidden, null, { timeout: 30000 });
     const r = await c.js(() => { const a = document.querySelector('#bossBar').getBoundingClientRect(), b = document.querySelector('#obj').getBoundingClientRect(); return { a: [a.left, a.top, a.right, a.bottom], b: [b.left, b.top, b.right, b.bottom] }; });
     const ov = !(r.a[0] >= r.b[2] || r.a[2] <= r.b[0] || r.a[1] >= r.b[3] || r.a[3] <= r.b[1]);
