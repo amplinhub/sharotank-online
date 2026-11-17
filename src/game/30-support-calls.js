@@ -4,7 +4,7 @@ const SFX_L=[]; const plusTex=(()=>{ const cv=document.createElement('canvas'); 
 const healRingGeo=new THREE.RingGeometry(0.85,1,56); healRingGeo.rotateX(-Math.PI/2);
 function kitAvail(k){ if(!ST.kits||ST.kits[k]<=0||LOC.safe||TK.dead||transit||GAR.open) return false;
   if(k==='art') return !ART.active;
-  if(k==='rep') return TK.hp<maxHP()-0.5||TK.dmgS.some(v=>v>0.02); return !CRATES.some(c=>c.state!=='spent'&&c.state!=='boom')&&['mg','cn','rk'].some(id=>(id!=='rk'||UP.rk)&&ST.ammo[id]<ammoCap(id)); }
+  if(k==='rep') return TK.hp<maxHP()-0.5||TK.dmgS.some(v=>v>0.02); return !CRATES.some(c=>c.state!=='spent'&&c.state!=='boom')&&['mg','cn','rk','sv'].some(id=>(id!=='rk'||UP.rk)&&(id!=='sv'||chs().abil==='mlrs')&&ST.ammo[id]<ammoCap(id)); }
 function useRepair(){ if(!kitAvail('rep')) return; ST.kits.rep--; const add=Math.round(maxHP()-TK.hp); TK.hp=maxHP(); TK.dmgS.fill(0); save();
   for(let k=0;k<3;k++){ const m=new THREE.Mesh(healRingGeo,new THREE.MeshBasicMaterial({color:0x4dff8a,transparent:true,opacity:0.9,blending:THREE.AdditiveBlending,depthWrite:false})); scene.add(m); SFX_L.push({k:'ring',m,t:-k*0.18,ml:0.9}); }
   for(let k=0;k<7;k++){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:plusTex,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})); sp.scale.setScalar(0.9); scene.add(sp); SFX_L.push({k:'plus',m:sp,t:-k*0.09,ml:1.7,a:k/7*TAU}); }
@@ -56,7 +56,7 @@ function cratesUpdate(dt,now){ for(let i=CRATES.length-1;i>=0;i--){ const c=CRAT
     if(c.t>10){ const on=Math.floor((c.t-10)*7)%2===0; c.g.visible=on||c.t>11.6; c.aura.material.color.setRGB(1,0.25,0.15); c.aura.material.opacity=on?0.9:0; c.aura.scale.setScalar(1.6); if(on&&!c.beep){ c.beep=true; sO(1200,1100,0.06,0.08,'square'); } if(!on) c.beep=false; }
     if(c.t>11.6){ c.state='boom'; c.g.visible=false; explode(c.x,0.6,c.z,1.0,0.7,0,-1,0,'shell',null,0,null,0.25); for(const m of [c.g,c.aura,c.glow]) scene.remove(m); CRATES.splice(i,1); continue; } }
   c.g.position.set(c.x,c.y,c.z); c.aura.position.set(c.x,c.gy+0.08,c.z); c.glow.position.set(c.x,c.gy+0.06,c.z); } }
-function crateGive(c){ c.state='give'; c.t=0; const got=[]; for(const [id,name] of [['mg','патронов'],['cn','снарядов'],['rk','ракет']]){ if(id==='rk'&&!UP.rk) continue; const add=Math.max(0,Math.floor(ammoCap(id)-ST.ammo[id])); ST.ammo[id]=ammoCap(id); if(add>0) got.push([add,name,id]); }
+function crateGive(c){ c.state='give'; c.t=0; const got=[]; for(const [id,name] of [['mg','патронов'],['cn','снарядов'],['rk','ракет'],['sv','залп.']]){ if(id==='rk'&&!UP.rk) continue; if(id==='sv'&&chs().abil!=='mlrs') continue; const add=Math.max(0,Math.floor(ammoCap(id)-ST.ammo[id])); ST.ammo[id]=ammoCap(id); if(add>0) got.push([add,name,id]); }
   updateWeaponUI(); got.forEach(([n,name],k)=>setTimeout(()=>popText(TK.x,TK.y+2.6+k*0.7,TK.z,`+${n} ${name}`,'ammo'),180+k*260)); if(!got.length) popText(TK.x,TK.y+2.6,TK.z,'боезапас полон','ammo');
   for(let k=0;k<16;k++){ const isShell=k%3===0, m=new THREE.Mesh(crGeo.cyl,isShell?crMat.dark:crMat.brass); m.scale.set(isShell?0.12:0.06,isShell?0.42:0.26,isShell?0.12:0.06); m.visible=false; scene.add(m); EXTRAS.push(m); c.fly.push({m,t:-k*0.06}); }
   sfxPickup(1); }

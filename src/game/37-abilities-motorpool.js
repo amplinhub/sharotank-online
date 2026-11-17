@@ -222,7 +222,7 @@ function perSnap(){ const o={}; for(const k of PER_KEYS) o[k]=k==='own'?Object.a
 function perFix(){ const c=chs(); if(c.mgs.length&&!c.mgs.includes(UP.mg)){ UP.mg=c.mgs[0]; UP.own[UP.mg]=1; } }
 function selectTank(id){ if(id===UP.tank) return; if(!UP.per) UP.per={}; const f=TK.hp/maxHP(); UP.per[UP.tank]=perSnap(); UP.tank=id; const d=UP.per[id]||perDefault(id);
   for(const k of PER_KEYS) UP[k]=k==='own'?Object.assign({},d.own||{}):(d[k]==null?perDefault(id)[k]:d[k]); perFix(); TK.hp=Math.max(1,(d.hpf!=null?d.hpf:1)*maxHP()); for(let i=0;i<5;i++) TK.dmgS[i]=d.dmg?(+d.dmg[i]||0):0; void f;
-  for(const a of ['mg','cn','rk']) ST.ammo[a]=Math.min(ST.ammo[a],ammoCap(a)); SHD.on=false; SHD.hp=SHD_MAX[UP.abl|0]; STL.on=false; STL.t=0; BEE.cd=1; if(GD.d) gdRemove(); updateWeaponUI(); save(); }
+  for(const a of ['mg','cn','rk','sv']) ST.ammo[a]=Math.min(ST.ammo[a],ammoCap(a)); mlrsClear(); SHD.on=false; SHD.hp=SHD_MAX[UP.abl|0]; STL.on=false; STL.t=0; BEE.cd=1; if(GD.d) gdRemove(); updateWeaponUI(); save(); }
 /* ---- «Крепость»: rotary cannon spin-down + black exhaust while driving ---- */
 let exT=0;
 function krepUpdate(dt){ if(!tank) return; if(tank.cnSpin) tank.cnSpin.rotation.z+=((tank.cnSpinT||0)-tank.cnSpin.rotation.z)*Math.min(1,dt*6);

@@ -43,7 +43,7 @@ function weaponsUpdate(dt,firing){ const w=WEAP[wcur]; if(wswap>0){ wswap-=dt; f
   dryT=Math.max(0,dryT-dt);
   if(mg.spin) for(const b of tank.barrels) b.rotation.z+=mgSpin*dt*38;
   TK.recoil=Math.max(0,TK.recoil-dt*4); tank.cn.position.z=-0.35*TK.recoil; }
-const MG_DMG={gau:4,twin:3.5,kpv:13};
+const MG_DMG={gau:4,twin:3.5,kpv:13,dshk1:6,dshk2:6};
 function hitSpark(x,y,z,ux,uz,n){ const sc=mix3(P.glow,[1,1,1],0.45); for(let k=0;k<n;k++) spark(x,y,z,-ux*4+(rnd()-0.5)*7,rnd()*5,-uz*4+(rnd()-0.5)*7,sc[0],sc[1],sc[2],0.18+rnd()*0.2); }
 function projUpdate(dt){ for(let i=proj.length-1;i>=0;i--){ const p=proj[i]; p.life-=dt; const ox=p.x,oy=p.y,oz=p.z, w=p.w;
     if(w.id==='rk'){ if(p.lock&&!p.lock.dead){ p.tx=p.lock.x; p.ty=(p.lock.y||0)+(p.lock.hy||0.2); p.tz=p.lock.z; }

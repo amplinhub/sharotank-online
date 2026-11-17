@@ -42,7 +42,7 @@ $('#bHelp').addEventListener('click',()=>{ helpOpen=true; $('#help').hidden=fals
 $('#kRep').addEventListener('click',e=>{ e.stopPropagation(); sInit(); useRepair(); });
 $('#kAmmo').addEventListener('click',e=>{ e.stopPropagation(); sInit(); useAmmo(); });
 $('#kArt').addEventListener('click',e=>{ e.stopPropagation(); sInit(); useArt(); });
-function abilPress(){ const a=chs().abil; if(a==='gdrone') gdLaunch(); else if(a==='rail') magPress(); else shieldToggle(); }
+function abilPress(){ const a=chs().abil; if(a==='gdrone') gdLaunch(); else if(a==='rail') magPress(); else if(a==='mlrs') mlrsPress(); else shieldToggle(); }
 $('#kAbil').addEventListener('click',e=>{ e.stopPropagation(); sInit(); abilPress(); });
 $('#bShield').addEventListener('pointerdown',e=>{ e.preventDefault(); sInit(); if(helpOpen) closeHelp(); abilPress(); });
 let menuOpen=false; $('#bMenu').addEventListener('click',e=>{ e.stopPropagation(); menuOpen=!menuOpen; $('#trMenu').hidden=!menuOpen; document.body.classList.toggle('menu',menuOpen); $('#bMenu').setAttribute('aria-expanded',String(menuOpen)); sfxClick(); });

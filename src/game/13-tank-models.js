@@ -21,14 +21,22 @@ const CHASSIS={
  krep:{name:'ТТ-14 «Крепость»',cls:'Тяжёлый',cost:2600,hp:1.75,spd:0.72,acc:0.7,turn:0.78,ram:2,cn:1.1,abil:'shield',w:[0,1],mgs:['twin'],arms:'спаренный пулемёт и трёхствольная пушка',abN:'Щит (E)',abI:'на стоянке раскрывает створки и поднимает купол: снаружи по танку не попасть, а сам он стреляет. Пока купол стоит, танк не двигается',desc:'Шестиколёсная бронированная махина с кабиной-аквариумом и дымящей трубой. Медленная, но выдерживает всё.'},
  igla:{name:'ПТ-6 «Игла»',cls:'Дальнобойный',cost:2200,hp:0.9,spd:0.95,acc:0.9,turn:0.9,ram:0.8,cn:1.7,abil:'rail',w:[1,2],mgs:[],arms:'сдвоенный рельсотрон и ракеты',abN:'Рельсотрон',abI:'вместо снаряда — сдвоенный мгновенный луч от 70 м (длиннее с улучшением рельсов): прошивает всех роботов на линии и бьёт за ними',desc:'Длинный шестиколёсный истребитель с вытянутой башней и двумя энергетическими стволами. Мощный магнит притягивает лом вдвое дальше, а по кнопке E создаёт сильное магнитное поле: ещё вдвое шире на 5 с.'},
  kovch:{name:'БТР-9 «Ковчег»',cls:'Носитель дрона',cost:2800,hp:1.35,spd:0.9,acc:0.85,turn:0.85,ram:1.5,cn:1,abil:'gdrone',w:[0,1],mgs:['gau','twin','kpv'],arms:'пулемёт и пушка в кормовой башне',abN:'Боевой дрон (E)',abI:'из люка в крыше взлетает крупный дрон со спаренными пулемётами: 15 с кружит рядом и бьёт ближайших врагов, уворачивается от четверти пуль, затем самоуничтожается со взрывом. Новый — раз в 15 с',desc:'Восьмиколёсный бронетранспортёр с ангаром для боевого дрона в середине корпуса. Тяжёлый и неторопливый, но в бою никогда не один.'},
- pchela:{name:'ИТ-1 «Пчела»',cls:'Инженерный',cost:2000,hp:1.05,spd:0.95,acc:1,turn:1,ram:1,cn:0.85,abil:'drones',w:[0],mgs:['gau','twin','kpv'],arms:'только пулемёт',abN:'Рой камикадзе',abI:'дроны-камикадзе кружат над танком и таранят ближайшего врага со взрывом, новые вылетают из люка в корме. Сначала один, улучшается до трёх',desc:'Бронеавтомобиль с ульем для дронов на корме. Сам стреляет только из пулемёта, зато не воюет один.'}};
-const CH_ORDER=['base','ten','krep','igla','pchela','kovch'];
+ pchela:{name:'ИТ-1 «Пчела»',cls:'Инженерный',cost:2000,hp:1.05,spd:0.95,acc:1,turn:1,ram:1,cn:0.85,abil:'drones',w:[0],mgs:['gau','twin','kpv'],arms:'только пулемёт',abN:'Рой камикадзе',abI:'дроны-камикадзе кружат над танком и таранят ближайшего врага со взрывом, новые вылетают из люка в корме. Сначала один, улучшается до трёх',desc:'Бронеавтомобиль с ульем для дронов на корме. Сам стреляет только из пулемёта, зато не воюет один.'},
+ rszo:{name:'РСЗО-537',cls:'Артиллерия',cost:3200,hp:1.2,spd:0.66,acc:0.38,turn:0.75,ram:2.4,cn:1.8,abil:'mlrs',w:[0],mgs:['dshk1','dshk2'],truck:true,garS:0.8,arc:Math.PI/3,frontK:0.75,rmE:1.6,mass:2.2,arms:'реактивный пакет на корме и пулемёт на кабине (сектор 120°)',abN:'Залп РСЗО (E)',abI:'встаёт, поднимает пакет и по очереди пускает ракеты вверх, а они сверху накрывают цель: захваченного врага или точку прицела. Ложатся с разбросом, залп раз в 5 с, запас залпов ограничен',desc:'Восьмиколёсный тягач с длинной кабиной, круглыми фарами и пакетом реактивных труб. Медленный и тяжёлый, давит врагов. Крепкую цель сносит одним залпом, а от толпы мелких отбивается только пулемётом на крыше.'}};
+const CH_ORDER=['base','ten','krep','igla','pchela','kovch','rszo'];
 function chs(){ return CHASSIS[UP.tank]||CHASSIS.base; }
 const ABL={ten:{t:'Маскировка',cur:l=>`включается через ${[2,1.5,1][l]} с · видят с ${[15,12,9][l]} м`,info:'Быстрее уходит в тень, враги замечают её с меньшего расстояния.'},
  krep:{t:'Генератор щита',cur:l=>`щит ${[260,340,420][l]} ед.`,info:'Купол выдерживает больше попаданий, прежде чем погаснет.'},
  igla:{t:'Накопитель рельсотрона',cur:l=>`урон луча ×${[1,1.2,1.4][l]}`,info:'Луч рельсотрона бьёт сильнее.'},
  kovch:{t:'Огневая мощь дрона',cur:l=>`урон ×${GD_DMGK[l]} · ${GD_RATE[l]} выстр/с`,info:'Пулемёты дрона бьют сильнее и чаще.'},
+ rszo:{t:'Пакет РСЗО',cur:l=>`${RSZ_N[l]} ракет в залпе`,info:'Больше труб в пакете — больше ракет в каждом залпе.'},
  pchela:{t:'Рой камикадзе',cur:l=>`${l+1} ${l?'дрона':'дрон'} в рое`,info:'Больше дронов-камикадзе одновременно кружит над танком.'}};
+const RSZ_N=[4,6,8];
+/* РСЗО state lives here (early file) so HUD code that runs during loading can read it; logic is in 42-mlrs.js */
+const MLRS={st:'idle',t:0,cd:0,k:0,gap:0,ang:0,N:0,tgt:null,list:[],loc:null,mk:null};
+const RSZ_CD=5, RSZ_MIN=9, RSZ_MAX=75, RSZ_SPREAD=2.3, RSZ_PWR=2.1, RSZ_RAD=1.7, RSZ_FALL=1.1, RSZ_ELEV=0.95, RSZ_DIRECT=45;
+const RSZ_ICON='<svg viewBox="0 0 24 24"><path d="M4 20l3-3M8 21l2-4M3 16l4-2" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M7 15l9-9 3-1-1 3-9 9zM14 6l4 4" fill="currentColor"/></svg>';
+let rszoPM=null; function rszoPlateMat(){ if(rszoPM) return rszoPM; const pc=document.createElement('canvas'); pc.width=200; pc.height=56; const g=pc.getContext('2d'); g.fillStyle='#1c1e21'; g.fillRect(0,0,200,56); g.fillStyle='#f2c21b'; g.font='bold 36px Arial, sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('537',100,30); rszoPM=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(pc)}); return rszoPM; }
 const GD_DMGK=[1,1.3,1.6], GD_RATE=[8,10,12];
 const STL_DELAY=[2,1.5,1], STL_R=[15,12,9], SHD_MAX=[260,340,420], RAIL_K=[1,1.2,1.4];
 function chWheel(T,o,x,y0,z,r,w,tc,hc,opt){ const g=new THREE.Group(); g.position.set(x,y0,z); T.root.add(g); const sp=new THREE.Group(); g.add(sp); const sd=Math.sign(x)||1;
@@ -167,6 +175,69 @@ const CH_BUILD={
   chAntenna(o,Tu,-0.42,0.6,-0.5,1.3); chBeacon(T,Tu,-0.42,2.0,-0.5); add(B(0.04,0.04,0.5),Or,Tu,0,0.62,0.3);
   if(hi) chRivets(o,Tu,D,[[0.58,0.48,0.4,'x'],[-0.58,0.48,0.4,'x'],[0.58,0.18,0.4,'x'],[-0.58,0.18,0.4,'x'],[0.58,0.48,-0.4,'x'],[-0.58,0.48,-0.4,'x']]);
   T.gun.position.set(0,0.34,0.62); },
+ /* «РСЗО-537» — ref: yellow 8x8 MAZ-537-style tractor (Lego build) + Uragan launcher: long cab with round headlights, big windows,
+    side radiator grilles, wide black bumper, orange roof lights; 4 front wheels steer, rear tandem on a balance beam; rocket pack on the deck, MG on the cab */
+ rszo(T,o){ const {add,B,Cy,zc,xc,hi,up}=o, Sp=T.susp, Tu=T.turret, Y=0xf2c21b, Y2=0xd9a612, K=0x1c1e21, K2=0x2a2d31, M=0x5a5f64, Gl=0x14222a, TI=0x1a1b1d, OR=glowMat(0xff8a1e), HL=glowMat(0xfff2d2);
+  const WXo=1.32, WR=0.66, WW=0.54, LUG=0x101112;
+  for(const [z,st] of [[1.95,1],[0.85,0.62]]) for(const s of [1,-1]) chWheel(T,o,s*WXo,WR,z,WR,WW,TI,K2,{wi:s>0?0:1,st,lug:LUG,rim:K});
+  T.bogies=[]; for(const s of [1,-1]){ const bg=new THREE.Group(); bg.position.set(s*WXo,WR,-1.4); bg.userData.keep=true; T.root.add(bg);
+    for(const dz of [0.55,-0.55]){ chWheel(T,o,s*WXo,WR,-1.4+dz,WR,WW,TI,K2,{wi:-1,st:0,lug:LUG,rim:K}); const w=T.wheels[T.wheels.length-1]; bg.add(w); w.position.set(0,0,dz); w.userData.y0=0; }
+    add(B(0.14,0.2,1.45),K,bg,-s*0.4,0,0); add(xc(Cy(0.14,0.14,0.26,10)),M,bg,-s*0.4,0,0); T.bogies.push({g:bg,s}); }
+  /* frame, bumper, tow hook */
+  add(B(1.3,0.3,5.0),K,Sp,0,0.98,0,true); for(const z of [1.4,0,-1.4]) add(B(2.0,0.12,0.16),K,Sp,0,0.86,z);
+  add(B(2.95,0.32,0.34),K,Sp,0,0.8,2.7,true); for(const s of [-1,1]){ add(B(0.16,0.42,0.38),K2,Sp,s*1.4,0.82,2.7); add(B(0.08,0.08,0.24),M,Sp,s*0.8,0.82,2.9); if(hi) for(let k=0;k<4;k++) add(zc(Cy(0.03,0.03,0.03,6)),M,Sp,s*(0.3+k*0.28),0.92,2.875); }
+  add(B(0.14,0.22,0.16),M,Sp,0,0.66,2.88); if(hi){ const hk=add(new THREE.TorusGeometry(0.09,0.03,6,10,Math.PI*1.3),M,Sp,0,0.55,2.94); hk.rotation.y=Math.PI/2; }
+  /* long cab: crew cab in front + engine section with radiator grilles */
+  add(B(2.06,1.46,2.85),Y,Sp,0,1.75,1.125,true); add(B(2.2,0.1,2.95),Y2,Sp,0,2.53,1.12,true);
+  add(B(1.96,0.66,0.05),K,Sp,0,2.12,2.565); for(const s of [-1,1]) add(B(0.88,0.56,0.04),Gl,Sp,s*0.47,2.12,2.59);
+  add(B(0.08,0.62,0.07),Y,Sp,0,2.12,2.6); for(const s of [-1,1]) add(B(0.1,0.68,0.08),Y,Sp,s*1.0,2.12,2.58);
+  for(const s of [-1,1]){ add(zc(Cy(0.17,0.17,0.05,16)),K,Sp,s*0.72,1.28,2.565); add(zc(Cy(0.13,0.13,0.05,16)),HL,Sp,s*0.72,1.28,2.585); add(new THREE.SphereGeometry(0.055,8,6),OR,Sp,s*0.97,1.3,2.57);
+    const ov=add(zc(Cy(0.1,0.1,0.05,14)),Y2,Sp,s*0.36,1.5,2.57); ov.scale.x=2.0;
+    add(B(0.04,0.5,0.8),Gl,Sp,s*1.035,2.1,2.0); add(B(0.04,0.44,0.42),Gl,Sp,s*1.035,2.12,1.35);
+    add(B(0.05,0.55,0.05),K,Sp,s*1.1,2.05,2.5); add(B(0.3,0.04,0.04),K,Sp,s*1.22,2.3,2.45); add(B(0.05,0.32,0.2),K,Sp,s*1.38,2.18,2.43);
+    /* radiator grilles: tall vertical slats + a slotted vent */
+    add(B(0.05,0.82,0.62),K2,Sp,s*1.04,1.8,0.72); for(let k=0;k<(hi?8:4);k++) add(B(0.07,0.74,0.035),Y2,Sp,s*1.045,1.8,0.46+k*(hi?0.074:0.17));
+    add(B(0.05,0.62,0.5),K2,Sp,s*1.04,1.9,0.05); for(let k=0;k<(hi?6:3);k++) add(B(0.07,0.035,0.44),Y2,Sp,s*1.045,1.65+k*(hi?0.1:0.2),0.05);
+    for(const [zc0,len] of [[1.4,2.62],[-1.4,2.62]]){ add(B(0.76,0.07,len),Y,Sp,s*WXo,1.45,zc0,true); add(B(0.05,0.16,len),K,Sp,s*(WXo+0.37),1.39,zc0); }
+    const fs=add(B(0.76,0.07,0.34),Y,Sp,s*WXo,1.37,2.84,true); fs.rotation.x=0.7;
+    add(B(0.5,0.4,0.03),K,Sp,s*WXo,1.18,0.07); }
+  { const fe=1.11; add(Cy(0.09,0.09,0.44,12),0xd8322a,Sp,fe,1.5,-0.12,true); add(Cy(0.045,0.055,0.1,8),K,Sp,fe,1.77,-0.12); add(B(0.04,0.06,0.24),K,Sp,fe-0.06,1.5,-0.12); add(B(0.06,0.5,0.4),K2,Sp,-1.08,1.45,-0.05,true); }
+  if(hi){ for(let k=0;k<6;k++){ add(B(2.0,0.012,0.012),K2,Sp,0,1.1+k*0.115,2.556); for(let j=0;j<7;j++){ const x=-0.96+j*0.32+(k%2)*0.16; if(x<1) add(B(0.012,0.11,0.012),K2,Sp,x,1.16+k*0.115,2.556); } }
+    for(const s of [-1,1]){ for(let k=0;k<5;k++) add(B(0.012,0.012,0.95),K2,Sp,s*1.032,1.12+k*0.12,2.05); add(B(0.012,0.8,0.012),K2,Sp,s*1.032,1.75,1.12); add(B(0.03,0.04,0.12),M,Sp,s*1.04,1.7,1.25);
+      const wp=add(B(0.4,0.02,0.02),K,Sp,s*0.5,1.84,2.6); wp.rotation.z=s*0.5; }
+    chRivets(o,Sp,K2,[[1.032,2.4,0.2,'x'],[1.032,2.4,0.9,'x'],[-1.032,2.4,0.2,'x'],[-1.032,2.4,0.9,'x']]); }
+  /* roof: orange lights, spotlights, rack, beacon, exhaust */
+  for(const s of [-1,1]){ add(Cy(0.07,0.08,0.08,10),OR,Sp,s*0.95,2.62,2.42); add(Cy(0.025,0.025,0.16,6),K,Sp,s*0.7,2.65,2.45); add(zc(Cy(0.09,0.1,0.12,12)),K,Sp,s*0.7,2.77,2.47); add(zc(Cy(0.07,0.07,0.02,12)),HL,Sp,s*0.7,2.77,2.54);
+    add(B(0.05,0.05,1.3),M,Sp,s*0.82,2.66,0.4); }
+  for(const z of [-0.15,0.4,0.95]) add(B(1.68,0.04,0.05),M,Sp,0,2.66,z); chBeacon(T,Sp,-0.4,2.66,0.2);
+  add(Cy(0.08,0.09,1.3,10),K,Sp,0.82,2.25,-0.42,true); add(Cy(0.11,0.11,0.08,10),K2,Sp,0.82,2.92,-0.42); T.exh=new THREE.Object3D(); T.exh.position.set(0.82,2.98,-0.42); Sp.add(T.exh);
+  { const pl=new THREE.Mesh(new THREE.PlaneGeometry(0.62,0.17),rszoPlateMat()); pl.position.set(0,0.8,2.871); Sp.add(pl); const p2=pl.clone(); p2.position.set(0,0.86,-2.73); p2.rotation.y=Math.PI; Sp.add(p2); }
+  /* rear deck */
+  add(B(2.3,0.14,2.3),Y,Sp,0,1.16,-1.45,true); add(B(2.34,0.06,2.34),K,Sp,0,1.07,-1.45); add(B(2.2,0.22,0.2),K,Sp,0,0.86,-2.62,true);
+  for(const s of [-1,1]){ add(B(0.22,0.1,0.04),glowMat(0xff3a2a),Sp,s*0.92,1.04,-2.63); add(B(0.3,0.3,1.3),K2,Sp,s*0.98,1.38,-1.45,true); if(hi) add(B(0.32,0.03,1.32),M,Sp,s*0.98,1.54,-1.45); }
+  /* launcher: turntable, hinge, rocket pack (4/6/8 tubes) that tilts up to fire, hydraulic ram */
+  add(Cy(0.55,0.62,0.16,16),K,Sp,0,1.31,-1.5,true); for(const s of [-1,1]) add(B(0.1,0.46,0.4),Y2,Sp,s*0.5,1.5,-2.2,true); add(xc(Cy(0.07,0.07,1.04,10)),M,Sp,0,1.62,-2.2);
+  const pod=new THREE.Group(); pod.position.set(0,1.62,-2.2); pod.userData.keep=true; Sp.add(pod); T.rszPod=pod; T.rszMuz=[]; T.rszBlast=[];
+  const N=RSZ_N[up.abl|0], cols=N/2, half=cols*0.15+0.06, L=1.85;
+  add(B(half*2,0.06,L),K2,pod,0,0.02,L/2+0.05);
+  for(let r=0;r<2;r++) for(let c=0;c<cols;c++){ const x=(c-(cols-1)/2)*0.3, y=0.2+r*0.3;
+    add(zc(Cy(0.135,0.135,L,12*o.S)),0x3b4046,pod,x,y,L/2+0.05,true); add(zc(Cy(0.1,0.1,0.04,12)),0x0b0d10,pod,x,y,L+0.06);
+    if(hi){ const tip=add(new THREE.ConeGeometry(0.08,0.16,10),0xd8322a,pod,x,y,L-0.03); tip.rotation.x=Math.PI/2; }
+    const mz=new THREE.Object3D(); mz.position.set(x,y,L+0.2); pod.add(mz); T.rszMuz.push(mz); }
+  for(const s of [-1,1]){ add(B(0.06,0.72,L*0.96),Y,pod,s*half,0.34,L/2+0.05,true);
+    const bl=new THREE.Object3D(); bl.position.set(s*(half+0.25),0.35,0.1); pod.add(bl); T.rszBlast.push(bl);
+    if(hi) chRivets(o,pod,K,[[s*(half+0.03),0.58,0.4,'x'],[s*(half+0.03),0.58,1.3,'x'],[s*(half+0.03),0.1,0.4,'x'],[s*(half+0.03),0.1,1.3,'x']]); }
+  for(const z of [0.25,L*0.55,L-0.1]) add(B(half*2+0.04,0.06,0.12),Y2,pod,0,0.7,z);
+  { const rg=new THREE.Group(); rg.position.set(0,1.25,-0.62); rg.userData.keep=true; Sp.add(rg); add(Cy(0.08,0.08,0.4,10),K2,rg,0,0.2,0); const rod=new THREE.Group(); rod.userData.keep=true; rg.add(rod); add(Cy(0.045,0.045,1,8),M,rod,0,0.5,0); T.rszRam={g:rg,rod}; }
+  /* cab-roof MG mount: 120° arc, one barrel or two */
+  Sp.add(T.stab); T.stab.position.set(0,2.58,1.72); T.stab.add(Tu);
+  add(Cy(0.34,0.38,0.12,16),K,Tu,0,0.04,0,true); add(B(0.62,0.3,0.46),Y,Tu,0,0.25,-0.08,true); add(B(0.66,0.05,0.5),K,Tu,0,0.42,-0.08);
+  for(const s of [-1,1]){ const sh=add(B(0.2,0.44,0.06),Y2,Tu,s*0.3,0.42,0.24,true); sh.rotation.x=-0.15; }
+  T.gun.position.set(0,0.34,0.2); T.noMg=true; const two=up.mg==='dshk2';
+  for(const x of two?[-0.12,0.12]:[0]){ add(B(0.15,0.2,0.5),K,T.mg,x,0,0.2,true); add(zc(Cy(0.045,0.05,1.05,10)),0x454d55,T.mg,x,0.02,0.95,true); add(zc(Cy(0.07,0.07,0.18,10)),K,T.mg,x,0.02,1.45);
+    if(hi) for(let k=0;k<4;k++) add(zc(Cy(0.062,0.062,0.03,10)),K2,T.mg,x,0.02,0.6+k*0.1);
+    const mz=new THREE.Object3D(); mz.position.set(x,0.02,1.58); T.mg.add(mz); T.mgMuz.push(mz); }
+  add(B(0.2,0.2,0.28),0x4a5a3a,T.mg,two?0.31:0.2,-0.05,0.12,true); },
 };
 
 /* ================= v14: visible engine / armour / stabiliser upgrades for every chassis ================= */
@@ -213,11 +284,19 @@ const CH_UPG={
   if(a>=2){ const pl=add(B(2.3,0.55,0.12),K2,Sp,0,0.95,2.72,true); pl.rotation.x=-0.28; for(let k=0;k<5;k++) add(B(0.22,0.04,0.02),Or,pl,-0.8+k*0.4,0.12,0.07); for(const s of [-1,1]) add(B(0.08,0.08,0.4),D,Sp,s*0.7,0.85,2.55); }
   if(a>=3) for(const s of [-1,1]){ for(let k=0;k<3;k++) add(B(0.04,0.04,3.6),M,Sp,s*1.16,1.3+k*0.18,-0.1); for(let k=0;k<7;k++) add(B(0.04,0.42,0.04),M,Sp,s*1.16,1.48,-1.8+k*0.58); add(B(0.08,0.36,0.6),K,Tu,s*0.7,0.32,0.3,true); }
   upGyro(T,o,Tu,0.3,0.62,-0.5,0x4a4c40); },
+ rszo(T,o){ const {add,B,Cy,zc,up}=o, Sp=T.susp, Tu=T.turret, Y=0xf2c21b, Y2=0xd9a612, K=0x1c1e21, K2=0x2a2d31, M=0x5a5f64, e=up.engine, a=up.armor;
+  if(e>=1){ add(Cy(0.08,0.09,1.3,10),K,Sp,-0.82,2.25,-0.42,true); add(Cy(0.11,0.11,0.08,10),K2,Sp,-0.82,2.92,-0.42); T.exh2=new THREE.Object3D(); T.exh2.position.set(-0.82,2.98,-0.42); Sp.add(T.exh2); }
+  if(e>=2){ add(Cy(0.09,0.09,1.5,10),K,Sp,-1.13,2.05,1.15,true); const cap=add(Cy(0.16,0.12,0.14,12),K2,Sp,-1.13,2.86,1.15,true); cap.rotation.x=0.3; add(B(0.12,0.06,0.12),K,Sp,-1.08,1.7,1.15); }
+  if(e>=3) for(const s of [-1,1]) for(const z of [0.55,0.9]) add(B(0.02,0.6,0.03),glowMat(0xff9b1a),Sp,s*1.06,1.8,z);
+  if(a>=1){ for(let k=0;k<11;k++) add(B(0.03,0.62,0.03),K,Sp,-0.85+k*0.17,2.12,2.64); for(const y of [1.8,2.44]) add(B(1.9,0.04,0.04),K,Sp,0,y,2.64); }
+  if(a>=2){ const pl=add(B(2.7,0.5,0.1),Y,Sp,0,0.86,2.95,true); pl.rotation.x=-0.25; for(let k=0;k<6;k++){ const st=add(B(0.16,0.46,0.02),K,pl,-1.05+k*0.42,0,0.06); st.rotation.z=0.6; } }
+  if(a>=3) for(const s of [-1,1]){ add(B(0.06,0.5,1.0),M,Sp,s*1.07,1.32,1.95,true); for(let k=0;k<5;k++) add(B(0.05,0.05,2.1),M,Sp,s*1.18,1.32+k*0.06,-1.45); }
+  upGyro(T,o,Tu,0.22,0.46,-0.25,K2); },
 };
 const UPINFO={
- engine:{ten:'Быстрее и резвее. Третье сопло, турбина на корме, задний спойлер с зелёной подсветкой.',krep:'Быстрее и резвее. Вторая выхлопная труба, турбины на крыше кабины, раскалённые жалюзи на кузове.',igla:'Быстрее и резвее. Светящиеся жалюзи, турбины на корме, форсажные сопла.',pchela:'Быстрее и резвее. Шноркель, радиатор на корме, турбины с оранжевым свечением.',kovch:'Быстрее и резвее. Выхлопные трубы на корме, вентилятор радиатора, светящиеся воздухозаборники.'},
- armor:{ten:'Больше прочности. Щитки над колёсами, кенгурятник, боковые экраны и броня башни.',krep:'Больше прочности. Решётка на лобовое стекло, отвал-таран, клетка из прутьев на кузове и щиты башни.',igla:'Больше прочности. Экраны над колёсами, клиновидный нос, бортовые плиты башни.',pchela:'Больше прочности. Решётка на смотровую щель, кенгурятник, бортовые бронепанели.',kovch:'Больше прочности. Бортовые экраны над колёсами, отвал-таран, решётчатая броня и щиты башни.'},
- stab:{ten:'Башня держит линию огня, когда корпус кренится. Гироблок и мачта датчиков на башне.',krep:'Башня держит линию огня, когда корпус кренится. Гироблок и мачта датчиков на башне.',igla:'Башня держит линию огня, когда корпус кренится. Гироблок и мачта датчиков на корме башни.',pchela:'Башня держит линию огня, когда корпус кренится. Гироблок и мачта датчиков на башне.',kovch:'Башня держит линию огня, когда корпус кренится. Гироблок и мачта датчиков на башне.'}};
+ engine:{ten:'Быстрее и резвее. Третье сопло, турбина на корме, задний спойлер с зелёной подсветкой.',krep:'Быстрее и резвее. Вторая выхлопная труба, турбины на крыше кабины, раскалённые жалюзи на кузове.',igla:'Быстрее и резвее. Светящиеся жалюзи, турбины на корме, форсажные сопла.',pchela:'Быстрее и резвее. Шноркель, радиатор на корме, турбины с оранжевым свечением.',kovch:'Быстрее и резвее. Выхлопные трубы на корме, вентилятор радиатора, светящиеся воздухозаборники.',rszo:'Быстрее и резвее. Вторая выхлопная труба, шноркель у кабины, раскалённые решётки радиатора.'},
+ armor:{ten:'Больше прочности. Щитки над колёсами, кенгурятник, боковые экраны и броня башни.',krep:'Больше прочности. Решётка на лобовое стекло, отвал-таран, клетка из прутьев на кузове и щиты башни.',igla:'Больше прочности. Экраны над колёсами, клиновидный нос, бортовые плиты башни.',pchela:'Больше прочности. Решётка на смотровую щель, кенгурятник, бортовые бронепанели.',kovch:'Больше прочности. Бортовые экраны над колёсами, отвал-таран, решётчатая броня и щиты башни.',rszo:'Больше прочности (лоб и так крепче). Решётка на лобовое стекло, таранный щит на бампер, бронелисты на двери и решётки вдоль кузова.'},
+ stab:{ten:'Башня держит линию огня, когда корпус кренится. Гироблок и мачта датчиков на башне.',krep:'Башня держит линию огня, когда корпус кренится. Гироблок и мачта датчиков на башне.',igla:'Башня держит линию огня, когда корпус кренится. Гироблок и мачта датчиков на корме башни.',pchela:'Башня держит линию огня, когда корпус кренится. Гироблок и мачта датчиков на башне.',kovch:'Башня держит линию огня, когда корпус кренится. Гироблок и мачта датчиков на башне.',rszo:'Пулемёт держит линию огня, когда тягач кренится. Гироблок на турели.'}};
 function upInfo(u){ return (UPINFO[u.k]&&UPINFO[u.k][UP.tank])||u.info; }
 
 function makeTank(hi,up){

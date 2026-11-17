@@ -21,13 +21,13 @@ function tankUpdate(dt,inp){
     const d=rev?dB:dF, al=Math.cos(d); joyYaw=clamp(d*3.4,-2.3,2.3);
     th=(rev?-1:1)*inp.joy.m*(al>0.8?1:al>0.3?(al-0.3)/0.5:0); }
   TK.load=Math.abs(th);
-  const wet=TK.wet, CHc=chs(), vmax=ENG_V[UP.engine]*CHc.spd*(wet?0.42:1), A=ENG_A[UP.engine]*CHc.acc*(wet?0.6:1);
-  let acc=0; if(th>0) acc=vF<-0.3?28:(vF<vmax*Math.max(th,0.3)?A*(1-vF/(vmax*1.16)):0); else if(th<0) acc=vF>0.3?-28:(vF>-8.5*Math.max(-th,0.3)*(wet?0.5:1)?-12:0);
-  vF+=acc*dt; const dec=(1.6+0.035*vF*vF+(inp.hb?16:0)+(wet?3+0.3*vF*vF:0))*dt; vF=Math.abs(vF)<=dec?0:vF-Math.sign(vF)*dec;
+  const wet=TK.wet, CHc=chs(), vmax=ENG_V[UP.engine]*CHc.spd*(wet?0.42:1)*(CHc.abil==='mlrs'?mlrsVK():1), BRK=CHc.truck?15:28, A=ENG_A[UP.engine]*CHc.acc*(wet?0.6:1);
+  let acc=0; if(th>0) acc=vF<-0.3?BRK:(vF<vmax*Math.max(th,0.3)?A*(1-vF/(vmax*1.16)):0); else if(th<0) acc=vF>0.3?-BRK:(vF>-8.5*Math.max(-th,0.3)*(wet?0.5:1)?-12:0);
+  vF+=acc*dt; const dec=(1.6+0.035*vF*vF+(inp.hb?16:0)+(wet?3+0.3*vF*vF:0))*dt*(CHc.truck?0.55:1); vF=Math.abs(vF)<=dec?0:vF-Math.sign(vF)*dec;
   vL*=Math.exp(-(inp.hb?1.4:8.5)*dt);
   const maxS=lerp(0.62,0.27,clamp(Math.abs(vF)/12,0,1)); let yaw;
-  if(joyYaw!==null){ TK.jyaw+=(joyYaw-TK.jyaw)*Math.min(1,dt*7); yaw=TK.jyaw; TK.steer+=(clamp(yaw*0.3*(vF<-0.3?-1:1),-0.55,0.55)-TK.steer)*Math.min(1,dt*8); }
-  else { TK.jyaw*=Math.exp(-dt*10); TK.steer+=(inp.steer*maxS-TK.steer)*Math.min(1,dt*8); yaw=vF*Math.tan(TK.steer)/1.75*(inp.hb?1.4:1)+TK.jyaw+(CHc.abil==='stealth'?inp.steer*1.9*(1-clamp(Math.abs(vF)/5,0,1)):0); }
+  if(joyYaw!==null){ TK.jyaw+=(joyYaw-TK.jyaw)*Math.min(1,dt*7); yaw=TK.jyaw*(CHc.truck?clamp(Math.abs(vF)/3.5,0.12,1):1); TK.steer+=(clamp(yaw*0.3*(vF<-0.3?-1:1),-0.55,0.55)-TK.steer)*Math.min(1,dt*8); }
+  else { TK.jyaw*=Math.exp(-dt*10); TK.steer+=(inp.steer*maxS-TK.steer)*Math.min(1,dt*8); yaw=vF*Math.tan(TK.steer)/(CHc.truck?2.4:1.75)*(inp.hb?1.4:1)+TK.jyaw+(CHc.abil==='stealth'?inp.steer*1.9*(1-clamp(Math.abs(vF)/5,0,1)):0); }
   if(TK.air) yaw*=0.4;
   yaw*=CHc.turn; TK.h+=yaw*dt; TK.yaw=yaw;
   const nfx=Math.sin(TK.h), nfz=Math.cos(TK.h); TK.vx=nfx*vF+nfz*vL; TK.vz=nfz*vF-nfx*vL;
@@ -90,8 +90,9 @@ function ram(cx,cy,cz,pow){ const rr=Math.max(1,Math.round(0.55/VS)); const rem=
   const GL=P.glass; for(let k=0;k<glass*2;k++) spark((cx+0.5)*VS,(cy+0.5)*VS,(cz+0.5)*VS,(rnd()-0.5)*6+TK.vx*0.5,rnd()*5,(rnd()-0.5)*6+TK.vz*0.5,GL[0],GL[1],GL[2],0.5+0.5*rnd());
   if(glass) sfxGlass(0.5); else if(ramCD<=0){ sfxThud(0.6); ramCD=0.12; }
   structural(rem); return hs; }
-function damageTank(amount,dx,dz,top){ if(LOC.safe||transit||TK.dead||amount<=0.05) return; if(SHD.on){ shieldHit(amount*0.9); return; } TK.hp-=amount; armHit(amount,dx,dz,top);
-  const ch=Math.cos(TK.h), sh=Math.sin(TK.h), l=Math.hypot(dx,dz)||1, lx=(dx*ch-dz*sh)/l, lz=(dx*sh+dz*ch)/l; const a=amount/maxHP()*2.6, S=TK.dmgS;
+function damageTank(amount,dx,dz,top){ if(LOC.safe||transit||TK.dead||amount<=0.05) return; if(SHD.on){ shieldHit(amount*0.9); return; }
+  const ch=Math.cos(TK.h), sh=Math.sin(TK.h), l=Math.hypot(dx,dz)||1, lx=(dx*ch-dz*sh)/l, lz=(dx*sh+dz*ch)/l; if(chs().frontK&&lz>0.55&&!top) amount*=chs().frontK;
+  TK.hp-=amount; armHit(amount,dx,dz,top); const a=amount/maxHP()*2.6, S=TK.dmgS;
   S[0]=Math.min(1,S[0]+Math.max(0,lz)*a); S[1]=Math.min(1,S[1]+Math.max(0,-lz)*a); S[2]=Math.min(1,S[2]+Math.max(0,lx)*a); S[3]=Math.min(1,S[3]+Math.max(0,-lx)*a); S[4]=Math.min(1,S[4]+(top||0)*a);
   if(amount>1.5) screenFlash(Math.min(0.55,amount/45),true);
   if(amount>2){ const hb=$('#hpBar'); hb.classList.remove('flash'); void hb.offsetWidth; hb.classList.add('flash'); }

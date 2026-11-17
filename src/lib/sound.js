@@ -26,7 +26,7 @@ export function engineInit(ctx){ const E={rpm:0.1}; const osc=(type,f)=>{ const 
   const ns=ctx.createBufferSource(); ns.buffer=SND.noise; ns.loop=true; const bp=ctx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=700; bp.Q.value=0.9;
   E.ng=ctx.createGain(); E.ng.gain.value=0; ns.connect(bp); bp.connect(E.ng); E.ng.connect(SND.master); ns.start(); E.bp=bp; SND.E=E; }
 /* engine voice per chassis: [idle Hz, rev range, whine mult, rumble mult] */
-export const ENG_VOICE={base:[34,96,1,1],ten:[46,128,1.5,0.7],krep:[24,66,0.6,1.6],igla:[52,118,2.2,0.35],pchela:[38,104,1.1,1],kovch:[28,78,0.8,1.4]};
+export const ENG_VOICE={base:[34,96,1,1],ten:[46,128,1.5,0.7],krep:[24,66,0.6,1.6],igla:[52,118,2.2,0.35],pchela:[38,104,1.1,1],kovch:[28,78,0.8,1.4],rszo:[19,52,0.45,2.0]};
 /* v24: short throttle blip of a given chassis (motor pool «drive out») */
 export function sfxRev(id){ sInit(); const cv=ENG_VOICE[id]||ENG_VOICE.base, f0=cv[0]+0.1*cv[1], f1=cv[0]+0.95*cv[1], up=0.24, dn=0.55;
   sO(f0,f1,up,0.13,'sawtooth'); sO(f0*1.013,f1*1.013,up,0.08,'sawtooth'); sO(f0*0.5,f1*0.5,up,0.16,'sine'); sO(300*cv[2],1100*cv[2],up,0.025,'sine'); sNz(up+0.1,'bandpass',500,0.9,0.05*cv[3]);
@@ -40,7 +40,7 @@ export function sNz(dur,type,freq,q,vol,att){ const ctx=SND.ctx; if(!ctx||SND.mu
   const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+(att||0.003)); g.gain.exponentialRampToValueAtTime(0.0001,t+dur); s.connect(f); f.connect(g); g.connect(sndOut(ctx)); s.start(t,Math.random()*0.5); s.stop(t+dur+0.05); }
 export function sO(f0,f1,dur,vol,type){ const ctx=SND.ctx; if(!ctx||SND.muted) return; vol*=SND.sk; if(vol<0.003) return; const t=ctx.currentTime, o=ctx.createOscillator(); o.type=type||'sine'; o.frequency.setValueAtTime(f0,t); o.frequency.exponentialRampToValueAtTime(f1,t+dur);
   const g=ctx.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.0001,t+dur); o.connect(g); g.connect(sndOut(ctx)); o.start(t); o.stop(t+dur+0.05); }
-export const sfxMg=()=>{ if(ENV.UP.mg==='kpv'){ sNz(0.14,'bandpass',700,0.7,0.35); sO(140,50,0.12,0.25,'square'); } else { sNz(0.06,'bandpass',1600,0.8,0.22); sO(180,90,0.05,0.12,'square'); } };
+export const sfxMg=()=>{ if(ENV.UP.mg==='dshk1'||ENV.UP.mg==='dshk2'){ sNz(0.1,'bandpass',1100,0.8,0.28); sO(160,70,0.08,0.18,'square'); } else if(ENV.UP.mg==='kpv'){ sNz(0.14,'bandpass',700,0.7,0.35); sO(140,50,0.12,0.25,'square'); } else { sNz(0.06,'bandpass',1600,0.8,0.22); sO(180,90,0.05,0.12,'square'); } };
 export const sfxCannon=()=>{ sNz(0.5,'lowpass',900,0.7,0.6); sO(120,40,0.4,0.5); };
 export const sfxRocket=()=>{ sNz(0.45,'bandpass',1200,0.6,0.25,0.02); sO(300,900,0.3,0.06,'sawtooth'); };
 export const sfxBoom=k=>{ sNz(1.3,'lowpass',420,0.6,0.7*k,0.01); sO(70,28,0.9,0.55*k); };

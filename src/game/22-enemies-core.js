@@ -62,8 +62,8 @@ function eSeparate(){ for(let i=0;i<ENEMIES.length;i++){ const a=ENEMIES[i]; if(
     const pen=(m-d)/d, wa=a.static?0:(b.static?1:b.mass/(a.mass+b.mass)); const tx=a.x-dx*pen*wa, tz=a.z-dz*pen*wa, ux=b.x+dx*pen*(1-wa), uz=b.z+dz*pen*(1-wa);
     if(!a.static&&eFree(tx,tz,a.r*0.8)){ a.x=tx; a.z=tz; } if(!b.static&&eFree(ux,uz,b.r*0.8)){ b.x=ux; b.z=uz; } } } }
 function tankVsEnemies(){ for(const e of ENEMIES){ if(e.dead||e.noCol||e.onTank) continue; const dx=e.x-TK.x, dz=e.z-TK.z, d=Math.hypot(dx,dz), m=TR*0.92+e.r; if(!(d<m)||d<1e-3) continue;
-  const nx=dx/d, nz=dz/d, rel=(TK.vx-e.vx)*nx+(TK.vz-e.vz)*nz, tv=TK.vx*nx+TK.vz*nz, mr=e.static?1:e.mass/(e.mass+3);
-  if(tv>3.5&&e.ramCD<=0&&!LOC.safe){ e.ramCD=0.35; enemyHit(e,(tv-3.5)*16*(UP.armor>=2?1.3:1),nx,nz,tv*1.3,'ram'); sfxThud(Math.min(1,tv/12)); shake=Math.min(1,shake+tv*0.02); TK.pitchV+=tv*0.03;
+  const nx=dx/d, nz=dz/d, rel=(TK.vx-e.vx)*nx+(TK.vz-e.vz)*nz, tv=TK.vx*nx+TK.vz*nz, mr=e.static?1:e.mass/(e.mass+3*(chs().mass||1));
+  if(tv>3.5&&e.ramCD<=0&&!LOC.safe){ e.ramCD=0.35; enemyHit(e,(tv-3.5)*16*(UP.armor>=2?1.3:1)*(chs().rmE||1),nx,nz,tv*1.3,'ram'); sfxThud(Math.min(1,tv/12)); shake=Math.min(1,shake+tv*0.02); TK.pitchV+=tv*0.03;
     if(e.mass>2.5) damageTank(tv*0.8*(UP.armor>=2?0.5:1),dx,dz,0); const sc=mix3(P.glow,[1,1,1],0.4); for(let k=0;k<8;k++) spark(TK.x+nx*1.4,1.2,TK.z+nz*1.4,nx*6+(rnd()-0.5)*6,rnd()*5,nz*6+(rnd()-0.5)*6,sc[0],sc[1],sc[2],0.4); }
   if(rel>0){ TK.vx-=nx*rel*mr; TK.vz-=nz*rel*mr; }
   const pen=m-d; if(!e.static&&!e.dead){ const ex=e.x+nx*pen*(1-mr), ez=e.z+nz*pen*(1-mr); if(eFree(ex,ez,e.r*0.8)){ e.x=ex; e.z=ez; } }
@@ -128,7 +128,7 @@ function pickupsUpdate(dt){ const tx=TK.x, tz=TK.z; for(let i=PICKUPS.length-1;i
   p.m.position.set(p.x,p.y,p.z); if(p.mag) p.m.scale.setScalar(clamp(d/2.2,0.35,1));
   if(d<1.4&&!LOC.safe&&!TK.dead){ collectPickup(p); PICKUPS.splice(i,1); } } }
 function collectPickup(p){ scene.remove(p.m);
-  if(p.kind==='ammo'){ for(const id of ['mg','cn','rk']) ST.ammo[id]=Math.min(ammoCap(id),ST.ammo[id]+Math.ceil(ammoCap(id)*0.2)); toast('Боеприпасы +20%'); sfxPickup(1); updateWeaponUI(); return; }
+  if(p.kind==='ammo'){ for(const id of ['mg','cn','rk','sv']) ST.ammo[id]=Math.min(ammoCap(id),ST.ammo[id]+Math.ceil(ammoCap(id)*0.2)); toast('Боеприпасы +20%'); sfxPickup(1); updateWeaponUI(); return; }
   ST.scrap+=p.value; gainAcc+=p.value; gainT=1.4; missionScrap(p.value); sfxPickup(0); popText(TK.x+(rnd()-0.5)*0.8,TK.y+2.4,TK.z,'+'+p.value); }
 
 /* ---------- enemy shots ---------- */
