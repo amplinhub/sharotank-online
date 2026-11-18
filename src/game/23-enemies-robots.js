@@ -140,9 +140,12 @@ const ETYPE={jian:{build:buildJian,update:updJian,die:dieJian},bomb:{build:build
   factory:{build:buildFactory,update:updFactory,die:dieFactory},bull:{build:buildBull,update:updBull,die:dieBull},lamp:{build:buildLamp,update:updLamp,die:dieLamp}};
 
 /* ---------- aim assist ---------- */
+const LOCK_KEEP=45;
 function findLock(){ if(LOC.safe){ AIM.manual=null; return null; } let best=null, bs=1e9; const cands=[];
   const mn=AIM.manual; if(mn){ if(mn.dead||mn.lockable===false||Math.hypot(mn.x-TK.x,mn.z-TK.z)>48) AIM.manual=null; else if(!(aimMode==='stick'&&TCH.active)) return [mn,mn.x,mn.y+(mn.hy||0),mn.z,mn.hr||0.5]; }
   for(const e of ENEMIES) if(!e.dead&&e.lockable&&e.state!=='fly') cands.push([e,e.x,e.y+e.hy,e.z,e.hr]); for(const d of DRONES) if(!d.dead) cands.push([d,d.x,d.y,d.z,0.5]);
+  /* v30.1: an automatic lock sticks until the target dies, stops being lockable or gets farther than LOCK_KEEP (the stick and the mouse still pick freely) */
+  if(aimMode!=='mouse'&&!TCH.active){ const cur=cands.find(c=>c[0]===AIM.lockE); if(cur&&Math.hypot(cur[1]-TK.x,cur[3]-TK.z)<=LOCK_KEEP) return cur; }
   if(aimMode==='mouse'){ for(const c of cands){ const s=toScreen(c[1],c[2],c[3]); if(!s[2]) continue; const dd=Math.hypot(s[0]-mouse.x,s[1]-mouse.y)*(c[0]===AIM.lockE?0.55:1), lim=30+c[4]*16; if(dd<lim&&dd<bs){ bs=dd; best=c; } } }
   else if(!TCH.active){ for(const c of cands){ const d=Math.hypot(c[1]-TK.x,c[3]-TK.z); if(d>28||d<1) continue; const sc=d*(c[0]===AIM.lockE?0.6:1)*(c[0].type==='factory'?1.4:1); if(sc<bs){ bs=sc; best=c; } } }
   else { const ax=Math.sin(AIM.yawRel), az=Math.cos(AIM.yawRel); for(const c of cands){ const dx=c[1]-TK.x, dz=c[3]-TK.z, d=Math.hypot(dx,dz); if(d>38||d<1) continue; const ang=Math.acos(clamp((dx*ax+dz*az)/d,-1,1)), sc=(ang*12+d*0.04)*(c[0]===AIM.lockE?0.55:1); if(ang<0.32&&sc<bs){ bs=sc; best=c; } } }

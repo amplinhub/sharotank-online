@@ -1,18 +1,22 @@
 /* ================= v30.0: «Онлайн рейтинг» — пилоты, общий рейтинг, друзья, сообщения, лом, медали =================
    Сервер — веб-приложение Apps Script при Google Таблице (server/sheets/core.js), клиент — window.SHT_SHEETS (src/net/sheets.js).
    Состояние DRV — в 10-economy.js, медали и рисунки — в 44-online-art.js (используются только во время игры).
-   Ничего не ждём: списки и карточки рисуются из кэша сразу, свежие данные подтягиваются в фоне (синхронизация раз в 20 с,
-   рейтинг раз в 2 мин, карточки друзей и лидеров — по одной в 3 с). */
+   Ничего не ждём: списки и карточки рисуются из кэша сразу, свежие данные подтягиваются в фоне.
+   v30.1, щадим сервер: входящие — дешёвый опрос раз в 8 с (без новой почты сервер даже не открывает таблицу), свой профиль —
+   раз в минуту, только если что-то изменилось (иначе отметка «в игре» раз в 4 мин), рейтинг — раз в 3 мин (сервер кэширует 60 с),
+   карточки друзей и лидеров — по одной в 5 с, если старше 5 мин. */
+const DRV_POLL=8, DRV_SYNC=60, DRV_BEAT=240, DRV_TOP=180;
 const DRV_BOSSN={krot:1,hornet:1,dragon:1,crypt:1};
 const DRV_ERR={net:'Нет связи с сервером. Проверь интернет.',nourl:'Сервер онлайн-рейтинга ещё не подключён.',auth:'Неверный позывной или PIN.',locked:'Слишком много неверных PIN. Подожди 10 минут.',
   nick:'Позывной: 2–16 символов, буквы, цифры, пробел, _ - .',pin:'PIN — ровно 4 цифры.',nick_taken:'Этот позывной уже занят. Если он твой — нажми «Войти».',no_nick:'Нет пилота с таким позывным.',
-  self:'Это ты.',limit:'Лимит на сегодня исчерпан.',not_friend:'Сначала добавь пилота в друзья (☆).',bad:'Сервер отклонил запрос.',server:'Ошибка на сервере. Попробуй позже.'};
+  self:'Это ты.',limit:'Лимит на сегодня исчерпан.',spam:'Не так быстро: не больше 10 сообщений в минуту.',not_friend:'Сначала добавь пилота в друзья (☆).',bad:'Сервер отклонил запрос.',server:'Ошибка на сервере. Попробуй позже.'};
 const DRV_SAVE=['nick','pin','av','kills','kbt','deaths','medals','streak','st','friends','cache'];
 const drvEsc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const drvTank=id=>(CHASSIS[id]&&CHASSIS[id].name)||'—';
 const drvEName=t=>{ const n=ENAME[t]||t, m=/«(.+)»/.exec(n); return m?m[1]:n; };
 const drvScore=()=>DRV.kills+50*Object.keys(DRV.medals).length;
-function drvAgo(seen,now){ if(!seen) return ''; const m=Math.max(0,Math.round(((now||Date.now())-seen)/60000)); return m<3?'в игре сейчас':m<60?`был ${m} мин назад`:m<2880?`был ${Math.round(m/60)} ч назад`:`был ${Math.round(m/1440)} дн назад`; }
+function drvErr(r){ if(r.err==='muted') return `Сообщения закрыты до ${new Date(r.until).toLocaleString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}: в прошлом было запрещённое слово.`; return DRV_ERR[r.err]||'Не получилось'; }
+function drvAgo(seen,now){ if(!seen) return ''; const m=Math.max(0,Math.round(((now||Date.now())-seen)/60000)); return m<6?'в игре сейчас':m<60?`был ${m} мин назад`:m<2880?`был ${Math.round(m/60)} ч назад`:`был ${Math.round(m/1440)} дн назад`; }
 function drvLoad(){ try{ const d=JSON.parse(localStorage.getItem(DRV_KEY)||'null'); if(d) for(const k of DRV_SAVE) if(d[k]!=null) DRV[k]=d[k]; }catch(_){ /* приватный режим */ }
   DRV.st=Object.assign({ram:0,civ:0,flag:0,msg:0,gift:0},DRV.st); DRV.cache=Object.assign({top:null,topT:0,cards:{}},DRV.cache); }
 function drvSave(){ DRV.ls=false; try{ const o={}; for(const k of DRV_SAVE) o[k]=DRV[k]; localStorage.setItem(DRV_KEY,JSON.stringify(o)); }catch(_){ /* приватный режим */ } }
@@ -43,9 +47,12 @@ function drvTick(dt){ const e=BOSS.e;
   if(LOC.safe&&DRV.dbg) DRV.dbg=false;
   if(DRV.ls&&(DRV.lsT=(DRV.lsT||0)-dt)<=0){ DRV.lsT=5; drvSave(); }
   if(!drvOn()||!DRV.nick||document.hidden) return;
-  if((DRV.syncT-=dt)<=0){ DRV.syncT=20; drvSync(); }
-  if((DRV.topT-=dt)<=0){ DRV.topT=$('#drivers').hidden?120:30; drvTop(); }
-  if(DRV.preQ.length&&(DRV.preT-=dt)<=0){ DRV.preT=3; drvCardFetch(DRV.preQ.shift(),true); } }
+  DRV.beatT=(DRV.beatT==null?DRV_BEAT:DRV.beatT)-dt;
+  if((DRV.syncT-=dt)<=0&&(DRV.dirty||DRV.beatT<=0)){ DRV.syncT=DRV_SYNC; DRV.beatT=DRV_BEAT; drvSync(); }
+  else if((DRV.pollT=(DRV.pollT==null?DRV_POLL:DRV.pollT)-dt)<=0){ DRV.pollT=DRV_POLL; drvPoll(); }
+  if((DRV.topT-=dt)<=0){ DRV.topT=$('#drivers').hidden?DRV_TOP:45; drvTop(); }
+  if(DRV.preQ.length&&(DRV.preT-=dt)<=0){ DRV.preT=5; drvCardFetch(DRV.preQ.shift(),true); } }
+async function drvPoll(){ if(DRV.busy) return; DRV.busy=true; try{ const r=await drvCall('poll',{},true); if(r.ok) for(const m of r.inbox||[]) drvInbox(m); } finally{ DRV.busy=false; } }
 function drvBossWin(e){ const f=DRV.fight&&DRV.fight.e===e?DRV.fight:null; DRV.fight=null; if(DRV.dbg){ DRV.dbg=false; return; } if(!f||!DRV_BOSSN[e.type]) return;
   medalGive('first'); medalGive(e.type); if(f.lost<f.max*0.1) medalGive('clean'); if(f.t<90) medalGive('fast'); if(UP.tank==='ten') medalGive('shadow'); if(UP.tank==='rszo') medalGive('arty');
   medalsCheck(); DRV.dirty=true; DRV.syncT=Math.min(DRV.syncT,2); }
@@ -63,7 +70,7 @@ async function drvSync(){ if(DRV.busy) return; DRV.busy=true;
   finally{ DRV.busy=false; } }
 function drvInbox(m){ const log=(DRV.cache.cards[m.from]||{}).log; if(log) log.push({out:false,kind:m.kind,text:m.text,amount:m.amount,time:m.time});
   if(m.kind==='scrap'){ ST.scrap+=m.amount; save(); drvNote(`ПОСЫЛКА ОТ ${m.from}`,`+${m.amount} лома`); sfxPickup(1); }
-  else drvNote(`ВХОДЯЩЕЕ СООБЩЕНИЕ ОТ ${m.from}`,m.text); }
+  else drvNote(`ВХОДЯЩЕЕ СООБЩЕНИЕ ОТ ${m.from}`,m.text,{reply:m.from}); }
 async function drvTop(){ const r=await drvCall('top',{}); if(!r.ok) return; DRV.cache.top=r.list; DRV.cache.topT=Date.now(); drvSave();
   /* warm the cards people are likely to open: friends first, then the leaders */
   const want=DRV.friends.concat(r.list.slice(0,8).map(x=>x.n)).filter((n,i,a)=>n!==DRV.nick&&a.indexOf(n)===i);
@@ -80,7 +87,7 @@ function drvOpen(){ $('#drivers').hidden=false; drvMsg('');
   if(!drvOn()){ $('#drvReg').hidden=true; $('#drvMain').hidden=true; drvMsg(DRV_ERR.nourl,true); return; }
   if(!DRV.nick){ $('#drvReg').hidden=false; $('#drvMain').hidden=true; drvRegRender(); return; }
   $('#drvReg').hidden=true; $('#drvMain').hidden=false; if(DRVUI.view==='card') DRVUI.view=DRVUI.tab; drvRender();
-  if(Date.now()-DRV.cache.topT>15000) DRV.topT=0; DRV.syncT=Math.min(DRV.syncT,1); }
+  if(Date.now()-DRV.cache.topT>45000) DRV.topT=0; }
 function drvClose(){ $('#drivers').hidden=true; drvTkStop(); }
 function drvTab(t){ DRVUI.tab=DRVUI.view=t; drvMsg(''); drvRender(); }
 function drvCardOpen(who){ DRVUI.view='card'; DRVUI.who=who; DRVUI.med=''; drvMsg(''); drvRender(); if(who!==DRV.nick) drvCardFetch(who); }
@@ -149,7 +156,7 @@ function drvTkStop(){ if(TKV.raf){ cancelAnimationFrame(TKV.raf); TKV.raf=0; } }
 
 /* ---- incoming notes: hi-tech type-in, then a noisy fade-out; swipe to dismiss ---- */
 const NOTE_GL='▓▒░#%&@<>/\\|=+*01ABCDEFXZ';
-function drvNote(head,body){ const box=$('#drvNotes'), el=document.createElement('div'); el.className='dnote'; el.innerHTML='<div class="dnH"></div><div class="dnB"></div>';
+function drvNote(head,body,opt){ const box=$('#drvNotes'), el=document.createElement('div'); el.className='dnote'; el.innerHTML='<div class="dnH"></div><div class="dnB"></div>';
   while(box.children.length>=3) box.firstChild.remove(); box.appendChild(el);
   const L=[[el.firstChild,head],[el.lastChild,body]].map(([n,t])=>({n,t:[...String(t)],cur:[],at:[]})); let t0=performance.now(), phase='in', iv=0;
   L.forEach((l,j)=>l.t.forEach((c,i)=>{ l.at[i]=j*90+i*14+Math.random()*90; l.cur[i]=c===' '?' ':''; }));
@@ -164,11 +171,35 @@ function drvNote(head,body){ const box=$('#drvNotes'), el=document.createElement
   const out=()=>{ if(phase!=='hold') return; phase='out'; el.classList.add('glitch'); t0=performance.now(); L.forEach(l=>l.t.forEach((c,i)=>{ l.at[i]=Math.random()*800; })); iv=setInterval(step,40); };
   const kill=()=>{ if(iv) clearInterval(iv); iv=0; phase='gone'; el.remove(); };
   iv=setInterval(step,30); sO(1500,2100,0.05,0.03,'square');
-  let x0=null, dx=0; el.addEventListener('pointerdown',e=>{ e.stopPropagation(); x0=e.clientX; dx=0; el.setPointerCapture(e.pointerId); el.style.transition='none'; });
-  el.addEventListener('pointermove',e=>{ if(x0==null) return; dx=e.clientX-x0; el.style.transform=`translateX(${dx}px)`; el.style.opacity=String(Math.max(0.2,1-Math.abs(dx)/180)); });
-  const up=()=>{ if(x0==null) return; x0=null; el.style.transition=''; if(Math.abs(dx)>50){ el.style.transform=`translateX(${dx>0?120:-120}%)`; el.style.opacity='0'; setTimeout(kill,200); } else { el.style.transform=''; el.style.opacity=''; } };
+  /* swipe any way → a glitchy fly-out in that direction; a tap on a message → reply */
+  const reply=opt&&opt.reply; if(reply) el.classList.add('rep');
+  let x0=null, y0=0, dx=0, dy=0; el.addEventListener('pointerdown',e=>{ e.stopPropagation(); x0=e.clientX; y0=e.clientY; dx=dy=0; try{ el.setPointerCapture(e.pointerId); }catch(_){ /* old browsers */ } el.style.transition='none'; });
+  el.addEventListener('pointermove',e=>{ if(x0==null) return; dx=e.clientX-x0; dy=e.clientY-y0; el.style.transform=`translate(${dx}px,${dy}px) rotate(${dx*0.03}deg)`; el.style.opacity=String(Math.max(0.25,1-Math.hypot(dx,dy)/200)); });
+  const up=()=>{ if(x0==null) return; x0=null; el.style.transition=''; const d=Math.hypot(dx,dy);
+    if(d>45){ swipeOut(dx/d,dy/d); return; }
+    el.style.transform=''; el.style.opacity=''; if(d<8&&reply&&phase!=='gone'){ drvReplyOpen(reply); swipeOut(0,-1,true); } };
+  const swipeOut=(ux,uy,quiet)=>{ if(phase==='gone') return; if(iv) clearInterval(iv); iv=0; phase='gone';
+    el.style.setProperty('--sx',(ux*140)+'%'); el.style.setProperty('--sy',(uy*220)+'%'); el.style.transform=''; el.style.opacity=''; el.classList.remove('glitch'); el.classList.add('swipe');
+    let n=0; const sc=setInterval(()=>{ for(const l of L) l.n.textContent=l.t.map(c=>c===' '||Math.random()<n/8?' ':glyph()).join(''); if(++n>8) clearInterval(sc); },35);
+    if(!quiet){ sNz(0.22,'bandpass',2400,0.6,0.08); sO(900,180,0.18,0.05,'sawtooth'); } setTimeout(()=>el.remove(),380); };
   el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up);
   return el; }
+
+/* ---- quick reply from a note; a solo game pauses while the box is open (not in co-op) ---- */
+function drvReplyOpen(who){ const R=$('#drvReply'); R.dataset.who=who; $('#drvRepTo').textContent=who; $('#drvRepTx').value=''; $('#drvRepCnt').textContent='0/50'; $('#drvRepMsg').textContent=''; R.hidden=false;
+  PAUSED=!LB.inGame; setTimeout(()=>$('#drvRepTx').focus(),30); sfxClick(); }
+function drvReplyClose(){ $('#drvReply').hidden=true; PAUSED=false; if(document.activeElement) document.activeElement.blur(); canvas.focus(); }
+async function drvReplySend(){ const R=$('#drvReply'), who=R.dataset.who, t=$('#drvRepTx').value.replace(/\s+/g,' ').trim(); if(!t) return; const b=$('#drvRepGo'); b.disabled=true; $('#drvRepMsg').textContent='Отправляю…';
+  if(!DRV.friends.includes(who)){ const f=await drvCall('friend',{who,on:'1'},true); if(f.ok){ DRV.friends=f.friends; medalsCheck(); } }
+  const r=await drvCall('send',{to:who,kind:'msg',text:t.slice(0,50)},true); b.disabled=false;
+  if(!r.ok){ $('#drvRepMsg').textContent=drvErr(r); return; }
+  const c=DRV.cache.cards[who]; if(c){ c.log=c.log||[]; c.log.push({out:true,kind:'msg',text:r.text||t,amount:0,time:Date.now()}); }
+  DRV.st.msg++; medalsCheck(); drvSave(); sfxBuy(); drvReplyClose(); toast(r.muted?'Ответ ушёл, но мат скрыт · сообщения закрыты на 24 ч':'Ответ ушёл к '+r.to); }
+$('#drvRepGo').addEventListener('click',e=>{ e.stopPropagation(); drvReplySend(); });
+$('#drvRepX').addEventListener('click',e=>{ e.stopPropagation(); drvReplyClose(); });
+$('#drvRepTx').addEventListener('input',e=>{ $('#drvRepCnt').textContent=e.target.value.length+'/50'; });
+$('#drvRepTx').addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Enter'){ e.preventDefault(); drvReplySend(); } if(e.key==='Escape') drvReplyClose(); });
+$('#drvReply').addEventListener('pointerdown',e=>e.stopPropagation());
 
 /* ---- events ---- */
 $('#drvClose').addEventListener('click',e=>{ e.stopPropagation(); drvClose(); });
@@ -187,10 +218,10 @@ async function drvSend(kind){ const who=DRVUI.who; let p;
   if(kind==='scrap'){ const n=Math.floor(+$('#drvAmtN').value||0); if(n<10) return drvMsg('Минимум 10 лома.',true); if(n>ST.scrap) return drvMsg('Не хватает лома.',true); p={to:who,kind,amount:n}; }
   else { const t=$('#drvTxt').value.replace(/\s+/g,' ').trim(); if(!t) return; p={to:who,kind,text:t.slice(0,50)}; }
   const btn=document.querySelector(kind==='scrap'?'[data-gift]':'[data-say]'); if(btn) btn.disabled=true;
-  const r=await drvCall('send',p,true); if(btn) btn.disabled=false; if(!r.ok) return drvMsg(DRV_ERR[r.err]||'Не получилось',true);
-  const c=DRV.cache.cards[who]; if(c){ c.log=c.log||[]; c.log.push({out:true,kind,text:p.text||'',amount:p.amount||0,time:Date.now()}); }
+  const r=await drvCall('send',p,true); if(btn) btn.disabled=false; if(!r.ok) return drvMsg(drvErr(r),true);
+  const c=DRV.cache.cards[who]; if(c){ c.log=c.log||[]; c.log.push({out:true,kind,text:r.text||p.text||'',amount:p.amount||0,time:Date.now()}); }
   if(kind==='scrap'){ ST.scrap-=p.amount; save(); DRV.st.gift+=p.amount; drvMsg(`Отправлено ${r.to}: ${p.amount} лома. Посылок сегодня ещё можно: ${r.left}.`); }
-  else { DRV.st.msg++; DRVUI.txt=''; drvMsg(`Сообщение ушло к ${r.to}.`); }
+  else { DRV.st.msg++; DRVUI.txt=''; drvMsg(r.muted?`Сообщение ушло к ${r.to}, но запрещённые слова заменены символами. Писать снова можно через 24 часа.`:`Сообщение ушло к ${r.to}.`,!!r.muted); }
   medalsCheck(); drvSave(); sfxBuy(); if(document.activeElement) document.activeElement.blur(); drvRender(); }
 $('#drivers').addEventListener('click',e=>{ const b=e.target.closest('button,li[data-who]'); if(!b||!$('#drivers').contains(b)) return; e.stopPropagation();
   if(b.dataset.star){ drvStar(b.dataset.star); return; }

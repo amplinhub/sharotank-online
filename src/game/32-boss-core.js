@@ -2,9 +2,14 @@
 const BOSS={e:null,t:0};
 /* boss toughness follows the garage: +10% per installed upgrade level on the tank you came in */
 function bossMul(){ let s=0; for(const k of ['engine','armor','cal','load','stab','ammo','abl','rdr','rk']) s+=UP[k]|0; return 1+0.1*s; }
-function bossSetup(e,name,base){ e.boss=true; e.bName=name; e.hp=e.maxHp=Math.round(base*bossMul()); e.ph=1; e.aggro=true; BOSS.e=e; bossBarShow(true); }
-/* v27: phases start silently — no radio line, no toast */
-function bossPhase(e,n){ if(e.ph>=n) return false; e.ph=n; return true; }
+function bossSetup(e,name,base){ e.boss=true; e.bName=name; e.hp=e.maxHp=Math.round(base*bossMul()); e.ph=1; e.aggro=true; BOSS.e=e; bossBarShow(true); sfxBossIn(); }
+/* v27: phases start silently — no radio line, no toast; v30.1: but with a sound cue (the Hornet has its own siren) */
+function bossPhase(e,n){ if(e.ph>=n) return false; e.ph=n; if(e.type!=='hornet') sfxBossPhase(n); return true; }
+/* v30.1 sounds: boss arrival — two low horn blasts over a rumble; phase change — a rising distorted swell and a metal hit */
+function sfxBossIn(){ sndOff(); sNz(2.4,'lowpass',160,0.7,0.5,0.6); sO(55,48,1.6,0.32,'sawtooth'); sO(82,72,1.6,0.16,'square');
+  setTimeout(()=>{ sndOff(); sO(58,46,1.9,0.34,'sawtooth'); sO(87,69,1.9,0.18,'square'); sNz(1.4,'bandpass',300,1.2,0.2,0.2); },900); }
+function sfxBossPhase(n){ sndOff(); sO(70,260+n*60,0.9,0.22,'sawtooth'); sNz(0.9,'bandpass',900,2,0.16,0.7);
+  setTimeout(()=>{ sndOff(); sNz(0.5,'lowpass',500,0.7,0.5); sO(120,40,0.6,0.35,'square'); sO(1600,500,0.35,0.06,'triangle'); shake=Math.min(1,shake+0.25); },850); }
 function bossBarShow(on){ const b=$('#bossBar'); if(b) b.hidden=!on; }
 function bossUI(dt){ zapsDraw(dt); if(!LOC.safe&&!transit&&(!BOSS.e||(BOSS.e.dead&&!BOSS.e.dying))){ const b2=ENEMIES.find(x=>x.boss&&!x.dead); if(b2) BOSS.e=b2; } const e=BOSS.e, b=$('#bossBar'); if(!b) return; if(!e||(e.dead&&!e.dying)||LOC.safe||transit){ if(!b.hidden) b.hidden=true; if(e&&e.dead&&!e.dying) BOSS.e=null; return; }
   if(b.hidden) b.hidden=false; const [cur,max]=e.barHp?e.barHp():[e.hp,e.maxHp], f=clamp(cur/Math.max(1,max),0,1); BOSS.t+=dt;

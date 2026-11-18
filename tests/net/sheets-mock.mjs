@@ -7,13 +7,14 @@ import crypto from 'node:crypto';
 import { ROOT } from '../harness.mjs';
 
 export function loadCore() {
-  const ctx = vm.createContext({ Math, Date, JSON, Object, String, Number, isFinite });
+  const ctx = vm.createContext({ Math, Date, JSON, Object, String, Number, isFinite, RegExp, Array });
+  vm.runInContext(fs.readFileSync(ROOT + '/server/sheets/filter.js', 'utf8'), ctx);
   vm.runInContext(fs.readFileSync(ROOT + '/server/sheets/core.js', 'utf8'), ctx);
   return ctx;
 }
 export function memDb(cols) {
   const T = {}; for (const t of Object.keys(cols)) T[t] = [];
-  return { T, rows: t => T[t], append: (t, o) => { o._r = T[t].length + 2; T[t].push(o); }, update: () => {}, dropHead: (t, n) => { T[t].splice(0, n); T[t].forEach((o, i) => { o._r = i + 2; }); } };
+  return { T, rows: t => T[t], append: (t, o) => { o._r = T[t].length + 2; T[t].push(o); }, update: () => {}, flags: new Map(), flagGet(k) { return this.flags.get(k) || null; }, flagSet(k, v) { if (v) this.flags.set(k, v); else this.flags.delete(k); }, cache: new Map(), cacheGet(k, now) { const c = this.cache.get(k); return c && c.until > now ? c.v : null; }, cachePut(k, v, secs, now) { this.cache.set(k, { v, until: now + secs * 1000 }); }, dropHead: (t, n) => { T[t].splice(0, n); T[t].forEach((o, i) => { o._r = i + 2; }); } };
 }
 export const sha = s => crypto.createHash('sha256').update(s, 'utf8').digest('hex');
 

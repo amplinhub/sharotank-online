@@ -66,7 +66,11 @@ function detach(comp){ const cells=[]; const mn=[1e9,1e9,1e9], mx=[-1,-1,-1];
   const n=cells.length/4; if(!n) return;
   if(n<=14){ for(let r=0;r<cells.length;r+=4){ voxelColor(cells[r+3],cells[r],cells[r+1],cells[r+2],col); debSpawn((cells[r]+0.5)*VS,(cells[r+1]+0.5)*VS,(cells[r+2]+0.5)*VS,(rnd()-0.5)*1.5,rnd(),(rnd()-0.5)*1.5,col[0],col[1],col[2],VS*0.9); } return; }
   makeRigid(cells,mn,mx); }
-function makeRigid(cells,mn,mx){ const sx=mx[0]-mn[0]+1, sy=mx[1]-mn[1]+1, sz=mx[2]-mn[2]+1, lg=new Uint8Array(sx*sy*sz);
+/* v30.1: a chunk tearing loose — crack + groan, bigger chunks lower and longer (the landing thud is in rigidUpdate) */
+let breakT=0;
+function sfxBreakOff(n,x,z){ const now=performance.now(); if(now<breakT||n<30) return; breakT=now+250; const k=Math.min(1,n/600), p=sndAt(x,z);
+  sNz(0.18,'highpass',2200,0.7,0.25+0.2*k); sO(220-120*k,60-25*k,0.5+0.9*k,0.12+0.14*k,'sawtooth'); sNz(0.6+0.9*k,'lowpass',260,1.4,0.15+0.25*k,0.12); sndOff(p); }
+function makeRigid(cells,mn,mx){ sfxBreakOff(cells.length,(mn[0]+mx[0])*0.5*VS,(mn[2]+mx[2])*0.5*VS); const sx=mx[0]-mn[0]+1, sy=mx[1]-mn[1]+1, sz=mx[2]-mn[2]+1, lg=new Uint8Array(sx*sy*sz);
   for(let r=0;r<cells.length;r+=4) lg[(cells[r]-mn[0])+sx*((cells[r+2]-mn[2])+sz*(cells[r+1]-mn[1]))]=cells[r+3];
   const mesh=new THREE.Mesh(meshLocal(lg,sx,sy,sz,mn),litMat); scene.add(mesh);
   const r={mesh,lg,sx,sy,sz,mn:mn.slice(),count:cells.length/4,pos:new THREE.Vector3((mn[0]+sx/2)*VS,(mn[1]+sy/2)*VS,(mn[2]+sz/2)*VS),

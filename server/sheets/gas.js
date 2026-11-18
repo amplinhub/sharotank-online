@@ -1,11 +1,18 @@
 /* ---- Apps Script adapter: Google Sheets as the database, a web app as the API ----
    Deploy: Расширения → Apps Script → вставить Code.gs целиком → Развертывание → Новое развертывание →
    «Веб-приложение», «Выполнять как: я», «У кого есть доступ: все» → скопировать адрес …/exec. */
+/* Read-only requests (ping, rating, a card without login, an empty inbox poll) go without the lock and mostly without
+   touching the sheet at all: the rating is cached for 60 s, "new mail" is a flag in CacheService. */
+var GAS_RO = { ping: 1, top: 1 };
 function doGet(e) {
-  var p = (e && e.parameter) || {}, out, lock = LockService.getScriptLock();
-  try { lock.waitLock(15000); out = shHandle(gasDb(), p, Date.now(), gasHash); }
+  var p = (e && e.parameter) || {}, out, lock = null, now = Date.now();
+  try {
+    var ro = GAS_RO[p.a] || (p.a === 'card' && !p.pin) || (p.a === 'poll' && !gasCache().get(shFlagKey(p.nick)));
+    if (!ro) { lock = LockService.getScriptLock(); lock.waitLock(15000); }
+    out = shHandle(gasDb(), p, now, gasHash);
+  }
   catch (err) { out = { ok: false, err: 'server', msg: String(err && err.message || err) }; }
-  finally { try { lock.releaseLock(); } catch (_) {} }
+  finally { if (lock) try { lock.releaseLock(); } catch (_) {} }
   return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
 }
 function doPost(e) { return doGet(e); }
@@ -15,10 +22,18 @@ function gasHash(s) {
     .map(function (b) { var h = ((b + 256) % 256).toString(16); return h.length < 2 ? '0' + h : h; }).join('');
 }
 
+function gasCache() { return CacheService.getScriptCache(); }
 function gasDb() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet(), cache = {};
-  function sheet(t) { var s = ss.getSheetByName(t); if (!s) { s = ss.insertSheet(t); s.appendRow(SH_COLS[t]); s.setFrozenRows(1); } return s; }
+  var ss = null, cache = {}, sheets = {}, C = gasCache();
+  function sheet(t) { if (sheets[t]) return sheets[t]; ss = ss || SpreadsheetApp.getActiveSpreadsheet(); var s = ss.getSheetByName(t), cols = SH_COLS[t];
+    if (!s) { s = ss.insertSheet(t); s.appendRow(cols); s.setFrozenRows(1); }
+    else if (s.getLastColumn() < cols.length) s.getRange(1, 1, 1, cols.length).setValues([cols]); /* a column was added in a newer version */
+    return (sheets[t] = s); }
   return {
+    flagGet: function (k) { return C.get(k); },
+    flagSet: function (k, v) { if (v) C.put(k, v, 21600); else C.remove(k); },
+    cacheGet: function (k) { return C.get('c:' + k); },
+    cachePut: function (k, v, secs) { try { C.put('c:' + k, v, secs); } catch (_) { /* > 100 KB: skip caching */ } },
     rows: function (t) {
       if (cache[t]) return cache[t];
       var s = sheet(t), n = s.getLastRow(), cols = SH_COLS[t], out = [];

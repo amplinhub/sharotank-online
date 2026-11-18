@@ -61,6 +61,9 @@ function goLocation(id,side,spawn){ if(transit) return; transit=true; const L=LO
     Object.assign(TK,{y:0,yV:0,pitch:0,roll:0,pitchV:0,rollV:0,aL:0,prevVF:0,ptgt:undefined,ptP:undefined,ptR:undefined}); camLook.set(TK.x,0,TK.z-2);
     CAMP_GARAGE.in=false; HQ.in=false;
     if(id==='camp'){ for(const k in LOC_STATE) delete LOC_STATE[k]; refillAmmo(); updateWeaponUI(); }
-    $('#load').hidden=true; transit=false; banner(L); save(); fadeOff(); },190); }
+    $('#load').hidden=true; transit=false; banner(L); sfxArrive(L); save(); fadeOff(); },190); }
+/* v30.1: big location title — air swoosh + a soft chord (calm in the camp, tense in the field) */
+function sfxArrive(L){ sndOff(); sNz(0.9,'bandpass',600,0.6,0.12,0.35); const c=L.safe?[262,330,392]:[220,262,311];
+  c.forEach((f,i)=>setTimeout(()=>{ sndOff(); sO(f,f*0.995,1.3,0.05,'triangle'); },180+i*70)); }
 function zonesUpdate(){ if(LOC_ID!=='camp') return; const z=CAMP_GARAGE; const inside=TK.x>z.x0&&TK.x<z.x1&&TK.z>z.z0&&TK.z<z.z1; if(inside&&!z.in){ z.in=true; openGarage(); } else if(!inside) z.in=false; }
 

@@ -3,7 +3,9 @@
 const AIMIDLE={t:0,on:false,dt:0};
 function aimActivity(){ AIMIDLE.t=0; AIMIDLE.on=false; }
 function aimIdleTick(dt,inp){ AIMIDLE.dt=dt; if(inp.fire||TCH.active||(aimMode==='mouse'&&mouse.down)) aimActivity(); else AIMIDLE.t+=dt;
-  if(!AIMIDLE.on&&AIMIDLE.t>2&&Math.hypot(TK.vx,TK.vz)>1.5&&!AIM.manual){ AIMIDLE.on=true; if(aimMode==='mouse') AIM.yawRel=TK.tYaw; } if(AIM.manual) AIMIDLE.on=false; }
+  const held=AIM.lockE&&!AIM.lockE.dead&&AIM.lockE.lockable!==false&&Math.hypot(AIM.lockE.x-TK.x,AIM.lockE.z-TK.z)<=LOCK_KEEP; /* v30.1: a held lock keeps the turret on it */
+  if(held) AIMIDLE.on=false;
+  if(!AIMIDLE.on&&AIMIDLE.t>2&&Math.hypot(TK.vx,TK.vz)>1.5&&!AIM.manual&&!held){ AIMIDLE.on=true; if(aimMode==='mouse') AIM.yawRel=TK.tYaw; } if(AIM.manual) AIMIDLE.on=false; }
 function aimIdleApply(){ const sp=Math.hypot(TK.vx,TK.vz); if(sp>0.8) AIM.yawRel=turnTo(AIM.yawRel,Math.atan2(TK.vx,TK.vz),AIMIDLE.dt*2.6);
   AIM.dist=13; const dx=Math.sin(AIM.yawRel), dz=Math.cos(AIM.yawRel);
   if(raycast(TK.x+dx*1.6,1.2+TK.y,TK.z+dz*1.6,dx,0,dz,AIM.dist)){ AIM.x=TK.x+dx*(1.6+RH.t); AIM.y=1.2+TK.y; AIM.z=TK.z+dz*(1.6+RH.t); }

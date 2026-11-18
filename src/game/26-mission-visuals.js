@@ -68,6 +68,9 @@ function holdLabel(m){ const c=HOLD.lc.getContext('2d'), sec=Math.max(0,Math.cei
   c.clearRect(0,0,512,128); c.fillStyle='rgba(6,12,26,0.78)'; c.fillRect(8,24,496,80); c.strokeStyle='#3dffb5'; c.lineWidth=4; c.strokeRect(8,24,496,80); c.fillStyle='#3dffb5'; c.font="800 22px Unbounded, 'Arial Black', sans-serif"; c.textAlign='center'; c.textBaseline='middle'; c.fillText(txt,256,66); HOLD.ltex.needsUpdate=true; }
 function holdUpdate(dt,t){ if(!HOLD.active) return; if(!MS.active){ holdBuild(); return; } const m=missionAt(MS.i); if(m.k!=='hold'){ holdBuild(); return; }
   const inside=!TK.dead&&Math.hypot(TK.x-m.x,TK.z-m.z)<m.rad; if(inside){ MS.prog=Math.min(m.t,MS.prog+dt); HOLD.started=true; }
+  /* v30.1: zone sounds — rising chime in, falling out, a tick every 2 s while holding (faster near the end) */
+  if(inside!==!!HOLD.wasIn){ HOLD.wasIn=inside; if(inside){ sO(520,1040,0.25,0.1,'triangle'); setTimeout(()=>{ sndOff(); sO(780,1560,0.2,0.08,'triangle'); },110); } else sO(700,300,0.35,0.1,'triangle'); HOLD.tickT=1; }
+  if(inside&&(HOLD.tickT=(HOLD.tickT||0)-dt)<=0){ const f=MS.prog/m.t; HOLD.tickT=f>0.8?0.7:2; sO(1200+f*600,1200+f*600,0.05,0.05,'square'); }
   HOLD.m.children[1].material.opacity=inside?0.95:0.5+0.4*Math.sin(t*5); HOLD.m.children[0].material.opacity=inside?0.2:0.08;
   const f=MS.prog/m.t; if(Math.abs(f-(HOLD.pf||-1))>0.004){ HOLD.pf=f; HOLD.prog.geometry.dispose(); HOLD.prog.geometry=new THREE.RingGeometry(m.rad+0.15,m.rad+0.55,72,1,Math.PI/2,-Math.max(0.001,f*TAU)); }
   holdLabel(m); HOLD.label.position.y=4.4+Math.sin(t*2)*0.15; HOLD.objT=(HOLD.objT||0)-dt; if(HOLD.objT<=0){ HOLD.objT=0.25; objUI(); }

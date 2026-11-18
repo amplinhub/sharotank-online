@@ -13,6 +13,7 @@ const MS={i:0,active:false,prog:0,rank:0,v:25};
 /* v29.3: «Водители» — состояние живёт здесь (раннний файл: его читают хуки боя и HUD), логика в 43-drivers.js */
 /* offline edition (build --mode offline): no online lobby, no «Водители», no debug menu */
 const OFFLINE=document.documentElement.classList.contains('offline');
+let PAUSED=false; /* v30.1: world frozen (reply box over a solo game) */
 const DRV_KEY='sharotank_drv_v2';
 /* «Онлайн рейтинг» (v30.0, логика в 43): свои счётчики копятся и без регистрации, на сервер уходят при синхронизации */
 const DRV={nick:'',pin:'',av:0,kills:0,kbt:{},deaths:0,medals:{},streak:0,st:{ram:0,civ:0,flag:0,msg:0,gift:0},friends:[],cache:{top:null,topT:0,cards:{}},

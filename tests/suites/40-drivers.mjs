@@ -31,6 +31,26 @@ export const tests = [
     const s = H({ a: 'sync', nick: 'Боря', pin: '0000', kills: 7, med: '["first"]' }); assert(s.inbox.length === 1 && s.me.score === 57, 'sync/score: ' + JSON.stringify(s));
     now += 8 * 864e5; H({ a: 'sync', nick: 'Боря', pin: '0000' }); assert(db.T.Messages.length === 0, 'old messages not removed');
   } },
+  { name: 'online core: swear filter + 24 h mute, 10 messages a minute, cheap poll', timeout: 20, async run() {
+    const c = loadCore(), db = memDb(c.SH_COLS); let now = 2e12; const H = p => c.shHandle(db, p, now, sha);
+    H({ a: 'reg', nick: 'Аня', pin: '1234' }); H({ a: 'reg', nick: 'Боря', pin: '0000' }); H({ a: 'friend', nick: 'Аня', pin: '1234', who: 'Боря', on: '1' });
+    // poll without new mail never reads the sheets
+    let reads = 0; const rows = db.rows; db.rows = t => { reads++; return rows(t); };
+    assert(H({ a: 'poll', nick: 'Боря', pin: '0000' }).inbox.length === 0 && reads === 0, 'empty poll touched the sheets: ' + reads); db.rows = rows;
+    for (let i = 0; i < 10; i++) assert(H({ a: 'send', nick: 'Аня', pin: '1234', to: 'Боря', kind: 'msg', text: 'го ' + i }).ok, 'msg ' + i);
+    assert(H({ a: 'send', nick: 'Аня', pin: '1234', to: 'Боря', kind: 'msg', text: 'ещё' }).err === 'spam', '11th message in a minute accepted');
+    assert(H({ a: 'poll', nick: 'Боря', pin: '0000' }).inbox.length === 10, 'poll after mail');
+    assert(H({ a: 'poll', nick: 'Боря', pin: '0000' }).inbox.length === 0, 'flag not cleared');
+    now += 61000;
+    const r = H({ a: 'send', nick: 'Аня', pin: '1234', to: 'Боря', kind: 'msg', text: 'ну ты и сука, xyй' });
+    assert(r.ok && r.muted > now && !/сука|xyй/.test(r.text) && /^ну ты и /.test(r.text), 'swear not masked / no mute: ' + JSON.stringify(r));
+    const got = H({ a: 'poll', nick: 'Боря', pin: '0000' }).inbox[0]; assert(got && got.text === r.text, 'recipient got the raw text: ' + JSON.stringify(got));
+    const m = H({ a: 'send', nick: 'Аня', pin: '1234', to: 'Боря', kind: 'msg', text: 'привет' }); assert(m.err === 'muted' && m.until > now, 'mute not applied');
+    assert(H({ a: 'send', nick: 'Аня', pin: '1234', to: 'Боря', kind: 'scrap', amount: 50 }).ok, 'scrap must still work while muted');
+    now += 24 * 3600000 + 1000; assert(H({ a: 'send', nick: 'Аня', pin: '1234', to: 'Боря', kind: 'msg', text: 'привет' }).ok, 'mute did not expire');
+    for (const w of ['страхую машину', 'употреблять', 'мандарин', 'небанальный', 'cocktail', 'assassin', 'хлебать', 'утварь']) assert(!c.shClean(w).bad, 'false positive: ' + w);
+    for (const w of ['х у й', 'п.и.з.д.а', 'blyat', 'nahuy', 'заебал', 'fuuuck', 'sh1t', 'долбоёб']) assert(c.shClean(w).bad, 'missed: ' + w);
+  } },
   { name: 'online rating: not configured → clear message', timeout: 60, async run(ctx) {
     const c = await client({ name: 'drv-off' }); ctx.clients.push(c);
     await c.js(() => document.querySelector('#bDrv2').click());
@@ -82,11 +102,27 @@ export const tests = [
       await b.page.fill('#drvTxt', 'Аня, держи лом!'); await b.js(() => document.querySelector('[data-say]').click());
       await b.until(() => /ушло/.test(document.querySelector('#drvMsg').textContent), null, { timeout: 8000 });
       assert(await b.js(() => document.querySelectorAll('.dlog li').length) === 2, 'archive after sending');
-      await a.js(() => { __dbg.drvClose && 0; document.querySelector('#drvClose').click(); __dbg.DRV.syncT = 0; });
+      await a.js(() => { document.querySelector('#drvClose').click(); __dbg.DRV.pollT = 0; });
       assert(await a.until(s => __dbg.ST.scrap === s + 150, a0, { timeout: 8000 }), 'scrap not received');
       const note = await a.until(() => { const t = [...document.querySelectorAll('.dnote')].map(n => n.textContent).join('|'); return /ВХОДЯЩЕЕ СООБЩЕНИЕ ОТ Боря/.test(t) && /держи лом/.test(t) && /ПОСЫЛКА ОТ Боря/.test(t) ? t : null; }, null, { timeout: 6000 });
       assert(note, 'notes not shown');
       await a.shot('drv-notes');
+      // tap the message → reply box, a solo game pauses; reply arrives to Боря
+      await a.js(() => { const n = document.querySelector('.dnote.rep'), r = n.getBoundingClientRect(), o = { bubbles: true, clientX: r.x + 20, clientY: r.y + 10, pointerId: 7 };
+        n.dispatchEvent(new PointerEvent('pointerdown', o)); n.dispatchEvent(new PointerEvent('pointerup', o)); });
+      const rp = await a.js(() => ({ open: !document.querySelector('#drvReply').hidden, to: document.querySelector('#drvRepTo').textContent, paused: __dbg.PAUSED }));
+      assert(rp.open && rp.to === 'Боря' && rp.paused, 'reply box: ' + JSON.stringify(rp));
+      const t0 = await a.js(() => __dbg.TK.x); await a.wait(500);
+      await a.page.fill('#drvRepTx', 'Спасибо!'); await a.js(() => document.querySelector('#drvRepGo').click());
+      assert(await a.until(() => document.querySelector('#drvReply').hidden && !__dbg.PAUSED, null, { timeout: 8000 }), 'reply not sent / still paused: ' + await a.js(() => document.querySelector('#drvRepMsg').textContent));
+      await b.js(() => { __dbg.DRV.pollT = 0; });
+      assert(await b.until(() => [...document.querySelectorAll('.dnote')].some(n => /Спасибо/.test(n.textContent)), null, { timeout: 8000 }), 'reply not delivered');
+      // swipe away
+      await b.js(() => { const n = document.querySelector('.dnote'), r = n.getBoundingClientRect(), o = { bubbles: true, clientX: r.x + 20, clientY: r.y + 10, pointerId: 3 };
+        n.dispatchEvent(new PointerEvent('pointerdown', o)); n.dispatchEvent(new PointerEvent('pointermove', { ...o, clientY: o.clientY - 90 })); n.dispatchEvent(new PointerEvent('pointerup', { ...o, clientY: o.clientY - 90 }));
+        window.__sw = n.classList.contains('swipe'); });
+      assert(await b.js(() => window.__sw), 'swipe effect not started');
+      void t0;
 
       // second device: log in as Аня with the PIN, counters and medals come back
       const c = await client({ name: 'anya2', net: { sheets: sh.url } }); ctx.clients.push(c);

@@ -48,8 +48,11 @@ function navMove(e,tx,tz,spd,dt){ e.pathT=(e.pathT||0)-dt; const r=e.navR||Math.
   if(e.path&&e.pi<e.path.length){ let w=e.path[e.pi]; while(e.pi<e.path.length-1&&(Math.hypot(w[0]-e.x,w[1]-e.z)<1.3||navClear(e.x,e.z,e.path[e.pi+1][0],e.path[e.pi+1][1],r*0.8))){ e.pi++; w=e.path[e.pi]; } eMove(e,w[0],w[1],spd,dt); return 2; }
   eMove(e,tx,tz,spd,dt); return 0; }
 /* perception: sees the tank (range + line of sight), remembers where, loses interest after a while */
+/* v30.1: an enemy notices you — a short two-tone chirp from where it stands (at most one per 0.7 s for the whole fight) */
+let spotT=0;
+function sfxSpotted(e){ const now=performance.now(); if(now<spotT) return; spotT=now+700; const p=sndAt(e.x,e.z); sO(880,1320,0.07,0.09,'square'); sndOff(p); setTimeout(()=>{ const q=sndAt(e.x,e.z); sO(1320,1760,0.09,0.08,'square'); sndOff(q); },80); }
 function ePerceive(e,dt,range,eyeY){ e.seeT=(e.seeT||0)-dt; const d=Math.hypot(TK.x-e.x,TK.z-e.z);
-  if(e.seeT<=0){ e.seeT=0.25+rnd()*0.1; const was=e.sees; e.sees=!TK.dead&&d<(STL.on?Math.min(range,STL_R[UP.abl|0]):range)&&losClear(e.x,e.y+(eyeY||0.5),e.z,TK.x,TK.y+1.4,TK.z); if(e.sees&&!was&&STL.on) stealthSpotted(); }
+  if(e.seeT<=0){ e.seeT=0.25+rnd()*0.1; const was=e.sees; e.sees=!TK.dead&&d<(STL.on?Math.min(range,STL_R[UP.abl|0]):range)&&losClear(e.x,e.y+(eyeY||0.5),e.z,TK.x,TK.y+1.4,TK.z); if(e.sees&&!was&&STL.on) stealthSpotted(); if(e.sees&&!was&&!e.aggro&&!e.boss) sfxSpotted(e); }
   if(e.sees||(e.hurtT>2.6)){ e.aggro=true; e.lostT=0; e.last={x:TK.x,z:TK.z}; } else if(e.aggro){ e.lostT=(e.lostT||0)+dt; if(e.lostT>6){ e.aggro=false; e.wp=null; } }
   return e.sees; }
 function ePatrol(e,dt,spd){ e.wpT=(e.wpT||0)-dt;
