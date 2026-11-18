@@ -32,7 +32,7 @@ function autoQ(rdt){ if(qMode!=='auto'||!ready||transit||document.hidden) return
   if(AQ.locked||qi>=2||n<10) return;
   const steady=srt[n-1]-srt[0]<=3&&med>=45, fast=srt[0]>=61;
   if((steady||fast)&&DYN.scale>=0.999&&aqCalm()){ AQ.from=Q; AQ.base=med; AQ.up=true; aqSet(Q_ORD[qi+1],`Авто: стабильно ${Math.round(med)} FPS → ${QUALITY[Q_ORD[qi+1]].label}`); } }
-function setQualityUI(){ document.querySelectorAll('#qseg button').forEach(b=>b.classList.toggle('on',b.dataset.q===qMode)); }
+function setQualityUI(){ const bs=[...document.querySelectorAll('#qseg button')]; bs.forEach(b=>b.classList.toggle('on',b.dataset.q===qMode)); $('#qseg').style.setProperty('--qi',String(Math.max(0,bs.findIndex(b=>b.dataset.q===qMode)))); }
 document.querySelectorAll('#qseg button').forEach(b=>b.addEventListener('click',()=>{ const q=b.dataset.q; qMode=q; setQualityUI();
   if(q==='auto'){ AQ.locked=false; AQ.up=false; AQ.phase='watch'; aqReset(1); toast('Авто: подбираю качество по FPS'); } else { AQ.up=false; if(q!==Q){ saveLocState(); rebuild(q); toast('Качество: '+QUALITY[q].label+' · район пересобран'); } } gfxSave(); }));
 /* v29.2: secret debug — 5 quick taps on «Выс» (within 2 s) give 5000 scrap */

@@ -229,7 +229,8 @@ function openGarage(mode){ if(GAR.open||TK.dead||FADE.busy) return; FADE.busy=tr
 function openGarage0(mode){ if(GAR.open||TK.dead) return; sNz(0.5,'bandpass',700,0.8,0.08,0.1); sO(160,90,0.35,0.06,'sine'); GAR.mode=mode||'gar'; GAR.pick=UP.tank||'base'; $('#gTitle').innerHTML=GAR.mode==='park'?'АВТОПАРК <span class="cjk">车队</span>':`ГАРАЖ <span class="cjk">车库</span><small>${chs().name} · улучшения этого танка</small>`; $('#gHull').hidden=GAR.mode==='park'; $('#gPick').hidden=GAR.mode!=='park'; if(!GAR.scene) garInit(); GAR.dG.visible=GAR.mode!=='park'; GAR.dP.visible=GAR.mode==='park'; for(const g of GAR.lo) g.visible=Q==='low'; for(const g of GAR.hi) g.visible=Q!=='low'; garPalette(); GAR.open=true; document.body.classList.add('garage'); $('#garage').hidden=false;
   TK.vx=TK.vz=TK.vF=0; mouse.down=false; GAR.view=(wcur<2?wcur:lastMain)===1?'cn':'mg'; GAR.ang=0.75; GAR.idle=0; garRebuildModel(); setGarView(); renderGarage(); sfxWrench(); }
 function closeGarage(){ if(!GAR.open||FADE.busy) return; FADE.busy=true; fadeOn(); setTimeout(()=>{ FADE.busy=false; closeGarage0(); fadeOff(); },180); }
-function closeGarage0(){ if(!GAR.open) return; sNz(0.4,'bandpass',1000,0.8,0.06,0.05); sO(90,170,0.3,0.05,'sine'); GAR.open=false; document.body.classList.remove('garage'); $('#garage').hidden=true;
+function garOccReset(){ for(const [o] of GOCC.fade) if(o.userData.occM){ o.material=o.userData.occM0; o.userData.occM.dispose(); o.userData.occM=null; } GOCC.fade.clear(); }
+function closeGarage0(){ if(!GAR.open) return; garOccReset(); sNz(0.4,'bandpass',1000,0.8,0.06,0.05); sO(90,170,0.3,0.05,'sine'); GAR.open=false; document.body.classList.remove('garage'); $('#garage').hidden=true;
   const DR=GAR.mode==='park'?{x:27.5,z:63.3,h:Math.PI/2}:CAMP_DOOR; STL.on=false; buildGameTank(); updateWeaponUI(); Object.assign(TK,{x:DR.x,z:DR.z,h:DR.h,tYaw:DR.h,vx:0,vz:0,vF:0,prevVF:0,aL:0}); save(); canvas.focus(); }
 const RAILW={g:0,speed:999}, RAIL_L=[70,82,94,106], isRail=()=>chs().abil==='rail';
 function ammoCur(l){ const c=chs(), a=[]; if(c.mgs.length) a.push(`${AMMO_CAP.mg[l]} пат`); if(c.w.includes(1)) a.push(`${AMMO_CAP.cn[l]} ${isRail()?'зарядов':'сн'}`); if(c.w.includes(2)&&UP.rk) a.push(`${AMMO_CAP.rk[l]} рак`); if(c.abil==='mlrs') a.push(`${AMMO_CAP.sv[l]} залпа РСЗО`); return a.join(' · '); }
@@ -273,5 +274,18 @@ function garUpdate(dt,t){ GAR.idle+=dt; if(GAR.idle>2.5&&!GAR.drag) GAR.ang+=dt*
   GAR.cam.position.set(Math.sin(GAR.ang)*r,GAR.hgt,Math.cos(GAR.ang)*r); GAR.cam.lookAt(0,1.15,0);
   const M_=GAR.model; if(M_){ for(const sp of M_.spinners) sp.rotation.y+=dt*2.5; for(const b of M_.barrels) b.rotation.z+=dt*0.6; M_.beacon.visible=(t%1200)<600; tankDamageUniforms(M_); }
   const ts=t/1000, park=GAR.mode==='park'; GAR.mech.g.visible=park; GAR.mech2.g.visible=park; for(const L of GAR.lie) L.g.visible=!park;
-  if(park){ mechIdle(GAR.mech,dt,ts); mechIdle(GAR.mech2,dt,ts); } else for(const L of GAR.lie) lyingUpdate(L,ts); }
+  if(park){ mechIdle(GAR.mech,dt,ts); mechIdle(GAR.mech2,dt,ts); } else for(const L of GAR.lie) lyingUpdate(L,ts);
+  garOcclude(dt); }
+
+/* v30.3: anything between the orbiting camera and the tank fades to see-through and comes back when the view is clear.
+   Rays from the camera to 5 points on the tank every 3rd frame; a hit mesh gets its own material copy (shared ones stay untouched). */
+const GOCC={rc:new THREE.Raycaster(),pts:[[0,0.6,0],[0,1.3,0],[0,2.1,0],[1.3,1.1,0],[-1.3,1.1,0]],fade:new Map(),n:0,v:new THREE.Vector3(),d:new THREE.Vector3()};
+function garOcclude(dt){ const M_=GAR.model; if(!M_) return;
+  if((GOCC.n++)%3===0){ const cam=GAR.cam.position, own=new Set(); M_.root.traverse(o=>own.add(o));
+    for(const p of GOCC.pts){ GOCC.v.set(p[0],p[1],p[2]); GOCC.d.copy(GOCC.v).sub(cam); const far=GOCC.d.length()-0.25; GOCC.rc.set(cam,GOCC.d.normalize()); GOCC.rc.far=far; GOCC.rc.camera=GAR.cam;
+      for(const h of GOCC.rc.intersectObjects(GAR.scene.children,true)){ const o=h.object; if(!o.isMesh||o.isSprite||own.has(o)||!o.visible||o.userData.noOcc||Array.isArray(o.material)) continue; const f=GOCC.fade.get(o)||{a:1}; f.t=0.35; GOCC.fade.set(o,f); } } }
+  for(const [o,f] of GOCC.fade){ f.t-=dt; const goal=f.t>0?0.2:1; f.a+=(goal-f.a)*Math.min(1,dt*9);
+    if(f.a<0.995&&!o.userData.occM){ o.userData.occM0=o.material; o.material=o.material.clone(); o.material.transparent=true; o.userData.occM=o.material; }
+    if(o.userData.occM){ o.userData.occM.opacity=f.a*(o.userData.occM0.opacity==null?1:o.userData.occM0.opacity); o.userData.occM.depthWrite=f.a>0.9; }
+    if(f.t<=0&&f.a>0.995){ if(o.userData.occM){ o.material=o.userData.occM0; o.userData.occM.dispose(); o.userData.occM=null; } GOCC.fade.delete(o); } } }
 

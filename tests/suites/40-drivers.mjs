@@ -9,7 +9,7 @@ async function auth(c, kind, nick, pin) {
   await c.js(() => document.querySelector('#bDrv2').click());
   await c.until(() => !document.querySelector('#drvReg').hidden, null, { timeout: 5000 });
   await c.page.fill('#drvNick', nick); await c.page.fill('#drvPin', pin);
-  await c.js(k => document.querySelector(k === 'reg' ? '#drvRegGo' : '#drvLogGo').click(), kind);
+  await c.js(k => { const want = k === 'reg' ? 'Создать пилота' : 'Войти'; if (document.querySelector('#drvRegGo').textContent !== want) document.querySelector('#drvLogGo').click(); document.querySelector('#drvRegGo').click(); }, kind);
   return c.until(() => __dbg.DRV.nick || (document.querySelector('#drvMsg').classList.contains('err') && 'ERR:' + document.querySelector('#drvMsg').textContent), null, { timeout: 8000 });
 }
 const win = (c, boss) => c.js(b => { const D = __dbg, e = { type: b }; D.DRV.fight = { e, t: 120, hp: D.TK.hp, lost: 50, max: 100 }; D.drvBossWin(e); }, boss);
@@ -87,21 +87,23 @@ export const tests = [
 
       // Аня's card: 3D machine, kills by type, deaths, medals with descriptions
       await b.js(() => document.querySelector('#drvBody li[data-who="Аня"]').click());
-      const card = await b.until(() => { const t = document.querySelector('#drvCB').textContent; return /Кузнечик/.test(t) && document.querySelector('[data-gift]') ? t : null; }, null, { timeout: 8000 });
-      assert(card && /Бизон/.test(card) && !/лома у/.test(card), 'card content: ' + card);
-      const cv = await b.js(() => ({ hid: document.querySelector('#drvTk').hidden, tk: document.querySelector('#drvTkN').textContent, med: document.querySelectorAll('#drvCB .dmed button').length }));
+      const card = await b.until(() => { const t = document.querySelector('#drvCI').textContent; return /Кузнечик/.test(t) && document.querySelector('[data-pane]') ? t : null; }, null, { timeout: 8000 });
+      assert(card && /Бизон/.test(card), 'card content: ' + card);
+      const cv = await b.js(() => ({ hid: document.querySelector('#drvTk').hidden, tk: document.querySelector('#drvTkN').textContent, med: document.querySelectorAll('#drvCI .dmed button').length }));
       assert(!cv.hid && /Шаротанк/.test(cv.tk) && cv.med === 2, 'card tank/medals: ' + JSON.stringify(cv));
-      await b.js(() => document.querySelector('#drvCB [data-med="krot"]').click());
+      await b.js(() => document.querySelector('#drvCI [data-med="krot"]').click());
       assert(/Кротолов/.test(await b.js(() => document.querySelector('.dmedTx').textContent)), 'medal description');
 
       // scrap by number field, then a message
       const b0 = await b.js(() => __dbg.ST.scrap), a0 = await a.js(() => __dbg.ST.scrap);
+      await b.js(() => document.querySelector('[data-pane="gift"]').click());
       await b.page.fill('#drvAmtN', '150'); await b.js(() => document.querySelector('[data-gift]').click());
       await b.until(() => /Отправлено/.test(document.querySelector('#drvMsg').textContent), null, { timeout: 8000 });
       assert(await b.js(() => __dbg.ST.scrap) === b0 - 150, 'sender scrap not deducted');
       await b.page.fill('#drvTxt', 'Аня, держи лом!'); await b.js(() => document.querySelector('[data-say]').click());
-      await b.until(() => /ушло/.test(document.querySelector('#drvMsg').textContent), null, { timeout: 8000 });
-      assert(await b.js(() => document.querySelectorAll('.dlog li').length) === 2, 'archive after sending');
+      // optimistic: the bubble is there at once, then gets its ✓
+      assert(await b.js(() => [...document.querySelectorAll('#drvChat .dmsg.out')].some(m => /держи лом/.test(m.textContent))), 'message bubble not shown at once');
+      assert(await b.until(() => document.querySelectorAll('#drvChat .dmsg').length === 2 && !document.querySelector('#drvChat .dmsg.pend'), null, { timeout: 8000 }), 'chat after sending');
       await a.js(() => { document.querySelector('#drvClose').click(); __dbg.DRV.pollT = 0; });
       assert(await a.until(s => __dbg.ST.scrap === s + 150, a0, { timeout: 8000 }), 'scrap not received');
       const note = await a.until(() => { const t = [...document.querySelectorAll('.dnote')].map(n => n.textContent).join('|'); return /ВХОДЯЩЕЕ СООБЩЕНИЕ ОТ Боря/.test(t) && /держи лом/.test(t) && /ПОСЫЛКА ОТ Боря/.test(t) ? t : null; }, null, { timeout: 6000 });
@@ -127,13 +129,13 @@ export const tests = [
       // second device: log in as Аня with the PIN, counters and medals come back
       const c = await client({ name: 'anya2', net: { sheets: sh.url } }); ctx.clients.push(c);
       const bad = await auth(c, 'login', 'Аня', '9999'); assert(String(bad).startsWith('ERR:'), 'wrong PIN accepted');
-      await c.page.fill('#drvPin', '1234'); await c.js(() => document.querySelector('#drvLogGo').click());
+      await c.page.fill('#drvPin', '1234'); await c.js(() => document.querySelector('#drvRegGo').click());
       const back = await c.until(() => __dbg.DRV.nick === 'Аня' && __dbg.DRV.kills >= 4 && __dbg.DRV.medals.krot, null, { timeout: 8000 });
       assert(back, 'login did not restore Аня: ' + JSON.stringify(await c.js(() => [__dbg.DRV.nick, __dbg.DRV.kills, Object.keys(__dbg.DRV.medals)])));
       await c.js(() => document.querySelector('#drvMe').click());
-      assert(await c.js(() => document.querySelectorAll('#drvCB .dmed button').length) === (await c.js(() => __dbg.MEDALS.length)), 'own card must list all medals');
-      assert(await c.js(() => document.querySelectorAll('#drvCB .dav').length) === 9, '9 avatars');
-      await c.js(() => document.querySelector('#drvCB [data-av="6"]').click()); await c.js(() => { __dbg.DRV.syncT = 0; });
+      assert(await c.js(() => document.querySelectorAll('#drvCI .dmed button').length) === (await c.js(() => __dbg.MEDALS.length)), 'own card must list all medals');
+      assert(await c.js(() => document.querySelectorAll('#drvCI .dav').length) === 9, '9 avatars');
+      await c.js(() => document.querySelector('#drvCI [data-av="6"]').click()); await c.js(() => { __dbg.DRV.syncT = 0; });
       for (let i = 0; i < 40 && sh.db.T.Pilots.find(p => p.nick === 'Аня').av !== 6; i++) await c.wait(200); // dirty clears when the request leaves
       assert(sh.db.T.Pilots.find(p => p.nick === 'Аня').av === 6, 'avatar not synced');
     } finally { await sh.close(); }

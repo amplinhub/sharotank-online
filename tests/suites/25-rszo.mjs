@@ -60,7 +60,7 @@ export const tests = [
     const b = await c.js(() => { const D = __dbg; D.MLRS.cd = 0; D.TK.vF = 0; D.TK.vx = D.TK.vz = 0; D.ST.ammo.sv = 0; D.mlrsPress(); return D.MLRS.st; });
     assert(b === 'idle', 'fired with an empty salvo stock');
     const cap = await c.js(() => __dbg.AMMO_CAP.sv.join(','));
-    assert(cap === '9,10,11,12', 'salvo stock must be 9/10/11/12: ' + cap);
+    assert(cap === '9,11,13,15', 'salvo stock must be 9/11/13/15: ' + cap);
   } },
   { name: 'rszo: motor pool and garage cards', timeout: 90, async run(ctx) {
     const c = await client({ name: 'rszo-gar' }); ctx.clients.push(c);

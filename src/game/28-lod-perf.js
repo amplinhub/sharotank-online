@@ -72,7 +72,7 @@ function lampMatrices(){ const hm=LAMPV.halo, pm=LAMPV.pool; if(!hm) return; _lq
   hm.instanceMatrix.needsUpdate=true; if(pm) pm.instanceMatrix.needsUpdate=true; LAMPV.q.copy(camera.quaternion); }
 function lampColors(){ const hm=LAMPV.halo, pm=LAMPV.pool; if(!hm) return; for(const l of LAMPS){ if(l.rgb) _lc.setRGB(l.rgb[0],l.rgb[1],l.rgb[2]); else _lc.set(PALETTES[PAL][l.col]); hm.setColorAt(l.hi,_lc); if(pm&&l.pi>=0) pm.setColorAt(l.pi,_lc); } hm.instanceColor.needsUpdate=true; if(pm) pm.instanceColor.needsUpdate=true; }
 function lampsFrame(){ if(LAMPV.halo&&!LAMPV.q.equals(camera.quaternion)) lampMatrices(); }
-function checkLamps(){ let ch=false; for(const l of LAMPS){ if(!l.alive) continue; const cx=Math.floor(l.x/VS), cy=Math.floor(l.y/VS), cz=Math.floor(l.z/VS); let ok=false;
+function checkLamps(){ let ch=false; for(const l of LAMPS){ if(!l.alive||l.keep) continue; const cx=Math.floor(l.x/VS), cy=Math.floor(l.y/VS), cz=Math.floor(l.z/VS); let ok=false;
     for(let y=cy-1;y<=cy+1&&!ok;y++)for(let z=cz-1;z<=cz+1&&!ok;z++)for(let x=cx-1;x<=cx+1;x++){ const m=get(x,y,z); if(m===M.LAMP||m===M.NEON||m===M.LANT||m===M.BILL||(l.tl!=null&&m)){ok=true;break;} }
     if(!ok){ l.alive=false; ch=true; } } if(ch) lampMatrices(); }
 

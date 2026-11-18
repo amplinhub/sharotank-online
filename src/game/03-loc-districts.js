@@ -171,6 +171,8 @@ function boat(x,z,ax){ lbox(x,z,ax,-2.6,2.6,-0.75,0.75,0,0.35,M.WOOD); lbox(x,z,
   const lx=ax?x+0.9:x, lz=ax?z:z+0.9; lantern(lx,1.1,lz,false,true); }
 
 /* ================= LOCATION: CAMP (centre, safe) ================= */
+const CAMP_TREES=[];
+function campTree(x,z,dx,dz){ CAMP_TREES.push([x-dx*0.5,z-dz*0.5]); LAMPS.push({x:x+dx*0.45,y:3.1,z:z+dz*0.45,r:4.2,col:'lamp',size:2.2,keep:true}); }
 function hangar(x0,z0,w,d){ FLOORS.push([x0,z0,x0+w,z0+d,'conc']); const H=4.2, R=w/2, cx=x0+w/2, th=Math.max(VS,0.4);
   shell(x0,z0,x0+w,z0+d,0,H,(side,u,v)=>{ if(side===1) return -1; if(side===0) return M.ARMY; return (u%3)<0.35?M.DARK:((v>2.6&&v<3.5&&(u%3)>1)?M.WIN:M.ARMY); },0.4);
   const a=c(x0),b=c(x0+w),f=c(z0),g=c(z0+d);
@@ -253,8 +255,10 @@ function genCamp(R){
   sandbags(46.5,71,53.5,72,1.1); sandbags(66,49,77,50,1.1); sandbags(76,50,77,58,1.1);
   crates(52,74); crates(56,75); crates(73,72);
   for(let k=0;k<8;k++){ const a=k/8*TAU; box(62+Math.cos(a)*6.4-0.15,0,62+Math.sin(a)*6.4-0.15,62+Math.cos(a)*6.4+0.15,0.25,62+Math.sin(a)*6.4+0.15,M.LAMP); }
-  for(const z of [10,24,56,70]){ streetLamp(33.9,z,1,0); streetLamp(46.1,z,-1,0); }
-  for(const x of [10,24,56,70]){ streetLamp(x,33.9,0,1); streetLamp(x,46.1,0,-1); }
+  /* v30.3: no lamp posts in the camp — bendable trees (meshes, 29-camp) with the light kept in their crowns */
+  CAMP_TREES.length=0;
+  for(const z of [10,24,56,70]){ campTree(33.9,z,1,0); campTree(46.1,z,-1,0); }
+  for(const x of [10,24,56,70]){ campTree(x,33.9,0,1); campTree(x,46.1,0,-1); }
   /* camp trees and bushes are bendable meshes (campDecoBuild) */
 }
 const CAMP_GARAGE={x0:10.5,z0:8,x1:19.5,z1:22.5,in:false}, CAMP_DOOR={x:15,z:27.5,h:0};

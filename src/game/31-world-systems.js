@@ -109,14 +109,17 @@ function artTargets(){ return ENEMIES.filter(e=>!e.dead&&e.lockable!==false&&e.s
 function artPlan(){ const es=artTargets(), q=[]; if(es.length){ const per=es.map(()=>Math.floor(6/es.length)); for(let k=0;k<6%es.length;k++) per[k]++; for(let r=0;r<6;r++) for(let k=0;k<es.length;k++) if(per[k]>0&&q.filter(x=>x===es[k]).length<per[k]){ q.push(es[k]); if(q.length>=6) break; } while(q.length<6) q.push(es[0]); } ART.plan=q; }
 function artSpot(){ const ok=(x,z,sep)=>x>3&&z>3&&x<WX-3&&z<WZ-3&&!inWater(x,z)&&Math.hypot(x-TK.x,z-TK.z)>4.5&&ART.pts.every(p=>Math.hypot(p[0]-x,p[1]-z)>sep);
   let e=ART.plan&&ART.plan.length?ART.plan.shift():null; if(e&&e.dead){ const alt=artTargets(); e=alt.length?alt[(rnd()*alt.length)|0]:null; }
-  if(e){ const n=ART.cnt.get(e)||0; for(let k=0;k<16;k++){ let x=e.x, z=e.z; if(n||k){ const a=rnd()*TAU, r=2.2+n*0.5+k*0.15+rnd()*1.2; x+=(e.vx||0)*1.2+Math.cos(a)*r; z+=(e.vz||0)*1.2+Math.sin(a)*r; } if(ok(x,z,2.4)){ ART.cnt.set(e,n+1); return [x,z,e]; } } }
+  if(e){ const n=ART.cnt.get(e)||0; for(let k=0;k<16;k++){ let x=e.x, z=e.z; if(n||k){ const a=rnd()*TAU, r=2.2+n*0.5+k*0.15+rnd()*1.2; x+=Math.cos(a)*r; z+=Math.sin(a)*r; } if(ok(x,z,2.4)){ ART.cnt.set(e,n+1); return [x,z,e]; } } }
   for(let k=0;k<40;k++){ const a=rnd()*TAU, r=6+rnd()*16, x=TK.x+Math.cos(a)*r, z=TK.z+Math.sin(a)*r; if(ok(x,z,3.4)) return [x,z,null]; } return null; }
 function artCircle(){ const s=artSpot(); if(!s) return; ART.pts.push([s[0],s[1]]); const g=new THREE.Group(); const col=0xff2a1f;
   const ring=new THREE.Mesh(artRingGeo,new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.95,depthWrite:false})); const disc=new THREE.Mesh(artDiscGeo,new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.14,depthWrite:false}));
   g.add(disc,ring); for(let k=0;k<4;k++){ const tk=new THREE.Mesh(artTickGeo,ring.material); const a=k*Math.PI/2; tk.position.set(Math.sin(a)*1.25,0,Math.cos(a)*1.25); tk.rotation.y=a; g.add(tk); }
-  g.position.set(s[0],groundH(s[0],s[1])+0.1,s[1]); g.renderOrder=4; scene.add(g); ART.circles.push({x:s[0],z:s[1],g,t:0,wh:false}); }
+  g.position.set(s[0],groundH(s[0],s[1])+0.1,s[1]); g.renderOrder=4; scene.add(g);
+  /* v30.3: the circle (and the shell) keep following their robot until impact; extra shells keep a shrinking offset around it */
+  const e=s[2]; ART.circles.push({x:s[0],z:s[1],g,t:0,wh:false,e,ox:e?s[0]-e.x:0,oz:e?s[1]-e.z:0}); }
 function artUpdate(dt){ if(ART.active){ ART.t+=dt; while(ART.salvo<3&&ART.t>=0.2+ART.salvo*1.25){ ART.salvo++; artGun(); setTimeout(()=>{ if(!transit&&!LOC.safe){ artCircle(); artCircle(); } },380); } if(ART.salvo>=3&&ART.t>4&&!ART.circles.length) ART.active=false; }
   for(let i=ART.circles.length-1;i>=0;i--){ const c=ART.circles[i]; c.t+=dt; const k=Math.min(1,c.t/2), e=1-Math.pow(1-k,2), r=lerp(5.2,0.85,e);
+    if(c.e&&!c.e.dead&&c.e.state!=='fly'){ const sh=1-0.55*e, tx=c.e.x+c.ox*sh, tz=c.e.z+c.oz*sh, f=c.t>1.5?1:Math.min(1,dt*7); c.x+=(tx-c.x)*f; c.z+=(tz-c.z)*f; c.g.position.set(c.x,groundH(c.x,c.z)+0.1,c.z); }
     c.g.scale.set(r,1,r); c.g.rotation.y+=dt*(0.6+k*2); c.g.children[1].material.opacity=0.6+0.4*Math.abs(Math.sin(c.t*(6+k*14))); c.g.children[0].material.opacity=0.08+k*0.2;
     if(c.t>1.15&&!c.wh){ c.wh=true; sO(1700,480,0.85,0.03,'sine'); }
     if(c.t>1.7){ const h=(2-c.t)*60, gy=groundH(c.x,c.z); LINES.push(c.x,gy+h+0.5,c.z,c.x,gy+h+5,c.z,1,0.85,0.5,0); }

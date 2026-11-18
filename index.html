@@ -24,20 +24,21 @@
 <div class="tr">
   <div class="trh"><div class="fps" id="fps">— FPS</div><button class="chip mbtn" id="bMenu" aria-expanded="false" aria-controls="trMenu"><span class="burg" aria-hidden="true"><i></i><i></i><i></i></span>Меню</button></div>
   <div class="trm" id="trMenu" hidden>
-  <div class="seg" id="qseg" role="group" aria-label="Качество">
+  <div class="mlab">Графика</div>
+  <div class="seg qs" id="qseg" role="group" aria-label="Графика"><i class="qthumb" aria-hidden="true"></i>
     <button data-q="auto">Авто</button><button data-q="low">Низ</button><button data-q="med">Сред</button><button data-q="high">Выс</button>
   </div>
-  <div class="row">
+  <div class="row" hidden><!-- v30.3: palette switch hidden (still on the P key) -->
     <button class="chip" id="bPal" title="Сменить палитру (P)"><span class="dots" id="pdots"><i></i><i></i><i></i></span><span id="pname">Кобальт</span></button>
   </div>
-  <div class="row">
-    <button class="chip on" id="bTouch">Кнопки</button>
-    <button class="chip on" id="bSnd">Звук</button>
-    <button class="chip" id="bDrv2">Онлайн рейтинг</button>
-    <button class="chip" id="bHelp">?</button>
+  <div class="mgrid">
+    <button class="mt" id="bDrv2"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c.8-4 3.8-6 7.5-6s6.7 2 7.5 6"/></svg><span>Профиль</span></button>
+    <button class="mt" id="bHelp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 11.5L12 4l8.5 7.5"/><path d="M6 9.8V20h12V9.8"/><path d="M10 20v-5h4v5"/></svg><span>Главное меню</span></button>
+    <button class="mt on" id="bSnd"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path class="w" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="x" d="M15.5 9.5l5 5M20.5 9.5l-5 5"/></svg><span>Звук<small></small></span></button>
+    <button class="mt on" id="bTouch"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4.5"/><circle cx="8" cy="15" r="1.6"/><circle cx="17.5" cy="8.5" r="2.6"/><circle cx="18" cy="16.5" r="1.8"/></svg><span>Кнопки<small></small></span></button>
   </div>
   <div class="where" id="where"></div>
-  <div class="dbgx"><button class="chip" id="bDbg" type="button">Отладка ▸</button><div class="row" id="dbgBoss" hidden><button class="chip" data-boss="crypt">Склеп</button><button class="chip" data-boss="krot">Крот</button><button class="chip" data-boss="hornet">Шершень</button><button class="chip" data-boss="dragon">Дракон</button></div></div>
+  <div class="dbgx" hidden><!-- v30.3: debug menu removed from the UI (bosses still via __dbg.dbgBoss) --><button class="chip" id="bDbg" type="button">Отладка ▸</button><div class="row" id="dbgBoss" hidden><button class="chip" data-boss="crypt">Склеп</button><button class="chip" data-boss="krot">Крот</button><button class="chip" data-boss="hornet">Шершень</button><button class="chip" data-boss="dragon">Дракон</button></div></div>
   </div>
 </div>
 
@@ -122,7 +123,7 @@
           <dt>ОГОНЬ</dt><dd>стрельба</dd>
         </dl></div>
     </div>
-    <div class="crow"><button class="go" id="bGo">Поехали</button><button class="go alt" id="bOnline">С другом</button><button class="go alt" id="bDrv">Онлайн рейтинг</button><button class="ghost" id="bReset">Начать заново</button></div>
+    <div class="crow"><button class="go" id="bGo">Поехали</button><button class="go alt" id="bOnline">С другом</button><button class="go alt" id="bDrv">Профиль</button><button class="ghost" id="bReset">Начать заново</button></div>
   </div>
 </div>
 
@@ -145,24 +146,26 @@
   </div>
 </div>
 
-<div id="drivers" hidden role="dialog" aria-label="Онлайн рейтинг">
+<div id="drivers" hidden role="dialog" aria-label="Профиль">
   <div class="card drv">
-    <div class="drvH"><h1>Онлайн рейтинг</h1><button class="ghost" id="drvClose">Закрыть</button></div>
+    <div class="drvH"><h1>Профиль</h1><button class="ghost" id="drvClose">Закрыть</button></div>
     <div id="drvReg" hidden>
-      <p>Позывной и PIN из 4 цифр — с ними можно войти с другого устройства.</p>
-      <div class="dregF"><input id="drvNick" maxlength="16" autocomplete="off" spellcheck="false" placeholder="ПОЗЫВНОЙ" aria-label="Позывной"><input id="drvPin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="PIN" aria-label="PIN из 4 цифр"></div>
-      <div class="davs" id="drvAvs"></div>
-      <div class="crow"><button class="go" id="drvRegGo">Новый пилот</button><button class="go alt" id="drvLogGo">Войти</button></div>
+      <p class="dlead" id="drvLead"></p>
+      <div id="drvAvSec"><div class="dsec">Аватарка</div><div class="davs" id="drvAvs"></div></div>
+      <div class="dregF"><label>Позывной<input id="drvNick" maxlength="16" autocomplete="off" spellcheck="false" placeholder="например, Тигра" aria-label="Позывной"></label><label class="pin">PIN<input id="drvPin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="4 цифры" aria-label="PIN из 4 цифр"></label></div>
+      <button class="go" id="drvRegGo">Создать пилота</button>
+      <p class="dalt"><span id="drvAltTx">Уже есть пилот?</span> <button class="dlink" id="drvLogGo">Войти</button></p>
     </div>
     <div id="drvMain" hidden>
       <button class="drvMe" id="drvMe" aria-label="Моя карточка"></button>
-      <div class="seg drvTabs" role="tablist"><button data-t="top">Рейтинг</button><button data-t="fr">Друзья</button></div>
+      <div class="seg drvTabs" role="tablist"><button data-t="top">Рейтинг</button><button data-t="fr">Друзья<b class="dbadge" id="drvBadge" hidden></b></button></div>
       <div id="drvBody"></div>
       <div id="drvCard" hidden>
-        <button class="ghost" id="drvBack">← Назад</button>
+        <button class="dback" id="drvBack">‹ Рейтинг</button>
         <div class="dch" id="drvCH"></div>
         <div class="dtk"><canvas id="drvTk"></canvas><small id="drvTkN"></small></div>
-        <div id="drvCB"></div>
+        <div id="drvCI"></div>
+        <div id="drvCA"></div>
       </div>
     </div>
     <p class="drvMsg" id="drvMsg"></p>

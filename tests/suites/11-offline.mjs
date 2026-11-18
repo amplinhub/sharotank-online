@@ -25,6 +25,6 @@ export const tests = [
     assert(v.cls === 'solo' && !v.on && v.drv, 'start menu: ' + JSON.stringify(v));
     await c.js(() => document.querySelector('#bGo').click()); await c.wait(400); await c.js(() => document.querySelector('#bMenu').click()); await c.wait(400);
     const m = await c.js(s => { const f = new Function('sel', 'return (' + s + ')(sel)'); return { drv2: f('#bDrv2'), dbg: f('#bDbg') }; }, shown.toString());
-    assert(m.drv2 && m.dbg, 'menu must keep rating and debug: ' + JSON.stringify(m));
+    assert(m.drv2 && !m.dbg, 'menu must keep the profile, debug is gone since v30.3: ' + JSON.stringify(m));
   } }
 ];
