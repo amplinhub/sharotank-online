@@ -12,17 +12,28 @@ async function rszo(ctx, { abl = 0 } = {}) {
 }
 
 export const tests = [
-  { name: 'rszo: model, weapons, 120° MG arc', timeout: 90, async run(ctx) {
+  { name: 'rszo: model, weapons, 360° MG that never goes through the truck', timeout: 120, async run(ctx) {
     const c = await rszo(ctx, { abl: 2 });
     const m = await c.js(() => { const D = __dbg, T = D.tank; return { wheels: T.wheels.length, bogies: (T.bogies || []).length, tubes: T.rszMuz.length, mg: T.mgMuz.length, w: D.WEAP.length, cnVis: T.cn.visible, mgVis: T.mg.visible }; });
     assert(m.wheels === 8 && m.bogies === 2, 'wheels/bogies: ' + JSON.stringify(m));
     assert(m.tubes === 8, 'abl 2 must give 8 tubes: ' + m.tubes);
     assert(m.mg === 1 && m.mgVis && !m.cnVis, 'starts with one MG barrel, no cannon: ' + JSON.stringify(m));
-    // aim straight behind: the mount must stop at ±60°, and the MG must not fire into its dead zone
-    await c.js(() => { const D = __dbg; D.AIM.manual = null; D.AIM.lockE = null; D.AIM.x = D.TK.x; D.AIM.z = D.TK.z - 30; D.AIM.yawRel = Math.PI; });
-    await c.wait(1500);
-    const a = await c.js(() => Math.abs(__dbg.tank.turret.rotation.y));
-    assert(a <= Math.PI / 3 + 0.01, 'turret left the 120° arc: ' + a);
+    // aim straight behind and low: the mount turns all the way round
+    await c.js(() => { const D = __dbg, e = D.spawnEnemy('bull', D.TK.x, D.TK.z - 22); e.speedW = 0; e.acc = 0; e.turn = 0; D.AIM.manual = e; });
+    await c.wait(2500);
+    const a = await c.js(() => Math.abs(__dbg.wrapA ? __dbg.wrapA(__dbg.tank.turret.rotation.y) : __dbg.tank.turret.rotation.y));
+    assert(a > 2.6, 'turret did not turn to the rear: ' + a);
+    // every direction, pack down and raised: the barrel and its fire line clear the truck's own meshes at the lowest allowed pitch
+    const bad = await c.js(() => { const D = __dbg, T = D.tank, TH = THREE, out = [];
+      for (const ang of [0, 1]) { D.MLRS.ang = ang; T.rszPod.rotation.x = -ang * 0.95; T.root.updateMatrixWorld(true);
+        const meshes = []; T.root.traverse(o => { if (!o.isMesh) return; let p = o; while (p) { if (p === T.stab || p.visible === false) return; p = p.parent; } meshes.push(o); });
+        const piv = new TH.Vector3(), q = new TH.Quaternion(); T.root.getWorldQuaternion(q); const rc = new TH.Raycaster(), y0 = T.turret.rotation.y, g0 = T.gun.rotation.x;
+        for (let deg = 0; deg < 360; deg += 3) { const y = deg * Math.PI / 180, p = D.CHASSIS.rszo.dep(y); T.turret.rotation.y = y; T.gun.rotation.x = 0; T.root.updateMatrixWorld(true); T.gun.getWorldPosition(piv);
+          const dl = new TH.Vector3(Math.sin(y) * Math.cos(p), Math.sin(p), Math.cos(y) * Math.cos(p)).applyQuaternion(q), tl = new TH.Vector3(-Math.cos(y), 0, Math.sin(y)).applyQuaternion(q);
+          for (const off of T.mgMuz.length > 1 ? [-0.12, 0.12] : [0]) { rc.set(piv.clone().addScaledVector(tl, off).addScaledVector(dl, 0.12), dl); rc.far = 8; const h = rc.intersectObjects(meshes, false); if (h.length) out.push(`${ang ? 'up' : 'down'} ${deg}° at ${h[0].distance.toFixed(2)} m`); } }
+        T.turret.rotation.y = y0; T.gun.rotation.x = g0; }
+      D.MLRS.ang = 0; T.rszPod.rotation.x = 0; return out; });
+    assert(!bad.length, 'barrel / fire line hits the truck: ' + bad.slice(0, 8).join(', '));
   } },
   { name: 'rszo: salvo kills a «Бизон» with real rockets, uses stock, cooldown', timeout: 120, async run(ctx) {
     const c = await rszo(ctx);
@@ -41,12 +52,15 @@ export const tests = [
     // scatter is random by design: require a kill or at least 60% of its 160 hp gone
     assert(r.dead || r.hp < 64, '4-rocket salvo barely hurt a standing «Бизон», hp left ' + r.hp);
   } },
-  { name: 'rszo: no salvo while driving fast or without stock', timeout: 90, async run(ctx) {
+  { name: 'rszo: salvo on the move (no slowdown), none without stock', timeout: 90, async run(ctx) {
     const c = await rszo(ctx);
-    const a = await c.js(() => { const D = __dbg; D.TK.vF = 6; D.TK.vz = 6; D.mlrsPress(); return D.MLRS.st; });
-    assert(a === 'idle', 'fired while moving at 6 m/s');
-    const b = await c.js(() => { const D = __dbg; D.TK.vF = 0; D.TK.vx = D.TK.vz = 0; D.ST.ammo.sv = 0; D.mlrsPress(); return D.MLRS.st; });
+    const a = await c.js(() => { const D = __dbg; D.TK.vF = 6; D.TK.vz = 6; D.mlrsPress(); return { st: D.MLRS.st, k: D.mlrsVK() }; });
+    assert(a.st === 'raise' && a.k === 1, 'no salvo / slowdown at 6 m/s: ' + JSON.stringify(a));
+    await c.until(() => __dbg.MLRS.st === 'idle', null, { timeout: 30000 });
+    const b = await c.js(() => { const D = __dbg; D.MLRS.cd = 0; D.TK.vF = 0; D.TK.vx = D.TK.vz = 0; D.ST.ammo.sv = 0; D.mlrsPress(); return D.MLRS.st; });
     assert(b === 'idle', 'fired with an empty salvo stock');
+    const cap = await c.js(() => __dbg.AMMO_CAP.sv.join(','));
+    assert(cap === '9,10,11,12', 'salvo stock must be 9/10/11/12: ' + cap);
   } },
   { name: 'rszo: motor pool and garage cards', timeout: 90, async run(ctx) {
     const c = await client({ name: 'rszo-gar' }); ctx.clients.push(c);

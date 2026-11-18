@@ -15,14 +15,13 @@ function rszMark(x,z,r,T){ const g=new THREE.Group(), s=new THREE.Group(); g.add
   for(let k=0;k<4;k++){ const t=new THREE.Mesh(tgtGeo.tick,rszMat.mk), a=k/4*TAU; t.position.set(Math.cos(a)*0.68,0,Math.sin(a)*0.68); t.rotation.y=-a+Math.PI/2; s.add(t); }
   g.scale.setScalar(r); g.position.set(x,groundH(x,z)+0.1,z); g.renderOrder=7; scene.add(g); EXTRAS.push(g); const o={g,s,t:0,T,spin:1.2}; TGTS.push(o); return o; }
 /* while the pack is up the truck only crawls */
-function mlrsVK(){ return MLRS.st==='raise'||MLRS.st==='fire'?0.15:1; }
+function mlrsVK(){ return 1; } /* v30.2: salvo on the move — no slowdown */
 function mlrsReady(){ return MLRS.st==='idle'&&MLRS.cd<=0&&(ST.ammo.sv|0)>0; }
 function mlrsPress(){ if(chs().abil!=='mlrs'||TK.dead||transit||!tank||!tank.rszPod) return;
   if(LOC.safe){ toast('В лагере залп запрещён'); return; }
   if(MLRS.st!=='idle') return;
   if(MLRS.cd>0){ sfxClick(); toast(`РСЗО перезаряжается · ${Math.ceil(MLRS.cd)} с`); return; }
   if((ST.ammo.sv|0)<=0){ sfxClick(); toast('Залпов нет · пополнение в лагере'); return; }
-  if(Math.abs(TK.vF)>2.4){ sfxClick(); toast('Для залпа остановись или ползи'); return; }
   const e=AIM.lockE&&!AIM.lockE.dead&&AIM.lockE.state!=='fly'?AIM.lockE:null; let tx=AIM.x, tz=AIM.z; if(e){ tx=e.x; tz=e.z; }
   let dx=tx-TK.x, dz=tz-TK.z, d=Math.hypot(dx,dz); if(d<0.5){ dx=Math.sin(TK.h); dz=Math.cos(TK.h); d=1; }
   const dd=clamp(d,RSZ_MIN,RSZ_MAX); tx=clamp(TK.x+dx/d*dd,2,WX-2); tz=clamp(TK.z+dz/d*dd,2,WZ-2);
