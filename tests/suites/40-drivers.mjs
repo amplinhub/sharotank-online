@@ -50,7 +50,7 @@ export const tests = [
       await a.js(() => { const D = __dbg; for (let i = 0; i < 3; i++) D.drvKill('jian', '', null); D.drvKill('bull', 'ram', null); D.drvKill('dseg', '', null); D.ST.scrap = 1000; });
       await win(a, 'krot');
       await a.js(() => { __dbg.DRV.syncT = 0; });
-      await a.until(() => !__dbg.DRV.dirty, null, { timeout: 8000 });
+      for (let i = 0; i < 40 && !/krot/.test(sh.db.T.Pilots.find(p => p.nick === 'Аня').med); i++) await a.wait(200);
       const pa = sh.db.T.Pilots.find(p => p.nick === 'Аня');
       assert(pa.kills === 4 && /"jian":3/.test(pa.kbt) && /krot/.test(pa.med) && /first/.test(pa.med), 'Аня on server: ' + JSON.stringify(pa));
 
@@ -98,7 +98,7 @@ export const tests = [
       assert(await c.js(() => document.querySelectorAll('#drvCB .dmed button').length) === (await c.js(() => __dbg.MEDALS.length)), 'own card must list all medals');
       assert(await c.js(() => document.querySelectorAll('#drvCB .dav').length) === 9, '9 avatars');
       await c.js(() => document.querySelector('#drvCB [data-av="6"]').click()); await c.js(() => { __dbg.DRV.syncT = 0; });
-      await c.until(() => !__dbg.DRV.dirty, null, { timeout: 8000 });
+      for (let i = 0; i < 40 && sh.db.T.Pilots.find(p => p.nick === 'Аня').av !== 6; i++) await c.wait(200); // dirty clears when the request leaves
       assert(sh.db.T.Pilots.find(p => p.nick === 'Аня').av === 6, 'avatar not synced');
     } finally { await sh.close(); }
   } }
