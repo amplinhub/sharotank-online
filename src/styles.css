@@ -513,3 +513,6 @@ kbd{font-family:var(--f-mono);border:1px solid var(--line);padding:0 4px;font-si
 
 /* offline edition: online lobby, «Водители» and the debug menu are not there */
 .offline #bOnline,.offline #bDrv,.offline #bDrv2,.offline .dbgx,.offline #drivers,.offline #lobby,.offline #drvNotes,.offline #drvReply{display:none!important}
+
+/* solo edition (amplinhub/sharotank): no co-op lobby, the rest stays */
+.solo #bOnline,.solo #lobby{display:none!important}

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && vite build --mode single && vite build --mode offline",
+    "build": "vite build && vite build --mode single && vite build --mode offline && vite build --mode solo",
     "preview": "vite preview",
     "lint": "node tools/lint-game.mjs && eslint tests tools src/*.js src/net src/lib vite.config.js",
     "test": "node tests/run.mjs",
