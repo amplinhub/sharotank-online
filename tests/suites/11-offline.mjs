@@ -7,6 +7,7 @@ const shown = sel => { const e = document.querySelector(sel); return !!e && !e.h
 export const tests = [
   { name: 'offline build: no online, drivers, debug', timeout: 90, async run(ctx) {
     const c = await client({ name: 'offline', build: 'dist-offline', start: false }); ctx.clients.push(c);
+    await c.page.waitForSelector('#bGo', { state: 'visible', timeout: 60000 }); // the start menu appears a moment after boot
     const v = await c.js(s => { const f = new Function('sel', 'return (' + s + ')(sel)'); return { cls: document.documentElement.className, go: f('#bGo'), on: f('#bOnline'), drv: f('#bDrv'), drv2: f('#bDrv2'), dbg: f('#bDbg') }; }, shown.toString());
     assert(v.cls === 'offline', 'no offline class: ' + v.cls);
     assert(v.go && !v.on && !v.drv, 'start menu buttons: ' + JSON.stringify(v));
