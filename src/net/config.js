@@ -10,7 +10,7 @@ export const SIGNALING = {
 
 /* Сервер «Водителей» (рекорды, вызовы, посылки) — веб-приложение Apps Script при таблице «Шаротанк Онлайн — Водители».
    Вставьте сюда адрес …/exec после развёртывания (server/sheets/README.md). Пусто — меню «Водители» скажет, что сервер не подключён.
-   Переопределение: ?sheets=<адрес> или window.SHT_NET_CFG.sheets. */
+   Переопределение: ?sheets=<адрес> или window.SHT_NET_CFG.sheets ('off' — выключить, так делают автотесты). */
 export const SHEETS = {
-  url: ''
+  url: 'https://script.google.com/macros/s/AKfycbzkplj1B7Z-k-cM30tiZFo9UV1eMf3agIMNZKwGvNq-knWfkWxF0zkc-esF_9Xhqf-F/exec'
 };

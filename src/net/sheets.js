@@ -5,7 +5,7 @@ import { SHEETS } from './config.js';
 
 export function sheetsUrl() {
   try { const q = new URLSearchParams(location.search).get('sheets'); if (q) return q; } catch (_) { /* file:// и т.п. */ }
-  const c = window.SHT_NET_CFG; if (c && c.sheets) return c.sheets;
+  const c = window.SHT_NET_CFG; if (c && c.sheets) return c.sheets === 'off' ? '' : c.sheets;
   return SHEETS.url || '';
 }
 
