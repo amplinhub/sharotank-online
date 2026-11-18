@@ -19,7 +19,7 @@ export async function launch() {
 export async function close() { if (browser) await browser.close(); browser = null; }
 
 /** Open a game client. Returns { page, errors, js(), wait(), shot(), name }. */
-export async function client({ name = 'p1', w = 900, h = 560, touch = false, quality = 'low', start = true, net = null } = {}) {
+export async function client({ name = 'p1', w = 900, h = 560, touch = false, quality = 'low', start = true, net = null, build = 'dist-single' } = {}) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, hasTouch: touch, isMobile: touch });
   const page = await ctx.newPage();
   const errors = [];
@@ -29,7 +29,7 @@ export async function client({ name = 'p1', w = 900, h = 560, touch = false, qua
   await page.addInitScript(() => { window.__DT_MAX = 1 / 15; }); // software WebGL is slow: let the sim take bigger steps
   await page.addInitScript(q => { try { localStorage.setItem('sharotank_gfx_v1', JSON.stringify({ mode: q, q, locked: true })); } catch (e) {} }, quality);
   if (net) await page.addInitScript(cfg => { window.SHT_NET_CFG = cfg; }, net); // адрес сигнального сервера (тесты онлайна)
-  await page.goto(PAGE);
+  await page.goto(build === 'dist-single' ? PAGE : 'file://' + path.join(ROOT, build, 'index.html'));
   await page.waitForFunction(() => window.__dbg && window.__dbg.TK, null, { timeout: 60000 });
   const c = {
     name, page, errors,

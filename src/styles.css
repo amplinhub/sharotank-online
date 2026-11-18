@@ -456,3 +456,6 @@ kbd{font-family:var(--f-mono);border:1px solid var(--line);padding:0 4px;font-si
 .drvMsg.err{color:var(--warn)}
 .drvKinds{display:flex;flex-wrap:wrap;gap:6px}
 #drvOffer{position:fixed;left:50%;bottom:calc(120px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:9;background:var(--deep);border:1px solid var(--acc);padding:10px 14px;display:flex;flex-direction:column;gap:8px;align-items:center;max-width:calc(100% - 32px);text-align:center;font-size:13px;pointer-events:auto}
+
+/* offline edition: online lobby, «Водители» and the debug menu are not there */
+.offline #bOnline,.offline #bDrv,.offline #bDrv2,.offline .dbgx,.offline #drvOffer,.offline #drivers,.offline #lobby{display:none!important}

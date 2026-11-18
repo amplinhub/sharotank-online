@@ -16,7 +16,7 @@ function drvLoad(){ try{ const d=JSON.parse(localStorage.getItem(DRV_KEY)||'null
 function drvSave(){ try{ const o={}; for(const k of ['id','key','nick','q','acc','sent','wins','medals','best','seenBeaten','lastCard']) o[k]=DRV[k]; localStorage.setItem(DRV_KEY,JSON.stringify(o)); }catch(_){ /* приватный режим */ } }
 function drvRand(n){ const a=new Uint8Array(n); crypto.getRandomValues(a); return Array.from(a,b=>'abcdefghijklmnopqrstuvwxyz0123456789'[b%36]).join(''); }
 function drvApi(){ return window.SHT_SHEETS||null; }
-async function drvCall(a,p,auth){ const S=drvApi(); if(!S) return {ok:false,err:'nourl'}; const q=Object.assign({},p||{}); if(auth){ if(!DRV.nick) return {ok:false,err:'auth'}; q.id=DRV.id; q.key=DRV.key; } return S.call(a,q); }
+async function drvCall(a,p,auth){ const S=OFFLINE?null:drvApi(); if(!S) return {ok:false,err:'nourl'}; const q=Object.assign({},p||{}); if(auth){ if(!DRV.nick) return {ok:false,err:'auth'}; q.id=DRV.id; q.key=DRV.key; } return S.call(a,q); }
 const drvOn=()=>!!(drvApi()&&drvApi().url());
 
 /* ---- medals ---- */
@@ -44,8 +44,8 @@ function drvTick(dt){ const e=BOSS.e;
 function drvBossWin(e){ const f=DRV.fight&&DRV.fight.e===e?DRV.fight:null; DRV.fight=null; if(DRV.dbg){ DRV.dbg=false; return; } if(!f||!DRV_BOSS[e.type]) return;
   const secs=Math.round(f.t*10)/10, boss=e.type, tank=UP.tank, prev=DRV.best[boss];
   if(!prev||secs<prev.secs) DRV.best[boss]={secs,tank}; drvSave();
-  medalGive('first'); if(f.lost<f.max*0.1) medalGive('clean'); if(secs<90) medalGive('fast'); if(tank==='ten') medalGive('shadow'); if(tank==='rszo') medalGive('arty'); medalsCheck();
-  const p={boss,tank,secs,kills:DRV.kills-f.kills,rank:MS.rank,ver:'29.3'}; drvQueue('rec',p);
+  medalGive('first'); if(f.lost<f.max*0.1) medalGive('clean'); if(secs<90) medalGive('fast'); if(tank==='ten') medalGive('shadow'); if(tank==='rszo') medalGive('arty'); medalsCheck(); if(OFFLINE) return;
+  const p={boss,tank,secs,kills:DRV.kills-f.kills,rank:MS.rank,ver:'29.4'}; drvQueue('rec',p);
   for(const cid of Object.keys(DRV.acc)){ const c=DRV.acc[cid]; if(c.boss===boss&&secs<c.secs) drvQueue('chTry',{cid,boss,secs,tank}); }
   drvOffer(boss,secs,tank); drvFlush().then(drvChecks); }
 async function drvChecks(){ /* challenge attempts were sent by drvFlush; ask the server who won */ if(!DRV.nick) return; const r=await drvCall('chList',{id:DRV.id}); if(!r.ok) return;

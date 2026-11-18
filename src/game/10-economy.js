@@ -11,6 +11,8 @@ const AMMO_CAP={mg:[600,900,1300,1800],cn:[30,45,65,90],rk:[24,36,48,64],sv:[3,4
 const ST={scrap:1000,ammo:{mg:600,cn:30,rk:24,sv:3},kits:{rep:0,ammo:0,art:0}}; const UP={engine:0,armor:0,cal:0,load:0,stab:0,rk:0,ammo:0,mg:'gau',own:{gau:1},rdr:0,tank:'base',tanks:{base:1},per:{},abl:0};
 const MS={i:0,active:false,prog:0,rank:0,v:25};
 /* v29.3: «Водители» — состояние живёт здесь (раннний файл: его читают хуки боя и HUD), логика в 43-drivers.js */
+/* offline edition (build --mode offline): no online lobby, no «Водители», no debug menu */
+const OFFLINE=document.documentElement.classList.contains('offline');
 const DRV_KEY='sharotank_drv_v1';
 const DRV={id:'',key:'',nick:'',q:[],acc:{},sent:0,wins:0,medals:{},best:{},seenBeaten:{},lastCard:'',
   fight:null, dbg:false, kills:0, gifts:[], pollT:4, flushT:20, cardT:30, busy:false};
