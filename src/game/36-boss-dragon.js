@@ -1,7 +1,7 @@
 /* =================================================================================== */
 /* «ЗОЛОТОЙ ДРАКОН» — segmented dragon: lantern segments, bite, fire breath, rearing    */
 /* =================================================================================== */
-const DR_N=14, DR_GAP=1.75;
+const DR_N=14, DR_GAP=1.75, DR_ARM=130, DR_CRIT=0.4;
 function buildDragon(e){ Object.assign(e,{r:1.8,hy:1.5,hr:1.9,mass:14,turn:1.2,st:'dance',stT:0,trail:[],segs:[],wp:0,bite:0,brCD:6,fbCD:3,rear:0,jaw:0,noCol:true,static:true,inv:true,lockable:false,walk:0});
   /* v27: hi-tech / cyberpunk — gunmetal armour, gold trim, neon lines, plasma core, a centipede's worth of mechanical legs */
   const Bk=emat(e,0x0d0f13), Pl=emat(e,0xeef2f5), Au=emat(e,0x262b32), Wh=emat(e,0xf7f9fb), Mt=emat(e,0x4a525c); e.eyeM=eglow(e,0xff1f16); const Cy=eglow(e,0xdbe6f0), Mg=emat(e,0x15181d);
@@ -29,8 +29,21 @@ function buildDragon(e){ Object.assign(e,{r:1.8,hy:1.5,hr:1.9,mass:14,turn:1.2,s
     const legs=[]; for(const sx of [-1,1]){ const th=new THREE.Mesh(EGEO.box,Bk), sh=new THREE.Mesh(EGEO.box,Pl), kj=new THREE.Mesh(EGEO.joint,Cy), hj=new THREE.Mesh(EGEO.joint,Au), ft=new THREE.Mesh(EGEO.tip,Wh); kj.scale.setScalar(0.34); hj.scale.setScalar(0.4); ft.scale.set(0.26,0.5,0.26); g.add(th,sh,kj,hj,ft); legs.push({sx,th,sh,kj,hj,ft,k:{x:0,y:0,z:0},f:{x:0,y:0,z:0},h:{x:0,y:0,z:0}}); }
     g.position.set(Math.sin(i*0.5)*1.6,rr,-1.6-i*DR_GAP); g.rotation.y=Math.cos(i*0.5)*0.5; e.segG.push({g,rr,lant,i,legs}); }
   e.trailInit=false; }
-function dragonSegs(e){ if(e.segs.length) return; for(const s of e.segG){ if(!s.lant) continue; const q=newEnemy('dseg',e.x,e.z); buildE(q); q.dr=e; q.si=s.i; q.lm=s.g.userData.lm; q.hp=q.maxHp=Math.round(260*bossMul()); q.lockable=true; q.bossPart=true; e.segs.push(q); } }
-function dragonBar(e){ if(e.ph===1){ let c=0,m=0; for(const q of e.segs){ m+=q.maxHp; if(!q.dead) c+=Math.max(0,q.hp); } return [c,Math.max(1,m)]; } return [e.hp,e.maxHp]; }
+function dragonSegs(e){ if(e.segs.length) return; for(const s of e.segG){ if(!s.lant) continue; const q=newEnemy('dseg',e.x,e.z); buildE(q); q.dr=e; q.si=s.i; q.lm=s.g.userData.lm; q.hp=q.maxHp=Math.round(DR_ARM*bossMul()); q.lockable=true; q.bossPart=true; q.dK=0; q.popT=0.5; e.segs.push(q); } }
+/* armour strip in the boss bar: one cell per lantern section, in body order */
+function dragonArm(e){ if(e.ph!==1||!e.segs.length) return null; return e.segs.map(q=>q.dead?0:clamp(q.hp/q.maxHp,0,1)); }
+/* v29.4: damaged sections show it — critical (<40%) sections spark and flicker, knocked-out ones smoke, burn and pop */
+function dragonSegFx(e,dt){ for(const q of e.segs){ const s=e.segG[q.si], k=q.dead?2:q.hp/q.maxHp<DR_CRIT?1:0, x=s.wx, y=s.wy+s.rr*0.9, z=s.wz;
+    if(k>q.dK){ q.dK=k; for(let n=0;n<(k===2?6:16);n++) spark(x,y,z,(rnd()-0.5)*9,2+rnd()*6,(rnd()-0.5)*9,1,0.75,0.35,0.5+rnd()*0.4); if(k===1){ sNz(0.25,'highpass',2600,0.7,0.12); sO(900,200,0.18,0.06,'square'); } }
+    if(k===1){ if(s.g.userData.lm&&rnd()<0.35) s.g.userData.lm.color.setRGB(0.05,0.08,0.15);
+      if(rnd()<dt*14) spark(x+(rnd()-0.5)*s.rr,y,z+(rnd()-0.5)*s.rr,(rnd()-0.5)*6,1+rnd()*5,(rnd()-0.5)*6,0.7,0.9,1,0.35+rnd()*0.3);
+      if(rnd()<dt*3) SMOKE.spawn(x,y,z,0,1.3,0,0.5,1.4,1.1,0.4,0.15,0.15,0.16); }
+    else if(k===2){ if(rnd()<dt*9) SMOKE.spawn(x+(rnd()-0.5)*0.6,y,z+(rnd()-0.5)*0.6,(rnd()-0.5)*0.4,1.6+rnd(),(rnd()-0.5)*0.4,0.8,2.2,1.8,0.6,0.07,0.06,0.06);
+      if(rnd()<dt*6) FIRE.spawn(x+(rnd()-0.5)*0.7,y-0.1,z+(rnd()-0.5)*0.7,0,1.6+rnd(),0,0.7+rnd()*0.5,2.2,0.35+rnd()*0.2,1,1,0.5+rnd()*0.2,0.12);
+      if(rnd()<dt*8) spark(x,y,z,(rnd()-0.5)*7,2+rnd()*6,(rnd()-0.5)*7,1,0.7,0.3,0.4+rnd()*0.4);
+      if((q.popT-=dt)<=0){ q.popT=1.1+rnd()*1.9; for(let n=0;n<12;n++) spark(x,y,z,(rnd()-0.5)*12,2+rnd()*8,(rnd()-0.5)*12,1,0.8,0.4,0.4+rnd()*0.5);
+        for(let n=0;n<5;n++) FIRE.spawn(x+(rnd()-0.5),y+rnd()*0.5,z+(rnd()-0.5),(rnd()-0.5)*3,2+rnd()*3,(rnd()-0.5)*3,1.1+rnd()*0.8,3,0.3+rnd()*0.2,1,1,0.6,0.2);
+        const dd=Math.hypot(TK.x-x,TK.z-z); if(dd<45){ const v=1-dd/45; sNz(0.22,'lowpass',700,0.8,0.22*v); sO(160,45,0.25,0.12*v,'sawtooth'); } } } } }
 function dragonTrail(e){ const T=e.trail, hy=e.y; if(!T.length||Math.hypot(T[0][0]-e.x,T[0][2]-e.z)>0.25){ T.unshift([e.x,hy,e.z]); if(T.length>DR_N*DR_GAP*4+40) T.pop(); } }
 const _lgU=new THREE.Vector3(), _lgD=new THREE.Vector3(), _lgP=new THREE.Vector3();
 /* two-bone IK for one centipede leg (local space of the segment group) */
@@ -52,8 +65,8 @@ function dragonPose(e,dt){ const T=e.trail; let acc=0, j=0; const mv=(e.mvS||0)>
 function updDragon(e,dt){ const dx=TK.x-e.x, dz=TK.z-e.z, d=Math.max(1e-3,Math.hypot(dx,dz)); e.stT+=dt; e.t+=dt; e.brCD-=dt; e.fbCD-=dt; e.bite-=dt; dragonSegs(e);
   if(!e.trailInit){ e.trailInit=true; for(let k=0;k<DR_N*DR_GAP*4+10;k++) e.trail.push([e.x,e.y,e.z-k*0.25]); }
   const want=Math.atan2(dx,dz); let sp=0, tx=TK.x, tz=TK.z;
-  if(e.ph===1){ e.inv=true; e.lockable=false; e.barInv=true; e.phTxt='фонари на спине';
-    if(!e.segs.some(q=>!q.dead)){ bossPhase(e,2,'Фонари погасли — дракон без брони! Бей в голову, держись подальше от пасти.'); e.inv=false; e.lockable=true; e.barInv=false; e.phTxt='голова'; }
+  if(e.ph===1){ e.inv=true; e.lockable=false; e.phTxt='фонари на спине';
+    if(!e.segs.some(q=>!q.dead)){ bossPhase(e,2,'Фонари погасли — дракон без брони! Бей в голову, держись подальше от пасти.'); e.inv=false; e.lockable=true; e.phTxt='голова'; }
     /* v27.2: a tangled route — a Lissajous knot that re-rolls its phases and reverses every ~20 s */
     if(e.u==null){ e.u=0; e.ud=1; e.ft=0; e.pa=0; e.pb=0; } const Lc=ARENA.lair||[WX/2,WZ/2], rx=Math.min(44,WX/2-14), rz=Math.min(44,WZ/2-14), PU=u=>({x:Lc[0]+rx*(0.8*Math.sin(u)+0.2*Math.sin(3.1*u+e.pa)),z:Lc[1]+rz*(0.8*Math.sin(2*u+e.pb)+0.2*Math.cos(2.3*u))});
     let wq=PU(e.u); if(Math.hypot(wq.x-e.x,wq.z-e.z)<6){ e.u+=0.2*e.ud; wq=PU(e.u); } tx=wq.x; tz=wq.z; sp=9+2.5*Math.sin(e.u*1.7); e.ft+=dt; if(e.ft>20+rnd()*6){ e.ft=0; e.ud=-e.ud; e.pa=rnd()*TAU; e.pb=rnd()*TAU; }
@@ -79,14 +92,14 @@ function updDragon(e,dt){ const dx=TK.x-e.x, dz=TK.z-e.z, d=Math.max(1e-3,Math.h
   /* move the head: smooth turning, smash light obstacles in the path */
   const tw=Math.atan2(tx-e.x,tz-e.z); e.h=turnTo(e.h,tw,dt*(e.ph===1?1.0:1.35)); if(sp>0){ e.x+=Math.sin(e.h)*sp*dt; e.z+=Math.cos(e.h)*sp*dt; e.x=clamp(e.x,4,WX-4); e.z=clamp(e.z,4,WZ-4); smashAround(e.x+Math.sin(e.h)*1.6,e.z+Math.cos(e.h)*1.6,1.6,2.6,1.7); }
   e.yOv=groundH(e.x,e.z)+Math.sin(e.t*3)*0.25+e.rear*4.2; e.tiltX=-e.rear*0.6-(e.recoil||0)*0.25; e.recoil=Math.max(0,(e.recoil||0)-dt*5); const mvd=Math.hypot(e.x-(e.pxx!=null?e.pxx:e.x),e.z-(e.pzz!=null?e.pzz:e.z)); e.pxx=e.x; e.pzz=e.z; e.mvS=mvd/Math.max(dt,1e-3); e.walk+=mvd*1.45+dt*0.25; dragonTrail(e); dragonPose(e,dt); e.jawG.rotation.x=e.jaw*0.6; e.head.rotation.z=Math.sin(e.t*2)*0.08; if(e.hring) e.hring.rotation.z+=dt*(e.st==='rear'?7:1.6);
-  for(const q of e.segs){ if(q.dead) continue; const s=e.segG[q.si]; q.x=s.wx; q.z=s.wz; q.yOv=s.wy-0.9; }
+  for(const q of e.segs){ if(q.dead) continue; const s=e.segG[q.si]; q.x=s.wx; q.z=s.wz; q.yOv=s.wy-0.9; } dragonSegFx(e,dt);
   if(e.ph>=2&&rnd()<0.2){ const s=e.segG[(rnd()*DR_N)|0]; SMOKE.spawn(s.wx,s.wy+0.8,s.wz,0,1.2,0,0.7,1.8,1.4,0.5,0.1,0.08,0.06); if(rnd()<0.5) spark(s.wx,s.wy+0.9,s.wz,(rnd()-0.5)*4,1+rnd()*3,(rnd()-0.5)*4,1,0.5,0.35,0.3); }
   if(d<e.r+TR&&e.ph===1&&(e.bumpT=(e.bumpT||0)-dt)<=0){ e.bumpT=1; damageTank(10,-dx/d,-dz/d,0); TK.vx+=dx/d*6; TK.vz+=dz/d*6; }
   for(const s of e.segG){ const sx=TK.x-s.wx, sz=TK.z-s.wz, sd=Math.hypot(sx,sz); if(sd<s.rr+TR*0.8&&sd>0.01){ TK.vx+=sx/sd*dt*30; TK.vz+=sz/sd*dt*30; } }
   eyeColor(e,true,e.st==='breath'||e.st==='rear'); }
 const DFW={speed:20,g:12,spread:0.03,radius:1.6,power:1.0,dmg:12,kind:'shell',size:0.95,burst:1,gap:0,mag:99,high:true};
 function dragonFireball(x,y,z,tx,tz){ eShoot(x,y,z,tx,groundH(tx,tz),tz,DFW); FIRE.spawn(x,y,z,0,2,0,1.4,2.5,0.25,1,0.9,0.75,1); tgtMark(tx,tz,1.6,1.6); sO(260,120,0.35,0.07,'sawtooth'); }
-function buildDseg(e){ Object.assign(e,{hp:260,maxHp:260,r:1.0,hy:0.9,hr:1.15,mass:5,noCol:true,static:true}); }
+function buildDseg(e){ Object.assign(e,{hp:DR_ARM,maxHp:DR_ARM,r:1.0,hy:0.9,hr:1.15,mass:5,noCol:true,static:true}); }
 function updDseg(e,dt){ if(!e.dr||e.dr.dead){ e.dead=true; eRemove(e); } }
 function dieDseg(e){ const s=e.dr&&e.dr.segG[e.si]; deathFx(e.x,(e.yOv||1)+1,e.z,1.6); sfxBoom(1); if(s){ s.lant=false; s.g.children.forEach(o=>{ if(o.material&&o.material===s.g.userData.lm) o.visible=false; }); if(s.g.userData.cage) for(const b of s.g.userData.cage) b.visible=false; s.g.userData.lm=null; }
   for(let k=0;k<20;k++) spark(e.x,(e.yOv||1)+1,e.z,(rnd()-0.5)*10,rnd()*8,(rnd()-0.5)*10,1,0.6,0.2,0.6); eRemove(e); }
@@ -104,7 +117,7 @@ function spawnBoss(t){ const L=ARENA.lair||[WX/2,WZ/2]; let e;
     e.xfs=XF_PADS.map(([x,z,g])=>{ const q=newEnemy('xfmr',x,z); buildE(q); q.grp=g; q.fromBoss=true; q.h=Math.atan2(80-x,80-z); eRender(q,0); return q; }); }
   else if(t==='krot'){ const p=pickNear(L[0],L[1]-46,3.4)||pickNear(L[0],L[1]-28,3.4)||[L[0],L[1]-28]; e=newEnemy('krot',p[0],p[1]); buildE(e); bossSetup(e,BOSS_SPEC.krot.name,BOSS_SPEC.krot.hp); }
   else if(t==='hornet'){ e=newEnemy('hornet',L[0],L[1]); buildE(e); bossSetup(e,BOSS_SPEC.hornet.name,BOSS_SPEC.hornet.hp); e.alt=11; e.yOv=11; }
-  else if(t==='dragon'){ const R=ARENA.ring||[[80,40]]; e=newEnemy('dragon',R[0][0],R[0][1]); buildE(e); bossSetup(e,BOSS_SPEC.dragon.name,BOSS_SPEC.dragon.hp); e.barHp=()=>dragonBar(e); e.h=Math.PI/2; }
+  else if(t==='dragon'){ const R=ARENA.ring||[[80,40]]; e=newEnemy('dragon',R[0][0],R[0][1]); buildE(e); bossSetup(e,BOSS_SPEC.dragon.name,BOSS_SPEC.dragon.hp); e.armBar=()=>dragonArm(e); e.h=Math.PI/2; }
   return e; }
 ETYPE.krot={build:buildKrot,update:updKrot,die:dieKrot}; ETYPE.hornet={build:buildHornet,update:updHornet,die:dieHornet};
 ETYPE.lion={build:buildLion,update:updLion,die:dieLion}; ETYPE.crypt={build:buildCrypt,update:updCrypt,die:dieCrypt}; ETYPE.xfmr={build:buildXfmr,update:updXfmr,die:dieXfmr};

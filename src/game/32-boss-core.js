@@ -9,7 +9,11 @@ function bossBarShow(on){ const b=$('#bossBar'); if(b) b.hidden=!on; }
 function bossUI(dt){ zapsDraw(dt); if(!LOC.safe&&!transit&&(!BOSS.e||(BOSS.e.dead&&!BOSS.e.dying))){ const b2=ENEMIES.find(x=>x.boss&&!x.dead); if(b2) BOSS.e=b2; } const e=BOSS.e, b=$('#bossBar'); if(!b) return; if(!e||(e.dead&&!e.dying)||LOC.safe||transit){ if(!b.hidden) b.hidden=true; if(e&&e.dead&&!e.dying) BOSS.e=null; return; }
   if(b.hidden) b.hidden=false; const [cur,max]=e.barHp?e.barHp():[e.hp,e.maxHp], f=clamp(cur/Math.max(1,max),0,1); BOSS.t+=dt;
   const U=BOSS.ui||(BOSS.ui={n:$('#bbName'),f:$('#bbF'),name:null,w:null,inv:null}); if(U.name!==e.bName){ U.name=e.bName; U.n.textContent=e.bName; }
-  const w=(f*100).toFixed(1); if(U.w!==w){ U.w=w; U.f.style.width=w+'%'; } const iv=!!e.barInv; if(U.inv!==iv){ U.inv=iv; U.f.classList.toggle('inv',iv); } }
+  const w=(f*100).toFixed(1); if(U.w!==w){ U.w=w; U.f.style.width=w+'%'; } const iv=!!e.barInv; if(U.inv!==iv){ U.inv=iv; U.f.classList.toggle('inv',iv); }
+  /* v29.4: armour strip — one cell per armour section (e.armBar() → fractions, null = no armour left); the hp bar dims while armour is up */
+  const A=e.armBar?e.armBar():null, an=A?A.length:0; if(U.an!==an){ U.an=an; U.af=[]; U.av=[]; U.a=U.a||$('#bbA'); U.a.innerHTML=''; for(let i=0;i<an;i++){ const c=document.createElement('span'), f=document.createElement('i'); c.appendChild(f); U.a.appendChild(c); U.af.push(f); U.av.push(null); } U.a.hidden=!an; U.f.classList.toggle('shut',an>0); U.p=U.p||$('#bbPh'); U.pt=null; }
+  if(an){ let up=0; for(let i=0;i<an;i++){ const v=A[i], k=v<=0?'off':v<DR_CRIT?'crit':''; if(v>0) up++; const w=(v*100).toFixed(0); if(U.av[i]!==w+k){ U.av[i]=w+k; U.af[i].style.width=w+'%'; U.af[i].parentNode.className=k; } }
+    const t='броня '+up+'/'+an; if(U.pt!==t){ U.pt=t; U.p.textContent=t; } } else if(U.pt){ U.pt=null; (U.p||$('#bbPh')).textContent=''; } }
 /* falling-rocket artillery: spinning target reticles on the ground mark where each rocket will land */
 const TGTS=[], BRK=[];
 const tgtGeo={ring:new THREE.RingGeometry(0.86,1,40).rotateX(-Math.PI/2),in:new THREE.RingGeometry(0.36,0.42,28).rotateX(-Math.PI/2),tick:new THREE.PlaneGeometry(0.08,0.5).rotateX(-Math.PI/2)};
