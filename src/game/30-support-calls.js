@@ -26,7 +26,6 @@ function dropSpot(){ const c=[]; for(const r of ROADS){ const mid=(r.b0+r.b1)/2;
   let b2=null, s2=1e9; for(let k=0;k<200;k++){ const ang=rnd()*TAU, d=5.5+rnd()*22, x=TK.x+Math.cos(ang)*d, z=TK.z+Math.sin(ang)*d; if(x<4||z<4||x>WX-4||z>WZ-4||inWater(x,z)||!eFree(x,z,2.2)) continue; const sc=toScreen(x,groundH(x,z)+1,z); if(!sc[2]||sc[0]<30||sc[0]>innerWidth-30||sc[1]<70||sc[1]>innerHeight-60) continue; if(d<s2){ s2=d; b2=[x,z,1]; } }
   return b2||best; }
 function useAmmo(){ if(!kitAvail('ammo')) return; const p=dropSpot(); if(!p){ toast('Некуда сбросить ящик · отъедь на открытое место'); return; } ST.kits.ammo--; save(); crateSpawn(p,null); toast('Ящик с боеприпасами садится · подъедь к нему'); }
-/* v29.3: the same parachute crate also carries parcels from other drivers («Водители», gift = {from,kind,amount}) */
 function crateSpawn(p,gift){
   const g=new THREE.Group(), add=(geo,mat,x,y,z,sx,sy,sz,par)=>{ const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); m.scale.set(sx,sy,sz); (par||g).add(m); return m; };
   add(crGeo.box,crMat.body,0,0.45,0,1.6,0.9,1.1); for(const x of [-0.62,0.62]) add(crGeo.box,crMat.dark,x,0.45,0,0.1,0.92,1.12); add(crGeo.box,crMat.yel,0,0.45,0.56,0.9,0.18,0.02); add(crGeo.box,crMat.yel,0,0.45,-0.56,0.9,0.18,0.02);
@@ -58,7 +57,7 @@ function cratesUpdate(dt,now){ for(let i=CRATES.length-1;i>=0;i--){ const c=CRAT
     if(c.t>10){ const on=Math.floor((c.t-10)*7)%2===0; c.g.visible=on||c.t>11.6; c.aura.material.color.setRGB(1,0.25,0.15); c.aura.material.opacity=on?0.9:0; c.aura.scale.setScalar(1.6); if(on&&!c.beep){ c.beep=true; sO(1200,1100,0.06,0.08,'square'); } if(!on) c.beep=false; }
     if(c.t>11.6){ c.state='boom'; c.g.visible=false; explode(c.x,0.6,c.z,1.0,0.7,0,-1,0,'shell',null,0,null,0.25); for(const m of [c.g,c.aura,c.glow]) scene.remove(m); CRATES.splice(i,1); continue; } }
   c.g.position.set(c.x,c.y,c.z); c.aura.position.set(c.x,c.gy+0.08,c.z); c.glow.position.set(c.x,c.gy+0.06,c.z); } }
-function crateGive(c){ c.state='give'; c.t=0; if(c.gift){ c.given=true; drvGiftApply(c.gift); for(let k=0;k<10;k++){ const m=new THREE.Mesh(crGeo.cyl,crMat.brass); m.scale.set(0.08,0.2,0.08); m.visible=false; scene.add(m); EXTRAS.push(m); c.fly.push({m,t:-k*0.06}); } return; } const got=[]; for(const [id,name] of [['mg','патронов'],['cn','снарядов'],['rk','ракет'],['sv','залп.']]){ if(id==='rk'&&!UP.rk) continue; if(id==='sv'&&chs().abil!=='mlrs') continue; const add=Math.max(0,Math.floor(ammoCap(id)-ST.ammo[id])); ST.ammo[id]=ammoCap(id); if(add>0) got.push([add,name,id]); }
+function crateGive(c){ c.state='give'; c.t=0; const got=[]; for(const [id,name] of [['mg','патронов'],['cn','снарядов'],['rk','ракет'],['sv','залп.']]){ if(id==='rk'&&!UP.rk) continue; if(id==='sv'&&chs().abil!=='mlrs') continue; const add=Math.max(0,Math.floor(ammoCap(id)-ST.ammo[id])); ST.ammo[id]=ammoCap(id); if(add>0) got.push([add,name,id]); }
   updateWeaponUI(); got.forEach(([n,name],k)=>setTimeout(()=>popText(TK.x,TK.y+2.6+k*0.7,TK.z,`+${n} ${name}`,'ammo'),180+k*260)); if(!got.length) popText(TK.x,TK.y+2.6,TK.z,'боезапас полон','ammo');
   for(let k=0;k<16;k++){ const isShell=k%3===0, m=new THREE.Mesh(crGeo.cyl,isShell?crMat.dark:crMat.brass); m.scale.set(isShell?0.12:0.06,isShell?0.42:0.26,isShell?0.12:0.06); m.visible=false; scene.add(m); EXTRAS.push(m); c.fly.push({m,t:-k*0.06}); }
   sfxPickup(1); }

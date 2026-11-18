@@ -15,7 +15,7 @@ export const tests = [
     await c.js(() => document.querySelector('#bMenu') && document.querySelector('#bMenu').click()); await c.wait(400);
     const m = await c.js(s => { const f = new Function('sel', 'return (' + s + ')(sel)'); return { drv2: f('#bDrv2'), dbg: f('#bDbg'), dbgx: f('.dbgx') }; }, shown.toString());
     assert(!m.drv2 && !m.dbg && !m.dbgx, 'menu still has drivers/debug: ' + JSON.stringify(m));
-    const w = await c.js(() => { const D = __dbg, e = { type: 'krot', bName: 'krot' }; D.DRV.fight = { e, t: 80, hp: D.TK.hp, lost: 0, kills: D.DRV.kills, max: 100 }; D.drvBossWin(e); return { q: D.DRV.q.length, offer: !document.querySelector('#drvOffer').hidden && getComputedStyle(document.querySelector('#drvOffer')).display !== 'none', best: !!D.DRV.best.krot }; });
-    assert(w.q === 0 && !w.offer && w.best, 'boss win in offline edition: ' + JSON.stringify(w));
+    const w = await c.js(() => { const D = __dbg, e = { type: 'krot' }; D.DRV.fight = { e, t: 80, hp: D.TK.hp, lost: 0, max: 100 }; D.drvBossWin(e); return { on: getComputedStyle(document.querySelector('#drvNotes')).display, medal: !!D.DRV.medals.krot }; });
+    assert(w.on === 'none' && w.medal, 'boss win in offline edition: ' + JSON.stringify(w));
   } }
 ];

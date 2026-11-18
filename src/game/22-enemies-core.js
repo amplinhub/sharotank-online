@@ -257,7 +257,7 @@ function enemyHit(e,dmg,dx,dz,kb,src){ if(e.dead||dmg<=0) return; if(e.inv){ if(
   if(e.hp<=0) killEnemy(e,dx,dz,src); }
 function sparkBurst(x,y,z,n){ const sc=mix3(P.glow,[1,1,1],0.5); for(let k=0;k<n;k++) spark(x,y,z,(rnd()-0.5)*8,rnd()*6,(rnd()-0.5)*8,sc[0],sc[1],sc[2],0.25+rnd()*0.2); }
 function killEnemy(e,dx,dz,src){ if(e.dead) return; e.dead=true; e.lockable=false; e.flash=0; for(const m of e.mats) m.emissive.setRGB(0,0,0); if(e.shadow) e.shadow.visible=false;
-  ETYPE[e.type].die(e,dx||0,dz||0,src); onKill(e); fxKill(e); DRV.kills++; }
+  ETYPE[e.type].die(e,dx||0,dz||0,src); onKill(e); fxKill(e); drvKill(e.type,src,e); }
 
 /* ================= 1. JIAN — melee jumper ================= */
 function jianSpear(e,tipY,spread){ const fx=Math.sin(e.h)*0.15, fz=Math.cos(e.h)*0.15; let k=0; for(const L of e.legs){ if(!L.alive) continue; const a=k*1.57+0.8; L.foot.set(e.x+fx+Math.sin(a)*spread,tipY,e.z+fz+Math.cos(a)*spread); L.t=-1; k++; } }
@@ -352,7 +352,7 @@ function updFactory(e,dt){ e.t+=dt; const d=Math.hypot(TK.x-e.x,TK.z-e.z); ePerc
   const ik=0.25+0.75*Math.max(e.hatch,e.bhatch); e.inM.color.setRGB(P.glow2[0]*ik,P.glow2[1]*ik*0.7,P.glow2[2]*ik*0.4);
   for(let i=e.droneQ.length-1;i>=0;i--){ e.droneQ[i]-=dt; if(e.droneQ[i]<=0){ e.droneQ.splice(i,1); spawnDrone(e,(rnd()*4)|0); e.hatchT=0.9; } }
   const wk=0.4+0.25*Math.sin(e.t*3); e.winM.color.setRGB(P.glow2[0]*wk,P.glow2[1]*wk*0.8,P.glow2[2]*wk*0.5); eyeColor(e,e.hurtT>0||d<14,false); }
-function droneDie(d,dx,dz,factoryDead){ if(d.dead) return; d.dead=true; if(d.shadow) d.shadow.visible=false; for(const m of d.mats) m.emissive.setRGB(0,0,0); const G2=P.glow2; for(let k=0;k<12;k++) spark(d.x,d.y,d.z,(rnd()-0.5)*8,rnd()*6,(rnd()-0.5)*8,1,0.85,0.55,0.4); FIRE.spawn(d.x,d.y,d.z,0,0,0,1.4,2,0.2,1,G2[0],G2[1],G2[2]); sfxTick();
+function droneDie(d,dx,dz,factoryDead){ if(d.dead) return; d.dead=true; if(!factoryDead) drvKill('drone','',null); if(d.shadow) d.shadow.visible=false; for(const m of d.mats) m.emissive.setRGB(0,0,0); const G2=P.glow2; for(let k=0;k<12;k++) spark(d.x,d.y,d.z,(rnd()-0.5)*8,rnd()*6,(rnd()-0.5)*8,1,0.85,0.55,0.4); FIRE.spawn(d.x,d.y,d.z,0,0,0,1.4,2,0.2,1,G2[0],G2[1],G2[2]); sfxTick();
   if(d.carry){ const p=d.carry; d.carry=null; p.claimed=null; p.y=d.y-0.5; p.fall=true; p.vy=0; p.x=d.x; p.z=d.z; PICKUPS.push(p); }
   if(d.target){ d.target.claimed=null; d.target=null; }
   const g={m:d.g,v:new THREE.Vector3(d.vx+dx*4,1,d.vz+dz*4),w:new THREE.Vector3((rnd()-0.5)*10,(rnd()-0.5)*10,(rnd()-0.5)*10),r:0.25,part:factoryDead?'scrapdrone':null,t:0,rest:false}; GIBS.push(g);

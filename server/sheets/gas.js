@@ -32,7 +32,8 @@ function gasDb() {
     },
     update: function (t, obj) {
       var cols = SH_COLS[t]; sheet(t).getRange(obj._r, 1, 1, cols.length).setValues([cols.map(function (c) { return obj[c] == null ? '' : obj[c]; })]);
-    }
+    },
+    dropHead: function (t, n) { if (n > 0) { sheet(t).deleteRows(2, n); cache[t] = null; } }
   };
 }
 

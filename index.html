@@ -33,7 +33,7 @@
   <div class="row">
     <button class="chip on" id="bTouch">Кнопки</button>
     <button class="chip on" id="bSnd">Звук</button>
-    <button class="chip" id="bDrv2">Водители</button>
+    <button class="chip" id="bDrv2">Онлайн рейтинг</button>
     <button class="chip" id="bHelp">?</button>
   </div>
   <div class="where" id="where"></div>
@@ -122,7 +122,7 @@
           <dt>ОГОНЬ</dt><dd>стрельба</dd>
         </dl></div>
     </div>
-    <div class="crow"><button class="go" id="bGo">Поехали</button><button class="go alt" id="bOnline">С другом</button><button class="go alt" id="bDrv">Водители</button><button class="ghost" id="bReset">Начать заново</button></div>
+    <div class="crow"><button class="go" id="bGo">Поехали</button><button class="go alt" id="bOnline">С другом</button><button class="go alt" id="bDrv">Онлайн рейтинг</button><button class="ghost" id="bReset">Начать заново</button></div>
   </div>
 </div>
 
@@ -145,21 +145,30 @@
   </div>
 </div>
 
-<div id="drivers" hidden role="dialog" aria-label="Водители">
+<div id="drivers" hidden role="dialog" aria-label="Онлайн рейтинг">
   <div class="card drv">
-    <div class="drvH"><h1>Водители <em>司机</em></h1><button class="ghost" id="drvClose">Закрыть</button></div>
+    <div class="drvH"><h1>Онлайн рейтинг</h1><button class="ghost" id="drvClose">Закрыть</button></div>
     <div id="drvReg" hidden>
-      <p>Выбери позывной — под ним тебя увидят в рейтинге, вызовах и посылках. Сменить можно позже.</p>
-      <div class="lbjoin"><input id="drvNick" maxlength="16" autocomplete="off" spellcheck="false" placeholder="ПОЗЫВНОЙ" aria-label="Позывной"><button class="go" id="drvRegGo">Готово</button></div>
+      <p>Позывной и PIN из 4 цифр — с ними можно войти с другого устройства.</p>
+      <div class="dregF"><input id="drvNick" maxlength="16" autocomplete="off" spellcheck="false" placeholder="ПОЗЫВНОЙ" aria-label="Позывной"><input id="drvPin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="PIN" aria-label="PIN из 4 цифр"></div>
+      <div class="davs" id="drvAvs"></div>
+      <div class="crow"><button class="go" id="drvRegGo">Новый пилот</button><button class="go alt" id="drvLogGo">Войти</button></div>
     </div>
     <div id="drvMain" hidden>
-      <div class="seg drvTabs" role="tablist"><button data-t="top">Рейтинг</button><button data-t="ch">Вызовы</button><button data-t="post">Посылки</button><button data-t="card">Карточка</button></div>
+      <button class="drvMe" id="drvMe" aria-label="Моя карточка"></button>
+      <div class="seg drvTabs" role="tablist"><button data-t="top">Рейтинг</button><button data-t="fr">Друзья</button></div>
       <div id="drvBody"></div>
+      <div id="drvCard" hidden>
+        <button class="ghost" id="drvBack">← Назад</button>
+        <div class="dch" id="drvCH"></div>
+        <div class="dtk"><canvas id="drvTk"></canvas><small id="drvTkN"></small></div>
+        <div id="drvCB"></div>
+      </div>
     </div>
     <p class="drvMsg" id="drvMsg"></p>
   </div>
 </div>
-<div id="drvOffer" hidden><span id="drvOfferTx"></span><div class="crow"><button class="go" id="drvOfferGo">Бросить вызов</button><button class="ghost" id="drvOfferX">Нет</button></div></div>
+<div id="drvNotes" aria-live="polite"></div>
 
 <div id="bossBar" hidden><div class="bbH"><b id="bbName"></b><i id="bbPh"></i></div><div id="bbA" hidden></div><div class="bbT"><div id="bbF"></div></div></div>
 <div id="spotFx"></div>

@@ -13,9 +13,10 @@ const MS={i:0,active:false,prog:0,rank:0,v:25};
 /* v29.3: «Водители» — состояние живёт здесь (раннний файл: его читают хуки боя и HUD), логика в 43-drivers.js */
 /* offline edition (build --mode offline): no online lobby, no «Водители», no debug menu */
 const OFFLINE=document.documentElement.classList.contains('offline');
-const DRV_KEY='sharotank_drv_v1';
-const DRV={id:'',key:'',nick:'',q:[],acc:{},sent:0,wins:0,medals:{},best:{},seenBeaten:{},lastCard:'',
-  fight:null, dbg:false, kills:0, gifts:[], pollT:4, flushT:20, cardT:30, busy:false};
+const DRV_KEY='sharotank_drv_v2';
+/* «Онлайн рейтинг» (v30.0, логика в 43): свои счётчики копятся и без регистрации, на сервер уходят при синхронизации */
+const DRV={nick:'',pin:'',av:0,kills:0,kbt:{},deaths:0,medals:{},streak:0,st:{ram:0,civ:0,flag:0,msg:0,gift:0},friends:[],cache:{top:null,topT:0,cards:{}},
+  fight:null, dbg:false, syncT:4, topT:6, preQ:[], preT:0, busy:false, dirty:true, sig:''};
 function ammoCap(id){ return AMMO_CAP[id][UP.ammo]; }
 function refillAmmo(){ for(const id of ['mg','cn','rk','sv']) ST.ammo[id]=ammoCap(id); }
 const SAVE_KEY='sharotank-5tl-v3';

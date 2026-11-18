@@ -64,7 +64,7 @@ function missionEnsure(){ if(!MS.active||LOC.safe) return; const m=missionAt(MS.
 function onKill(e){ if(!MS.active) return; const m=missionAt(MS.i); if(m.k!==e.type||(m.loc&&m.loc!==LOC_ID)) return; MS.prog++; objUI();
   if(MS.prog>=m.n) completeMission(); else if(m.n>1){ toast(`Задание · ${MS.prog} / ${m.n}`); sO(600+MS.prog/m.n*600,900+MS.prog/m.n*600,0.12,0.06,'square'); } }
 function missionScrap(v){ if(!MS.active) return; const m=missionAt(MS.i); if(m.k!=='scrap'||(m.loc&&m.loc!==LOC_ID)) return; MS.prog+=v; objUI(); if(MS.prog>=m.n) completeMission(); }
-function completeMission(){ const m=missionAt(MS.i); MS.active=false; MS.prog=0; MS.i++; if(MS.dbgRet!=null){ MS.i=MS.dbgRet; MS.dbgRet=null; } const nr=rankFor(MS.i), up=nr>MS.rank; MS.rank=Math.max(MS.rank,nr);
+function completeMission(){ const m=missionAt(MS.i); drvMission(); MS.active=false; MS.prog=0; MS.i++; if(MS.dbgRet!=null){ MS.i=MS.dbgRet; MS.dbgRet=null; } const nr=rankFor(MS.i), up=nr>MS.rank; MS.rank=Math.max(MS.rank,nr);
   ST.scrap+=m.r; gainAcc+=m.r; gainT=2.2; rankUI(true); objUI(); save();
   radioSay(m.final?'Станция молчит. «Нефрит» отключён. Ты сделал это, водитель — весь лагерь слышит, как ты едешь домой.':['Отличная работа, водитель. Возвращайся в штаб — есть новое дело.','Чисто сработано. Жду тебя в штабе.','Принято, задача выполнена. Заезжай в штаб за следующим приказом.'][MS.i%3]);
   showWin(m,up,!!m.final); }

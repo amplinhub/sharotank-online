@@ -97,7 +97,7 @@ function damageTank(amount,dx,dz,top){ if(LOC.safe||transit||TK.dead||amount<=0.
   if(amount>1.5) screenFlash(Math.min(0.55,amount/45),true);
   if(amount>2){ const hb=$('#hpBar'); hb.classList.remove('flash'); void hb.offsetWidth; hb.classList.add('flash'); }
   if(TK.hp<=0){ TK.hp=0; killTank(); } }
-function killTank(){ TK.dead=true; TK.deadT=2.6; TK.vx*=0.2; TK.vz*=0.2;
+function killTank(){ TK.dead=true; TK.deadT=2.6; drvDeath(); TK.vx*=0.2; TK.vz*=0.2;
   const G2=P.glow2; for(let k=0;k<30;k++) FIRE.spawn(TK.x+(rnd()-0.5)*2,1+rnd()*1.5,TK.z+(rnd()-0.5)*2,(rnd()-0.5)*5,3+rnd()*4,(rnd()-0.5)*5,2+rnd()*2,3,0.5+rnd()*0.4,1,G2[0],G2[1],G2[2]);
   for(let k=0;k<70;k++){ const a=rnd()*TAU, s=8+14*rnd(); spark(TK.x,1.5,TK.z,Math.cos(a)*s,4+rnd()*8,Math.sin(a)*s,1,0.85,0.5,0.6+0.6*rnd()); }
   shake=1; sfxBoom(1.5); banner({cn:'击毁',ru:'Танк подбит',sub:'эвакуация в лагерь · −20% лома'}); onTankLost(); }

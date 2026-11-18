@@ -147,7 +147,7 @@ function flagUpdate(dt,t){ const m=MS.active?missionAt(MS.i):null; const on=m&&m
   const carry=on&&MS.flag&&!transit; if(carry&&!FLG.carry){ const f=flagMesh(0.62); FLG.carry=f; } if(!carry&&FLG.carry){ scene.remove(FLG.carry.g); FLG.carry=null; }
   if(FLG.carry){ const g=FLG.carry.g; rdLocal(-0.55,1.25,-1.3,_rt); g.position.copy(_rt); g.rotation.set(0,TK.h+Math.PI/2,0); flagWave(FLG.carry.cloth,t,1+Math.min(1.5,Math.hypot(TK.vx,TK.vz)*0.15));
     if(TK.dead){ MS.flag=false; toast('Флаг потерян · он вернулся на место'); objUI(); save(); }
-    else if(LOC_ID==='camp'&&Math.hypot(TK.x-(HQ.x0+HQ.x1)/2,TK.z-(HQ.z0+HQ.z1)/2)<8){ MS.flag=false; MS.fp=null; completeMission(); } } }
+    else if(LOC_ID==='camp'&&Math.hypot(TK.x-(HQ.x0+HQ.x1)/2,TK.z-(HQ.z0+HQ.z1)/2)<8){ MS.flag=false; MS.fp=null; drvStat('flag'); completeMission(); } } }
 
 /* ---- civilians and the evacuation mission ---- */
 const CIV={list:[],phase:0,n:0,saved:0,dead:0,gate:null,spawnQ:[],failT:0};
@@ -199,7 +199,7 @@ function civUpdate(dt,t){ const m=evacOn(); if(!m){ if(CIV.list.length||CIV.phas
       if(mx||mz){ c.h=turnTo(c.h,Math.atan2(mx,mz),dt*12); c.ph+=dt*Math.hypot(mx,mz)*2.6; }
       c.bob=gaitPose({hipL:c.lL,hipR:c.lR,kneeL:c.kL,kneeR:c.kR,armL:c.aL,armR:c.aR,elbL:c.eL,elbR:c.eR,torso:c.torso},c.ph,1.35); c.torso.rotation.x=0.22; c.g.rotation.x=0;
       if(d<2.0&&!TK.dead){ const l=d||1; if(sp>4.2) civDie(c,TK.vx/sp,TK.vz/sp,sp*0.5); else if(sp>0.6){ c.st='down'; c.downT=1.6; c.vx=dx/l*5+TK.vx; c.vz=dz/l*5+TK.vz; c.vy=3.5; sfxThud(0.3); } else { c.x+=dx/l*dt*3; c.z+=dz/l*dt*3; } }
-      if(c.st==='run'&&Math.hypot(c.x-g[0],c.z-g[1])<3){ c.st='saved'; CIV.saved++; scene.remove(c.g); popText(c.x,1.8,c.z,'спасён','heal'); sO(660,990,0.12,0.06,'triangle'); objUI(); } }
+      if(c.st==='run'&&Math.hypot(c.x-g[0],c.z-g[1])<3){ c.st='saved'; CIV.saved++; drvStat('civ'); scene.remove(c.g); popText(c.x,1.8,c.z,'спасён','heal'); sO(660,990,0.12,0.06,'triangle'); objUI(); } }
     if(c.st!=='dead'&&c.st!=='saved'){ c.g.position.set(c.x,groundH(c.x,c.z)+c.y+(c.st==='run'?(c.bob||0)*1.4:0),c.z); c.g.rotation.y=c.h; shadowAdd(c.x,c.z,0.8,c.y,0.4); } }
   if(!CIV.spawnQ.length&&CIV.saved+CIV.dead>=CIV.n){ if(CIV.saved>0){ const sv=CIV.saved, n=CIV.n; evacReset(); completeMission(); toast(`Эвакуация завершена · спасено ${sv} из ${n}`); }
     else { CIV.failT+=dt; if(CIV.failT>3){ toast('Никто не выжил · попробуй ещё раз'); sfxLose(); radioSay('Мы потеряли всех гражданских... Соберись, водитель. Попробуем ещё раз.'); evacReset(); } } } }
