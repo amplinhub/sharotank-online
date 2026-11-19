@@ -3,7 +3,7 @@
    «Веб-приложение», «Выполнять как: я», «У кого есть доступ: все» → скопировать адрес …/exec. */
 /* Read-only requests (ping, rating, a card without login, an empty inbox poll) go without the lock and mostly without
    touching the sheet at all: the rating is cached for 60 s, "new mail" is a flag in CacheService. */
-var GAS_RO = { ping: 1, top: 1 };
+var GAS_RO = { ping: 1, top: 1, news: 1 };
 function doGet(e) {
   var p = (e && e.parameter) || {}, out, lock = null, now = Date.now();
   try {

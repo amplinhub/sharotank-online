@@ -31,6 +31,22 @@ export const tests = [
     const s = H({ a: 'sync', nick: 'Боря', pin: '0000', kills: 7, med: '["first"]' }); assert(s.inbox.length === 1 && s.me.score === 57, 'sync/score: ' + JSON.stringify(s));
     now += 8 * 864e5; H({ a: 'sync', nick: 'Боря', pin: '0000' }); assert(db.T.Messages.length === 0, 'old messages not removed');
   } },
+  { name: 'online core: news feed — list for all, cached, likes/dislikes one per pilot (v30.6)', timeout: 20, async run() {
+    const c = loadCore(), db = memDb(c.SH_COLS); let now = 1e12; const H = p => c.shHandle(db, p, now, sha);
+    H({ a: 'reg', nick: 'Аня', pin: '1234' }); H({ a: 'reg', nick: 'Боря', pin: '0000' });
+    assert(H({ a: 'news' }).news.length === 0, 'empty feed');
+    db.T.News.push({ _r: 2, id: 'n2', time: now - 1000, title: 'Вторая', text: 'b', up: '', down: '', votes: '' }, { _r: 3, id: 'n1', time: now - 5000, title: 'Первая', text: 'a\nb', up: '', down: '', votes: '' }, { _r: 4, id: '', time: '', title: '', text: '', up: '', down: '', votes: '' });
+    now += 61000; const L = H({ a: 'news' }).news;
+    assert(L.length === 2 && L[0].id === 'n1' && L[1].title === 'Вторая', 'order / blank rows: ' + JSON.stringify(L));
+    assert(H({ a: 'vote', id: 'n1', v: 1 }).err === 'auth', 'vote without login');
+    assert(H({ a: 'vote', nick: 'Аня', pin: '1234', id: 'n1', v: 1 }).up === 1, 'like');
+    let r = H({ a: 'vote', nick: 'Аня', pin: '1234', id: 'n1', v: 1 }); assert(r.up === 1 && r.my === 1, 'second like counted twice');
+    r = H({ a: 'vote', nick: 'Боря', pin: '0000', id: 'n1', v: -1 }); assert(r.up === 1 && r.down === 1, 'dislike');
+    r = H({ a: 'vote', nick: 'Аня', pin: '1234', id: 'n1', v: -1 }); assert(r.up === 0 && r.down === 2 && r.my === -1, 'switch to dislike');
+    r = H({ a: 'vote', nick: 'Аня', pin: '1234', id: 'n1', v: 0 }); assert(r.down === 1 && r.my === 0, 'take back');
+    assert(H({ a: 'news' }).news[0].down === 1, 'cache not refreshed after a vote');
+    assert(H({ a: 'vote', nick: 'Аня', pin: '1234', id: 'zz', v: 1 }).err === 'no_news', 'unknown news');
+  } },
   { name: 'online core: swear filter + 24 h mute, 10 messages a minute, cheap poll', timeout: 20, async run() {
     const c = loadCore(), db = memDb(c.SH_COLS); let now = 2e12; const H = p => c.shHandle(db, p, now, sha);
     H({ a: 'reg', nick: 'Аня', pin: '1234' }); H({ a: 'reg', nick: 'Боря', pin: '0000' }); H({ a: 'friend', nick: 'Аня', pin: '1234', who: 'Боря', on: '1' });
@@ -50,6 +66,45 @@ export const tests = [
     now += 24 * 3600000 + 1000; assert(H({ a: 'send', nick: 'Аня', pin: '1234', to: 'Боря', kind: 'msg', text: 'привет' }).ok, 'mute did not expire');
     for (const w of ['страхую машину', 'употреблять', 'мандарин', 'небанальный', 'cocktail', 'assassin', 'хлебать', 'утварь']) assert(!c.shClean(w).bad, 'false positive: ' + w);
     for (const w of ['х у й', 'п.и.з.д.а', 'blyat', 'nahuy', 'заебал', 'fuuuck', 'sh1t', 'долбоёб']) assert(c.shClean(w).bad, 'missed: ' + w);
+  } },
+  { name: 'profile: news tab (background load, likes) and the chat field always on screen on a phone (v30.6)', timeout: 120, async run(ctx) {
+    const sh = await startSheets(); ctx.onDone = () => sh.close();
+    try {
+      const now = Date.now();
+      for (let i = 0; i < 6; i++) sh.db.T.News.push({ _r: i + 2, id: 'n' + i, time: now - (6 - i) * 864e5, title: 'Новость ' + i, text: 'Текст новости номер ' + i + '\nвторая строка', up: 0, down: 0, votes: '' });
+      const a = await client({ name: 'news-a', net: { sheets: sh.url } }); ctx.clients.push(a);
+      assert(await auth(a, 'reg', 'Greiv', '1234') === 'Greiv', 'Greiv');
+      await a.js(() => { const D = __dbg; for (const t of ['jian', 'bull', 'drone', 'lamp', 'bomb', 'zont', 'katok', 'hive', 'factory']) for (let i = 0; i < 20; i++) D.drvKill(t, '', null);
+        for (const m of ['first', 'krot', 'hornet', 'dragon', 'crypt', 'all4', 'clean', 'fast', 'shadow', 'arty', 'k100', 'ram']) D.DRV.medals[m] = Date.now(); D.DRV.syncT = 0; });
+      const b = await client({ name: 'news-b', net: { sheets: sh.url }, w: 390, h: 760, touch: true }); ctx.clients.push(b);
+      assert(await auth(b, 'reg', 'Fox', '0000') === 'Fox', 'Fox');
+      // the feed arrives in the background, before the tab is opened
+      await b.js(() => { __dbg.DRV.newsT = 0; });
+      await b.until(() => (__dbg.DRV.cache.news || []).length === 6, null, { timeout: 8000 });
+      await b.js(() => document.querySelector('.drvTabs [data-t="news"]').click());
+      const v = await b.js(() => { const B = document.querySelector('#drvBody'), it = [...B.querySelectorAll('.dnw')]; return { n: it.length, last: it[5] && it[5].querySelector('h4').textContent, br: !!it[0].querySelector('p br'), atEnd: B.scrollHeight - B.clientHeight - B.scrollTop < 30, days: B.querySelectorAll('.dday').length, loading: /Подтягиваю|Загруж/.test(B.textContent) }; });
+      assert(v.n === 6 && v.last === 'Новость 5' && v.br && v.atEnd && v.days === 6 && !v.loading, 'feed: ' + JSON.stringify(v));
+      // like, then switch to dislike
+      await b.js(() => document.querySelector('.dnw[data-nid="n5"] [data-vote="1"]').click());
+      const row = () => sh.db.T.News.find(n => n.id === 'n5');
+      for (let i = 0; i < 40 && row().up !== 1; i++) await b.wait(150);
+      assert(row().up === 1 && await b.js(() => document.querySelector('.dnw[data-nid="n5"] .dv.up.on b').textContent) === '1', 'like: ' + JSON.stringify(row()));
+      await b.js(() => document.querySelector('.dnw[data-nid="n5"] [data-vote="-1"]').click());
+      for (let i = 0; i < 40 && row().down !== 1; i++) await b.wait(150);
+      assert(row().up === 0 && row().down === 1 && await b.js(() => !!document.querySelector('.dnw[data-nid="n5"] .dv.dn.on')), 'dislike: ' + JSON.stringify(row()));
+      // a new post shows up on the next background refresh, no reload of the tab
+      sh.db.T.News.push({ _r: 9, id: 'n9', time: Date.now(), title: 'Свежая', text: '', up: 0, down: 0, votes: '' }); sh.db.cache.delete('news');
+      await b.js(() => { __dbg.DRV.newsT = 0; });
+      await b.until(() => [...document.querySelectorAll('#drvBody .dnw h4')].some(h => h.textContent === 'Свежая'), null, { timeout: 8000 });
+      // the chat field of a friend with lots of medals is on screen without scrolling
+      await b.js(() => { __dbg.DRV.topT = 0; }); await b.until(() => (__dbg.DRV.cache.top || []).some(x => x.n === 'Greiv'), null, { timeout: 8000 });
+      await b.js(() => __dbg.drvTab('top')); await b.js(() => document.querySelector('[data-star="Greiv"]').click());
+      await b.until(() => __dbg.DRV.friends.includes('Greiv'), null, { timeout: 8000 });
+      await b.js(() => __dbg.drvCardOpen('Greiv'));
+      await b.until(() => document.querySelectorAll('#drvCI .dmed button').length >= 10 && document.querySelector('#drvTxt'), null, { timeout: 8000 });
+      const r = await b.js(() => { const t = document.querySelector('#drvTxt').getBoundingClientRect(); return [t.top, t.bottom, innerHeight]; });
+      assert(r[0] > 0 && r[1] <= r[2], 'chat field off screen: ' + r);
+    } finally { /* sh closed by ctx */ }
   } },
   { name: 'online rating: not configured → clear message', timeout: 60, async run(ctx) {
     const c = await client({ name: 'drv-off' }); ctx.clients.push(c);

@@ -8,12 +8,14 @@
      db.flagGet/flagSet(k,v), db.cacheGet(k,now)/cachePut(k,v,secs,now) — быстрый кэш (CacheService в Apps Script), без чтения листов
    Все ответы — {ok:true,...} или {ok:false,err:'код'}.
    Вход: позывной + PIN из 4 цифр (на сервере только SHA-256 от id+PIN); 5 неверных PIN подряд → блок на 10 мин. */
-var SH_VER = 3;
+var SH_VER = 4;
 var SH_COLS = {
   Pilots:   ['id', 'nick', 'pinHash', 'created', 'lastSeen', 'av', 'score', 'kills', 'kbt', 'deaths', 'med', 'tank', 'tlv', 'rank', 'missions', 'friends', 'fails', 'lockT', 'muteT'],
-  Messages: ['mid', 'time', 'fromId', 'fromNick', 'toId', 'toNick', 'kind', 'text', 'amount', 'got']
+  Messages: ['mid', 'time', 'fromId', 'fromNick', 'toId', 'toNick', 'kind', 'text', 'amount', 'got'],
+  /* v30.6: news feed — rows are added by hand (or by Claude through the Sheets API): id, time (ms), title, text; votes = {pilotId: 1|-1} */
+  News:     ['id', 'time', 'title', 'text', 'up', 'down', 'votes']
 };
-var SH_LIM = { msgLen: 50, msgPerDay: 100, msgPerMin: 10, muteH: 24, seenMin: 4, topSecs: 60, scrapPerDay: 5, scrapMin: 10, scrapMax: 1000, keepDays: 7, fails: 5, lockMin: 10, friends: 50, medal: 50, top: 300, log: 30 };
+var SH_LIM = { msgLen: 50, msgPerDay: 100, msgPerMin: 10, muteH: 24, seenMin: 4, topSecs: 60, scrapPerDay: 5, scrapMin: 10, scrapMax: 1000, keepDays: 7, fails: 5, lockMin: 10, friends: 50, medal: 50, top: 300, log: 30, news: 50, newsSecs: 60 };
 
 function shErr(e) { return { ok: false, err: e }; }
 function shNum(v) { var n = Number(v); return isFinite(n) ? n : 0; }
@@ -48,6 +50,15 @@ function shInbox(db, me, now) { var inbox = [];
 function shSince(db, me, kind, since) { return db.rows('Messages').filter(function (m) { return String(m.fromId) === String(me.id) && m.kind === kind && shNum(m.time) >= since; }).length; }
 function shToday(db, me, kind, now) { var day = now - 864e5; return db.rows('Messages').filter(function (m) { return String(m.fromId) === String(me.id) && m.kind === kind && shNum(m.time) >= day; }).length; }
 
+/* news list for everyone (no login), newest last, cached for a minute */
+function shNewsList(db, now) {
+  var hit = db.cacheGet && db.cacheGet('news', now); if (hit) return JSON.parse(hit);
+  var list = db.rows('News').filter(function (n) { return n.id !== '' && n.id != null && String(n.title || n.text || '').trim(); })
+    .map(function (n) { var t = n.time instanceof Date ? n.time.getTime() : shNum(n.time); return { id: String(n.id), t: t, title: String(n.title || ''), text: String(n.text || ''), up: shNum(n.up), down: shNum(n.down) }; })
+    .sort(function (a, b) { return a.t - b.t; }).slice(-SH_LIM.news);
+  var res = { ok: true, news: list, now: now }; if (db.cachePut) db.cachePut('news', JSON.stringify(res), SH_LIM.newsSecs, now);
+  return res;
+}
 function shHandle(db, p, now, hash) {
   var a = p.a || '';
   if (a === 'ping') return { ok: true, ver: SH_VER };
@@ -72,6 +83,8 @@ function shHandle(db, p, now, hash) {
     var res = { ok: true, list: list, now: now }; if (db.cachePut) db.cachePut('top', JSON.stringify(res), SH_LIM.topSecs, now);
     return res;
   }
+
+  if (a === 'news') return shNewsList(db, now);
 
   if (a === 'card') {
     var t = shByNick(db, p.who); if (!t) return shErr('no_nick');
@@ -134,6 +147,15 @@ function shHandle(db, p, now, hash) {
     } else return shErr('bad');
     db.append('Messages', msg); me2.lastSeen = now; db.update('Pilots', me2); if (db.flagSet) db.flagSet(shFlagKey(to.nick), '1');
     return { ok: true, to: to.nick, text: msg.text, muted: muted ? shNum(me2.muteT) : 0, left: p.kind === 'scrap' ? SH_LIM.scrapPerDay - shToday(db, me2, 'scrap', now) : SH_LIM.msgPerDay - shToday(db, me2, 'msg', now) };
+  }
+
+  if (a === 'vote') {
+    var nw = null; db.rows('News').forEach(function (n) { if (String(n.id) === String(p.id)) nw = n; }); if (!nw) return shErr('no_news');
+    var v = Number(p.v), vs = shJ(nw.votes, {}); if (v === 1 || v === -1) vs[me2.id] = v; else delete vs[me2.id];
+    var up = 0, dn = 0; Object.keys(vs).forEach(function (k) { if (vs[k] === 1) up++; else if (vs[k] === -1) dn++; });
+    nw.votes = JSON.stringify(vs); nw.up = up; nw.down = dn; db.update('News', nw);
+    if (db.cachePut) db.cachePut('news', '', 1, now); /* drop the cached list */
+    return { ok: true, id: String(nw.id), up: up, down: dn, my: vs[me2.id] || 0 };
   }
 
   return shErr('unknown');
