@@ -4,7 +4,7 @@ function frame(now){ requestAnimationFrame(frame); SHT.frame++; let dt=(now-last
   fpsS+=((1/Math.max(rdt,1e-3))-fpsS)*0.05;
   if(GAR.open){ garUpdate(dt,now); if(SND.ctx&&!SND.muted) engineUpdate(dt,false); renderer.render(GAR.scene,GAR.cam); fpsEl.textContent=Math.round(fpsS)+' FPS'; return; }
   if(PAUSED){ renderer.render(scene,camera); return; }
-  const inp=readInput(); if(helpOpen||transit||TK.dead){ inp.throttle=0; inp.steer=0; inp.fire=false; inp.joy=null; } if(SHD.on){ inp.throttle=0; inp.steer=0; inp.joy=null; }
+  const inp=readInput(); if(helpOpen||ctrlOpen||transit||TK.dead){ inp.throttle=0; inp.steer=0; inp.fire=false; inp.joy=null; } if(SHD.on){ inp.throttle=0; inp.steer=0; inp.joy=null; }
   tankUpdate(dt,inp); if(!transit) gatesUpdate(dt);
   if(transit) { renderer.render(scene,camera); return; }
   const T=tank; T.root.position.set(TK.x,TK.y,TK.z); T.root.rotation.y=TK.h; T.susp.rotation.set(TK.pitch,0,TK.roll);
@@ -14,7 +14,7 @@ function frame(now){ requestAnimationFrame(frame); SHT.frame++; let dt=(now-last
   for(const sp of T.spinners) sp.rotation.y+=dt*2.5;
   const gh=groundH(TK.x,TK.z); shadowM.visible=false; shadowsBegin(); shadowAdd(TK.x,TK.z,3.9,TK.y-gh,0.55); tankTracks(dt);
   T.root.updateMatrixWorld(true);
-  aimIdleTick(dt,inp); updateAim();
+  aimIdleTick(dt,inp); updateAim(); if(TUT.fire) tutAim();
   /* v30.5: aim from the turret's own axis, not the hull centre — on «РСЗО-537» the mount sits 1.7 m forward and close side targets were missed by ~2 m */
   T.stab.getWorldPosition(_tPiv);
   const w=WEAP[wcur]; const tgt=Math.hypot(AIM.x-_tPiv.x,AIM.z-_tPiv.z)>0.8?Math.atan2(AIM.x-_tPiv.x,AIM.z-_tPiv.z):AIM.yawRel;
@@ -25,11 +25,11 @@ function frame(now){ requestAnimationFrame(frame); SHT.frame++; let dt=(now-last
   if(wswap>0) T.gun.rotation.x+=Math.sin((1-wswap/0.35)*Math.PI)*0.6;
   T.root.updateMatrixWorld(true); tankDamageUniforms(T);
   LINES.begin();
-  weaponsUpdate(dt,inp.fire&&!LOC.safe&&!TK.dead&&arcOk); projUpdate(dt); predictImpact();
+  weaponsUpdate(dt,inp.fire&&(!LOC.safe||TUT.fire)&&!TK.dead&&arcOk); projUpdate(dt); predictImpact();
   navUpdate(dt); enemiesUpdate(dt); tgtUpdate(dt); arenaGlassTick(); brkUpdate(dt); bossUI(dt); dronesUpdate(dt); mlrsUpdate(dt); drvTick(dt); gibsUpdate(dt); pickupsUpdate(dt); fallersUpdate(dt); delaysUpdate(dt); holdUpdate(dt,now/1000); v9Update(dt,now/1000); v10Update(dt); v11Update(dt); v12Update(dt,now/1000);
   enemyShadows(); shadowsEnd(); cratesUpdate(dt,now); sfxLUpdate(dt); campDecorUpdate(now/1000); tracksUpdate(dt); shockUpdate(dt); lightsT-=dt; if(lightsT<=0){ lightsT=0.5; lightsRefresh(); } lodUpdate(dt);
   carsUpdate(dt); debUpdate(dt); rigidUpdate(dt); spkUpdate(dt); SMOKE.update(dt); FIRE.update(dt); flashUpdate(dt); LINES.end();
-  soldiersUpdate(dt,now/1000); zonesUpdate(); hqUpdate();
+  soldiersUpdate(dt,now/1000); zonesUpdate(); hqUpdate(); tutUpdate(dt,now/1000);
   T.beacon.visible=(now%1200)<600; SND.tick=Math.max(0,SND.tick-dt); SND.pk=Math.max(0,(SND.pk||0)-dt); SND.etk=Math.max(0,(SND.etk||0)-dt); SND.cl=Math.max(0,(SND.cl||0)-dt); ramCD-=dt;
   if(TK.hp<maxHP()*0.4&&!LOC.safe&&rnd()<0.25*(1-TK.hp/maxHP())+0.04){ const sm=mix3(P.dark,P.bg,0.2); SMOKE.spawn(TK.x-Math.sin(TK.h)*1.1,TK.y+1.6,TK.z-Math.cos(TK.h)*1.1,(rnd()-0.5)*0.6,1.4,(rnd()-0.5)*0.6,0.6,1.3,1.4,0.5,sm[0],sm[1],sm[2]); }
   if(TK.dead){ TK.deadT-=dt; if(rnd()<0.6){ const sm=mix3(P.dark,P.bg,0.15); SMOKE.spawn(TK.x+(rnd()-0.5),TK.y+1.5,TK.z+(rnd()-0.5),(rnd()-0.5),2,(rnd()-0.5),1,1.6,1.6,0.6,sm[0],sm[1],sm[2]); }
@@ -45,16 +45,16 @@ function frame(now){ requestAnimationFrame(frame); SHT.frame++; let dt=(now-last
   renderer.render(scene,camera); }
 
 loadPalette(0);
-const hadSave=loadSave(); if(!hadSave){ TK.hp=ARM_HP[0]; refillAmmo(); }
+const hadSave=loadSave(); if(!hadSave){ TK.hp=ARM_HP[0]; refillAmmo(); } tutLoad(hadSave);
 buildGameTank(); updateWeaponUI(); setQualityUI(); rankUI(); objUI(); if(touchDev) aimMode='stick';
 $('#loadq').textContent=touchDev?'старт на низком, дальше по FPS':'старт на среднем, дальше по FPS';
 requestAnimationFrame(()=>setTimeout(()=>{ try{ const gd=gfxLoad(); Q=qMode!=='auto'?qMode:(gd&&QUALITY[gd.q]?gd.q:(touchDev?'low':'med')); setQualityUI(); rebuild(Q); }catch(err){ $('#loadq').textContent='Ошибка: '+err.message; throw err; }
-  $('#load').hidden=true; helpOpen=true; $('#help').hidden=false; last=performance.now(); requestAnimationFrame(frame); },30));
+  $('#load').hidden=true; helpShow(); last=performance.now(); requestAnimationFrame(frame); },30));
 /* v26 debug: jump straight into a boss fight (story progress is restored after the win) */
 const DBG_SIDE={cem:'W',junk:'N',auto:'E',park:'S'};
 function dbgBoss(t){ const i=STORY.findIndex(m=>m.boss&&m.k===t); if(i<0||transit) return; DRV.dbg=true; if(MS.dbgRet==null&&MS.i!==i) MS.dbgRet=MS.i; MS.i=i; MS.active=true; MS.prog=0; objUI(); save();
   if(menuOpen) $('#bMenu').click(); TK.hp=Math.max(TK.hp,maxHP()); toast('Отладка · бой: '+(ENAME[t]||t)); goLocation(STORY[i].loc,DBG_SIDE[STORY[i].loc]); }
 $('#bDbg').addEventListener('click',()=>{ const r=$('#dbgBoss'); r.hidden=!r.hidden; $('#bDbg').textContent=r.hidden?'Отладка ▸':'Отладка ▾'; });
 document.querySelectorAll('#dbgBoss [data-boss]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); dbgBoss(b.dataset.boss); }));
-window.__dbg={setAimMode:m=>{ aimMode=m; },get LAMPS(){return LAMPS},dbgWall,coverFind,coverAt,lifeTry,lifeBusy,mlrsVK,AMMO_CAP,wrapA,get PAUSED(){return PAUSED},findLock,DRV,drvKill,drvBossWin,drvSync,drvTop,drvOpen,drvTab,drvCardOpen,drvNote,medalsCheck,get MEDALS(){return MEDALS},get AVATARS(){return AVATARS},get MLRS(){return MLRS},tankStep:(dt,inp)=>tankUpdate(dt,inp),mlrsPress,rszBogies,enemyHit,enemiesLeft,droneDie,get LOC_ID(){return LOC_ID},get WEAP(){return WEAP},get BOSS(){return BOSS},ARENA,get transit(){return transit},GD,gdLaunch,gdBoom,EW,rdDie,MAG,magPress,makePickup,CDK,get gdOk(){return gdOk()},autoQ,CAS,sun,SHR,get REALSH(){return REALSH},get GTILE(){return GTILE},DYN,get qMode(){return qMode},ARM,civMake,gaitPose,makeSoldier,CIVL:CIV,GAR,losClear,navOk,CHASSIS,selectTank,SHD,STL,BEE,shieldToggle,get tank(){return tank},buildGameTank,forceWin:()=>completeMission(),killTank,STORY,MXTRA,SEEN,radioSay,openMC,zontOn,eShoot,get proj(){return proj},RDR,ART,CIV,FLG,TLS,AIMIDLE,useArt,computeFlagPoints,flagPoints,MISSIONS,missionAt,objUI,get LOCS(){return LOCS},TK,UP,ST,updateWeaponUI,get LOC(){return LOC_ID},get Q(){return Q},goLocation,openGarage,closeGarage,rebuild,explode:(x,z)=>explode(x,1,z,1.7,1,0,-1,0,'shell',null),
+window.__dbg={setAimMode:m=>{ aimMode=m; },TUT,get TUT_W1(){return TUT_W1},get TUT_TG(){return TUT_TG},tutRestart,tutHintShow,get ctrlOpen(){return ctrlOpen},get mcOpen(){return mcOpen},HQ,get LAMPS(){return LAMPS},dbgWall,coverFind,coverAt,lifeTry,lifeBusy,mlrsVK,AMMO_CAP,wrapA,get PAUSED(){return PAUSED},findLock,DRV,drvKill,drvBossWin,drvSync,drvTop,drvOpen,drvTab,drvCardOpen,drvNote,medalsCheck,get MEDALS(){return MEDALS},get AVATARS(){return AVATARS},get MLRS(){return MLRS},tankStep:(dt,inp)=>tankUpdate(dt,inp),mlrsPress,rszBogies,enemyHit,enemiesLeft,droneDie,get LOC_ID(){return LOC_ID},get WEAP(){return WEAP},get BOSS(){return BOSS},ARENA,get transit(){return transit},GD,gdLaunch,gdBoom,EW,rdDie,MAG,magPress,makePickup,CDK,get gdOk(){return gdOk()},autoQ,CAS,sun,SHR,get REALSH(){return REALSH},get GTILE(){return GTILE},DYN,get qMode(){return qMode},ARM,civMake,gaitPose,makeSoldier,CIVL:CIV,GAR,losClear,navOk,CHASSIS,selectTank,SHD,STL,BEE,shieldToggle,get tank(){return tank},buildGameTank,forceWin:()=>completeMission(),killTank,STORY,MXTRA,SEEN,radioSay,openMC,zontOn,eShoot,get proj(){return proj},RDR,ART,CIV,FLG,TLS,AIMIDLE,useArt,computeFlagPoints,flagPoints,MISSIONS,missionAt,objUI,get LOCS(){return LOCS},TK,UP,ST,updateWeaponUI,get LOC(){return LOC_ID},get Q(){return Q},goLocation,openGarage,closeGarage,rebuild,explode:(x,z)=>explode(x,1,z,1.7,1,0,-1,0,'shell',null),
   crater:(x,z)=>craterAt(x,z,1.6,0.3),sim:(n)=>{const o=[];for(let i=0;i<n;i++){tankUpdate(1/60,{throttle:1,steer:0,hb:false,joy:null,fire:false});if(i%4===0)o.push([+TK.z.toFixed(1),+TK.y.toFixed(3),+TK.pitch.toFixed(3),TK.air?1:0]);}return o;},damage:(a,dx,dz)=>damageTank(a,dx,dz,0),groundH,GATES,get gx(){return gx},get GS(){return GS},get ROADS(){return ROADS},get VS(){return VS},get,raycast,RH,get XRK(){return xrK},XR,HOLD,NAV,navPath,VEHS,pvSet,pvRender,renderer,scene,CRATES,get hitStop(){return hitStop},ENEMIES,PICKUPS,DRONES,MS,AIM,spawnEnemy,killEnemy,eRemove,LOC_STATE,toScreen,craterAt,get xr(){return XR.r.value},get wcur(){return wcur},switchWeapon};

@@ -52,11 +52,12 @@ function rkPodUpdate(dt){ if(!tank||!tank.rk) return;
   const g=tank.gun.rotation.x||0; tank.rk.rotation.x+=((-rkAng-g*(rkAng?1:0))-tank.rk.rotation.x)*Math.min(1,dt*6); tank.rk.position.y=(tank.rkBase||0)+Math.max(0,-tank.rk.rotation.x)*0.15; }
 /* ---- desktop: hide touch controls; back on menu / touch, gone again on any key ---- */
 function setKbm(v){ document.body.classList.toggle('kbm',v); }
-if(!touchDev) setKbm(true);
+/* v30.7: a precise hovering pointer (mouse/trackpad) counts as desktop even on a touch laptop; the last input wins */
+const anyHover=matchMedia('(any-hover: hover)');
+if(!touchDev||matchMedia('(hover: hover) and (pointer: fine)').matches) setKbm(true);
 addEventListener('keydown',()=>setKbm(true),true);
-addEventListener('pointerdown',e=>{ if(e.pointerType==='touch') setKbm(false); },true);
+addEventListener('pointerdown',e=>{ if(e.pointerType==='touch'||e.pointerType==='pen') setKbm(false); else if(e.pointerType==='mouse'&&anyHover.matches) setKbm(true); },true);
 addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('button,.gcard,[data-pick]'); if(!b||!SND.ctx) return; const n=performance.now(); if(n-SFX19.ui<70) return; SFX19.ui=n; sO(b.disabled?300:1400,b.disabled?220:1100,0.035,0.05,'triangle'); sNz(0.03,'highpass',5000,1,0.03); },true);
-$('#bMenu').addEventListener('click',()=>setKbm(false));
 /* ---- HUD chip + hub ---- */
 function abilCd(){ const c=chs(); let f=0, act=false, t=0;
   if(c.abil==='rail'){ if(MAG.on>0){ act=true; f=MAG.on/MAG_T; t=MAG.on; } else if(MAG.cd>0){ f=MAG.cd/MAG_CD; t=MAG.cd; } }

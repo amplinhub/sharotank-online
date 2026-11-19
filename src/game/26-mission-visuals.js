@@ -30,7 +30,7 @@ function routeGate(to){ const a=LOC_XY[LOC_ID], b=LOC_XY[to]; if(!a||!b) return 
   if(b[0]<a[0]&&ex.W) opts.push('W'); if(b[0]>a[0]&&ex.E) opts.push('E'); if(b[1]<a[1]&&ex.N) opts.push('N'); if(b[1]>a[1]&&ex.S) opts.push('S');
   if(opts.length) return opts[0]; for(const s of ['N','S','W','E']) if(ex[s]&&ex[s]==='camp') return s; return Object.keys(ex)[0]; }
 function locsWith(type){ return Object.keys(LOCS).filter(k=>(LOCS[k].enemies||[]).some(en=>en[0]===type)); }
-function missionTargets(){ MTGT.ok=false; MTGT.gate=null; MTGT.list.length=0; if(GAR.open) return;
+function missionTargets(){ MTGT.ok=false; MTGT.gate=null; MTGT.list.length=0; if(GAR.open) return; if(TUT.on&&LOC_ID==='camp'&&tutTargets()) return;
   if(!MS.active){ if(LOC_ID!=='camp'){ MTGT.gate=routeGate('camp'); const g=GATES.find(q=>q.side===MTGT.gate); if(g){ MTGT.x=(g.r[0]+g.r[2])/2; MTGT.z=(g.r[1]+g.r[3])/2; MTGT.ok=true; } } else if(!mcOpen){ MTGT.x=(HQ.x0+HQ.x1)/2; MTGT.z=(HQ.z0+HQ.z1)/2; MTGT.ok=!HQ.in; } return; } const m=missionAt(MS.i);
   let goal=m.loc||null; if(m.k==='flag'&&MS.flag) goal='camp';
   if(m.k==='scrap'){ if(LOC.safe){ goal=null; const s=['N','W','S','E'].find(s=>LOC.exits[s]); MTGT.gate=s; } else return; }

@@ -34,14 +34,14 @@ function hudUpdate(dt){ const a=toScreen(AIM.x,AIM.y,AIM.z); ret.style.transform
   if(gainT>0){ gainT-=dt; if(gainT<=0){ gainAcc=0; $('#scrapGain').classList.remove('on'); } }
   const lockEl=$('#lock'), LK=AIM.lockE; if(LK&&!LK.dead&&!LOC.safe){ const y=(LK.y||0)+(LK.hy||0), sp=toScreen(LK.x,y,LK.z), sr=toScreen(LK.x+(LK.hr||0.5),y,LK.z), sz=clamp(Math.abs(sr[0]-sp[0])*2.6,36,170);
     lockEl.hidden=false; lockEl.classList.toggle('man',AIM.manual===LK); lockEl.style.transform=`translate(${sp[0]}px,${sp[1]}px)`; lockEl.style.width=lockEl.style.height=sz+'px'; lockEl.style.margin=`${-sz/2}px 0 0 ${-sz/2}px`; $('#lockHp').style.width=clamp(LK.hp/(LK.maxHp||8)*100,0,100)+'%'; const ln=ENAME[LK.type||'drone']; if(lockEl.dataset.n!==ln){ lockEl.dataset.n=ln; $('#lockN').textContent=ln; } } else lockEl.hidden=true;
-  const hm=$('#hqMark'); if(LOC_ID==='camp'&&!MS.active&&!mcOpen&&!GAR.open&&!transit){ const q=toScreen(HQ_MARK.x,HQ_MARK.y,HQ_MARK.z); hm.hidden=!q[2]; hm.style.transform=`translate(${q[0]}px,${q[1]}px)`; } else hm.hidden=true;
+  const hm=$('#hqMark'); if(LOC_ID==='camp'&&!MS.active&&!mcOpen&&!GAR.open&&!transit&&!(TUT.on&&TUT.step<3)){ const q=toScreen(HQ_MARK.x,HQ_MARK.y,HQ_MARK.z); hm.hidden=!q[2]; hm.style.transform=`translate(${q[0]}px,${q[1]}px)`; } else hm.hidden=true;
   hudT-=dt; if(hudT>0) return; hudT=0.1;
   spdEl.textContent=Math.round(Math.abs(TK.vF)*3.6); errEl.textContent=err>50?'—':err.toFixed(1); dstEl.textContent=(destroyed*VS*VS*VS).toFixed(1);
   const st=tilt<0.8; stabEl.textContent=st?'Стаб ●':`Крен ${tilt.toFixed(1)}°`; stabEl.classList.toggle('bad',!st); hzg.style.color=st?'var(--acc)':'var(--warn)';
   const mh=maxHP(), hp=Math.max(0,Math.round(TK.hp)); $('#hpTxt').innerHTML=`${hp}<small> / ${mh}</small>`; const hf=$('#hpFill'); hf.style.width=(hp/mh*100).toFixed(1)+'%'; hf.classList.toggle('bad',hp/mh<0.3); const crit=hp/mh<0.3&&!LOC.safe&&!TK.dead; $('.hp').classList.toggle('crit',crit); document.body.classList.toggle('crit',crit); kitsHud();
   ammoHud(); $('#scrapTxt').textContent=Math.floor(ST.scrap); if(gainAcc>=1){ const g=$('#scrapGain'); g.textContent='+'+Math.floor(gainAcc); g.classList.add('on'); }
   let txt, frac, bad=false, safe=false;
-  if(LOC.safe){ txt='Огонь запрещён'; frac=0; safe=true; }
+  if(LOC.safe&&!TUT.fire){ txt='Огонь запрещён'; frac=0; safe=true; }
   else if(wswap>0){ txt='Смена'; frac=1-wswap/0.35; }
   else if(ST.ammo[WIDS[wcur]]<=0&&rkQ<=0){ txt='Пусто'; frac=0; bad=true; }
   else if(wcur===0){ const mg=WEAP[0]; if(mgLock){ txt='Перегрев'; bad=true; } else if(mg.spin&&mgSpin>0&&mgSpin<0.92){ txt='Раскрутка'; } else txt=mgSpin>=0.92?'Огонь':'Готов'; frac=mgHeat; bad=bad||mgHeat>0.75; }

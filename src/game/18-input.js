@@ -1,8 +1,11 @@
 /* ================= INPUT ================= */
 const keys={}; const TCH={sx:0,sy:0,active:false,amag:0,mx:0,my:0,mActive:false};
 const mouse={x:innerWidth*0.5,y:innerHeight*0.35,down:false}; let aimMode='mouse';
-let helpOpen=false;
-addEventListener('keydown',e=>{ const tg=e.target&&e.target.tagName; if(tg==='INPUT'||tg==='TEXTAREA') return; sInit(); if(helpOpen){ closeHelp(); }
+let helpOpen=false, ctrlOpen=false;
+/* v30.7: in-game tutorial state (logic in 46-tutorial.js; declared early — read on load and by the HUD) */
+const TUT_KEY='sharotank_tut_v1';
+const TUT={done:false,hints:{},on:false,step:-1,t:0,fire:false,tg:[],okT:0,wait:0,kb:null,sig:'',hint:null,hintT:0,mgPing:0,startT:0,beacon:null};
+addEventListener('keydown',e=>{ const tg=e.target&&e.target.tagName; if(tg==='INPUT'||tg==='TEXTAREA') return; sInit(); if(ctrlOpen){ if(e.code==='Escape'||e.code==='Enter') ctrlClose(); return; } if(helpOpen){ closeHelp(); }
   if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
   if(e.repeat) return; keys[e.code]=true;
   if(GAR.open){ if(e.code==='Escape') closeGarage(); return; }

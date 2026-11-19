@@ -67,6 +67,7 @@ function projUpdate(dt){ for(let i=proj.length-1;i>=0;i--){ const p=proj[i]; p.l
       for(const d of DRONES){ if(d.dead) continue; const t=segSphere(ox,oy,oz,ux,uy,uz,len,d.x,d.y,d.z,0.55); if(t>=0&&t<eT){ eT=t; eh=d; leg=-1; } } if(CIV.list.length){ const ch=civHitTest(ox,oy,oz,ux,uy,uz,len); if(ch&&ch[1]<eT){ eT=ch[1]; eh=ch[0]; leg=-1; } } }
     if(!p.enemy){ const zp=zontProj(ox,oy,oz,ux,uy,uz,len); if(zp&&zp[1]<=hitT&&zp[1]<=eT){ const t=zp[1], hx=ox+ux*t, hy=oy+uy*t, hz=oz+uz*t; zontAbsorb(zp[0],w.id==='mg'?MG_DMG[UP.mg]:(w.id==='cn'?45*w.power:30),hx,hy,hz);
       if(w.id!=='mg'){ FIRE.spawn(hx,hy,hz,0,0,0,2.4,3,0.14,1,0.6,0.95,1); sfxCannonE(); } freeProj(p); proj.splice(i,1); continue; } }
+    if(!p.enemy&&TUT.tg.length){ const t=tutProj(ox,oy,oz,ux,uy,uz,len); if(t>=0&&t<=hitT&&t<=eT){ tutHit(w,ox+ux*t,oy+uy*t,oz+uz*t,ux,uz); freeProj(p); proj.splice(i,1); continue; } }
     if(eh&&eT<=hitT){ const hx=ox+ux*eT, hy=oy+uy*eT, hz=oz+uz*eT;
       if(eh.gd&&rnd()<GD_DODGE){ p.dodge=eh; gdDodge(eh,ux,uz); p.x=nx; p.y=ny; p.z=nz; continue; }
       if(eh.gd){ gdDamage(eh,w,ux,uy,uz,hx,hy,hz); if(w.kind==='shell') explode(hx,hy,hz,w.radius*0.6,w.power*0.5,ux,uy,uz,'shell',null,0,null,0); }
@@ -83,6 +84,8 @@ function projUpdate(dt){ for(let i=proj.length-1;i>=0;i--){ const p=proj[i]; p.l
         hitSpark(hx,hy,hz,ux,uz,w.id==='mg'?4:10); if(w.id==='mg') sfxTick(); else explode(hx,hy,hz,w.radius,w.power,ux,uy,uz,'shell',null,0,eh.type?eh:null); }
       freeProj(p); proj.splice(i,1); continue; }
     if(hk){ const hx=ox+ux*hitT, hy=oy+uy*hitT, hz=oz+uz*hitT;
+      /* v30.7: the camp is only shot at during the tutorial — misses spark, they never break the camp */
+      if(LOC.safe&&!p.enemy){ hitSpark(hx,hy,hz,ux,uz,w.id==='mg'?3:9); if(w.id==='mg') sfxTick(); else { FIRE.spawn(hx,hy,hz,0,0,0,1.6,3,0.1,1,1,0.85,0.5); sfxCannonE(); } freeProj(p); proj.splice(i,1); continue; }
       if(hk.hit===3&&(w.id==='mg'||w.kind==='bullet')){ const r=rigids[hk.ri]; r.vel.x+=ux*1.5; r.vel.z+=uz*1.5; r.vel.y+=0.5; r.ang.x+=(rnd()-0.5)*2; r.ang.z+=(rnd()-0.5)*2; r.sleep=false;
         hitSpark(hx,hy,hz,ux,uz,5); sfxTick(); }
       else explode(hx,Math.max(0.05,hy),hz,w.radius,w.power,ux,uy,uz,w.kind||(w.id==='mg'?'bullet':'shell'),hk,0,null,p.enemy?0.55:1);

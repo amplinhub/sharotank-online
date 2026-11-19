@@ -31,7 +31,7 @@ function lbReset(){ if(LB.t){ try{ LB.t.close(); }catch(_){} } Object.assign(LB,
 function lbOpen(){ lbReset(); $('#help').hidden=true; $('#lobby').hidden=false; lbSec('lbMenu'); $('#lbCreate').disabled=$('#lbJoin').disabled=false; $('#lbJoin').textContent='Войти'; }
 /* Назад в меню игры: гость после «хост отключился», любой после «Выйти». helpOpen остаётся true — мир на паузе. */
 function lbToMenu(){
-  const wasGame=LB.inGame; lbReset(); $('#lobby').hidden=true; helpOpen=true; $('#help').hidden=false;
+  const wasGame=LB.inGame; lbReset(); $('#lobby').hidden=true; helpShow();
   if(wasGame){ let n=0; const go=()=>{ if(LOC_ID==='camp') return; if(transit&&n++<40) return setTimeout(go,300); goLocation('camp',null,{x:40,z:44,h:Math.PI}); }; go(); }
 }
 function lbFail(code,detail){ lbReset(); $('#lbCreate').disabled=$('#lbJoin').disabled=false; $('#lbJoin').textContent='Войти'; lbSec('lbMsg',(NET_TXT[code]||NET_TXT.server)+(detail?' ['+detail+']':'')); LB.afterMsg='lbMenu'; }  /* в скобках — техническая причина (для диагностики) */

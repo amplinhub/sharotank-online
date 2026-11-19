@@ -19,7 +19,7 @@ export async function launch() {
 export async function close() { if (browser) await browser.close(); browser = null; }
 
 /** Open a game client. Returns { page, errors, js(), wait(), shot(), name }. */
-export async function client({ name = 'p1', w = 900, h = 560, touch = false, quality = 'low', start = true, net = null, build = 'dist-single' } = {}) {
+export async function client({ name = 'p1', w = 900, h = 560, touch = false, quality = 'low', start = true, net = null, build = 'dist-single', tut = false, init = null } = {}) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, hasTouch: touch, isMobile: touch });
   const page = await ctx.newPage();
   const errors = [];
@@ -28,6 +28,9 @@ export async function client({ name = 'p1', w = 900, h = 560, touch = false, qua
   await page.route(/fonts\.(googleapis|gstatic)\.com/, r => r.abort());
   await page.addInitScript(() => { window.__DT_MAX = 1 / 15; }); // software WebGL is slow: let the sim take bigger steps
   await page.addInitScript(q => { try { localStorage.setItem('sharotank_gfx_v1', JSON.stringify({ mode: q, q, locked: true })); } catch (e) {} }, quality);
+  // v30.7: the camp tutorial and the one-off hints are off unless a test asks for them (tut: true)
+  if (!tut) await page.addInitScript(() => { try { localStorage.setItem('sharotank_tut_v1', JSON.stringify({ done: 1, h: { lock: 1, repair: 1 } })); } catch (e) {} });
+  if (init) await page.addInitScript(init[0], init[1]);
   // адрес сигнального сервера (тесты онлайна); настоящий сервер «Водителей» в тестах выключен, если не передан мок
   await page.addInitScript(cfg => { window.SHT_NET_CFG = cfg; }, Object.assign({ sheets: 'off' }, net || {}));
   await page.goto(build === 'dist-single' ? PAGE : 'file://' + path.join(ROOT, build, 'index.html'));

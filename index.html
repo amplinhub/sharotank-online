@@ -35,9 +35,10 @@
     <button class="mt" id="bDrv2"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c.8-4 3.8-6 7.5-6s6.7 2 7.5 6"/></svg><span>Профиль</span></button>
     <button class="mt" id="bHelp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 11.5L12 4l8.5 7.5"/><path d="M6 9.8V20h12V9.8"/><path d="M10 20v-5h4v5"/></svg><span>Главное меню</span></button>
     <button class="mt on" id="bSnd"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path class="w" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="x" d="M15.5 9.5l5 5M20.5 9.5l-5 5"/></svg><span>Звук<small></small></span></button>
-    <button class="mt on" id="bTouch"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4.5"/><circle cx="8" cy="15" r="1.6"/><circle cx="17.5" cy="8.5" r="2.6"/><circle cx="18" cy="16.5" r="1.8"/></svg><span>Кнопки<small></small></span></button>
+    <button class="mt" id="bCtrl"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="7" width="19" height="11" rx="2"/><path d="M6 10.5h1.5M9.5 10.5H11M13 10.5h1.5M16.5 10.5H18M7.5 14.5h9"/></svg><span>Управление</span></button>
   </div>
   <div class="where" id="where"></div>
+  <div class="mreset"><button class="ghost" id="bReset" type="button">Начать заново</button><div class="rconf" id="rConf" hidden><span>Весь прогресс пропадёт.</span><button class="go" id="bResetY" type="button">Сбросить</button><button class="ghost" id="bResetN" type="button">Отмена</button></div></div>
   <div class="dbgx" hidden><!-- v30.3: debug menu removed from the UI (bosses still via __dbg.dbgBoss) --><button class="chip" id="bDbg" type="button">Отладка ▸</button><div class="row" id="dbgBoss" hidden><button class="chip" data-boss="crypt">Склеп</button><button class="chip" data-boss="krot">Крот</button><button class="chip" data-boss="hornet">Шершень</button><button class="chip" data-boss="dragon">Дракон</button></div></div>
   </div>
 </div>
@@ -101,31 +102,55 @@
 <div id="toast" hidden></div>
 
 <div id="help" hidden>
+  <div class="card start">
+    <div class="slogo"><span class="scn" aria-hidden="true">球坦克</span><h1>Шаротанк <em>Онлайн</em></h1></div>
+    <p class="stag">Город захватили роботы. Садись в танк и отбей его.</p>
+    <div class="sbtn"><button class="go sgo" id="bGo">Поехали</button>
+      <div class="srow"><button class="go alt" id="bOnline">С другом</button><button class="go alt" id="bDrv">Профиль</button></div></div>
+  </div>
+</div>
+
+<div id="ctrl" hidden role="dialog" aria-label="Управление">
   <div class="card">
-    <h1>Шаротанк <em>Онлайн</em></h1>
-    <p>Город захватили шагающие роботы. Выезжай из лагеря, бери задания в штабе и возвращай районы. Лом с роботов идёт на апгрейды в гараже.</p>
+    <h1>Управление</h1>
     <div class="cols">
-      <div><h2>Клавиатура и мышь</h2>
+      <div class="ckb"><h2>Клавиатура и мышь</h2>
         <dl class="kv">
           <dt><kbd>W</kbd> <kbd>S</kbd></dt><dd>газ и задний ход</dd>
           <dt><kbd>A</kbd> <kbd>D</kbd></dt><dd>руль</dd>
           <dt><kbd>Пробел</kbd></dt><dd>ручник</dd>
-          <dt>мышь, ЛКМ / <kbd>F</kbd></dt><dd>прицел и огонь</dd>
-          <dt>средняя кнопка</dt><dd>захват цели · по пустому месту — сброс</dd>
-          <dt><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>Q</kbd></dt><dd>смена оружия</dd>
-          <dt><kbd>R</kbd> <kbd>T</kbd></dt><dd>ремонт и ящик патронов</dd>
+          <dt>мышь</dt><dd>прицел</dd>
+          <dt>левая кнопка / <kbd>F</kbd></dt><dd>огонь</dd>
+          <dt>колесо (нажать)</dt><dd>захват цели · по пустому месту — сброс</dd>
+          <dt>колесо / <kbd>Q</kbd> / <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></dt><dd>смена оружия</dd>
+          <dt><kbd>R</kbd></dt><dd>ремкомплект</dd>
+          <dt><kbd>T</kbd></dt><dd>ящик боеприпасов</dd>
+          <dt><kbd>G</kbd></dt><dd>артудар</dd>
+          <dt><kbd>E</kbd></dt><dd>способность танка · в штабе — принять задание</dd>
+          <dt><kbd>Esc</kbd></dt><dd>выйти из гаража, закрыть окно</dd>
         </dl></div>
-      <div><h2>Сенсорный экран</h2>
+      <div class="ctc"><h2>Сенсорный экран</h2>
         <dl class="kv">
-          <dt>левый стик</dt><dd>движение</dd>
+          <dt>левый стик</dt><dd>езда</dd>
           <dt>правый стик</dt><dd>прицел</dd>
-          <dt>тап по врагу</dt><dd>выбрать цель, тап мимо — сброс</dd>
           <dt>ОГОНЬ</dt><dd>стрельба</dd>
+          <dt>СМЕНА</dt><dd>другое оружие</dd>
+          <dt>тап по роботу</dt><dd>захват цели · тап мимо — сброс</dd>
+          <dt>кнопки справа</dt><dd>ремкомплект, ящик, артудар</dd>
+          <dt>щит над ОГНЁМ</dt><dd>способность танка</dd>
         </dl></div>
     </div>
-    <div class="crow"><button class="go" id="bGo">Поехали</button><button class="go alt" id="bOnline">С другом</button><button class="go alt" id="bDrv">Профиль</button><button class="ghost" id="bReset">Начать заново</button></div>
+    <p class="cnote">Прицел сам берёт ближнего робота. Стики появляются, когда трогаешь экран, и прячутся, когда играешь с клавиатуры.</p>
+    <div class="crow"><button class="go" id="ctrlOk" type="button">Понятно</button><button class="go alt" id="ctrlTut" type="button">Пройти обучение заново</button></div>
   </div>
 </div>
+
+<div id="tut" hidden aria-live="polite">
+  <div class="tuh"><span class="tun" id="tutN"></span><button type="button" id="tutSkip">Пропустить</button><button type="button" id="tutX" aria-label="Закрыть подсказку">✕</button></div>
+  <div class="tub"><div class="tuv" id="tutV"></div><div class="tuc"><b id="tutTx"></b><span id="tutS"></span><small id="tutProg"></small></div></div>
+  <i class="tuok" aria-hidden="true"></i>
+</div>
+<div id="tutHand" hidden aria-hidden="true"></div>
 
 <div id="lobby" hidden role="dialog" aria-label="Игра с другом">
   <div class="card">

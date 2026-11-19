@@ -39,9 +39,15 @@ document.querySelectorAll('#qseg button').forEach(b=>b.addEventListener('click',
 const DBG_TAPS=[]; $('#qseg button[data-q="high"]').addEventListener('click',()=>{ const t=performance.now(); DBG_TAPS.push(t); while(DBG_TAPS.length&&t-DBG_TAPS[0]>2000) DBG_TAPS.shift();
   if(DBG_TAPS.length>=5){ DBG_TAPS.length=0; ST.scrap+=5000; save(); sfxBuy(); toast('Отладка: +5000 лома'); } });
 const touchDev=('ontouchstart' in window)||matchMedia('(pointer: coarse)').matches;
-let showTouch=true; $('#bTouch').addEventListener('click',()=>{ showTouch=!showTouch; $('#padL').hidden=!showTouch; $('#padR').hidden=!showTouch; $('#bTouch').classList.toggle('on',showTouch); });
+/* v30.7: «Кнопки» is gone — sticks show by themselves on touch (38: setKbm); «Управление» opens the full controls list */
+$('#bCtrl').addEventListener('click',e=>{ e.stopPropagation(); ctrlShow(); });
+$('#ctrlOk').addEventListener('click',e=>{ e.stopPropagation(); ctrlClose(); });
+$('#ctrlTut').addEventListener('click',e=>{ e.stopPropagation(); ctrlClose(); tutRestart(); });
+$('#ctrl').addEventListener('pointerdown',e=>{ if(e.target.id==='ctrl') ctrlClose(); });
+function ctrlShow(){ ctrlOpen=true; const c=$('#ctrl'); c.classList.toggle('touch',!document.body.classList.contains('kbm')); c.hidden=false; if(menuOpen) $('#bMenu').click(); }
+function ctrlClose(){ ctrlOpen=false; $('#ctrl').hidden=true; canvas.focus(); }
 $('#bSnd').addEventListener('click',()=>{ sInit(); SND.muted=!SND.muted; if(SND.master) SND.master.gain.value=SND.muted?0:0.55; $('#bSnd').classList.toggle('on',!SND.muted); });
-$('#bHelp').addEventListener('click',()=>{ helpOpen=true; $('#help').hidden=false; });
+$('#bHelp').addEventListener('click',()=>{ if(menuOpen) $('#bMenu').click(); helpShow(); });
 $('#kRep').addEventListener('click',e=>{ e.stopPropagation(); sInit(); useRepair(); });
 $('#kAmmo').addEventListener('click',e=>{ e.stopPropagation(); sInit(); useAmmo(); });
 $('#kArt').addEventListener('click',e=>{ e.stopPropagation(); sInit(); useArt(); });
@@ -50,10 +56,15 @@ $('#kAbil').addEventListener('click',e=>{ e.stopPropagation(); sInit(); abilPres
 $('#bShield').addEventListener('pointerdown',e=>{ e.preventDefault(); sInit(); if(helpOpen) closeHelp(); abilPress(); });
 let menuOpen=false; $('#bMenu').addEventListener('click',e=>{ e.stopPropagation(); menuOpen=!menuOpen; $('#trMenu').hidden=!menuOpen; document.body.classList.toggle('menu',menuOpen); $('#bMenu').setAttribute('aria-expanded',String(menuOpen)); sfxClick(); });
 $('#bGo').addEventListener('click',e=>{ e.stopPropagation(); closeHelp(); });
-$('#bReset').addEventListener('click',e=>{ e.stopPropagation(); try{ localStorage.removeItem(SAVE_KEY); }catch(_){} ST.scrap=1000; Object.assign(UP,{engine:0,armor:0,cal:0,load:0,stab:0,rk:0,ammo:0,mg:'gau',own:{gau:1},tank:'base',tanks:{base:1},per:{},abl:0,rdr:0}); TK.hp=ARM_HP[0]; TK.dmgS.fill(0);
+/* v30.7: «Начать заново» lives in the menu now, behind an in-page confirmation */
+$('#bReset').addEventListener('click',e=>{ e.stopPropagation(); $('#rConf').hidden=false; $('#bReset').hidden=true; });
+$('#bResetN').addEventListener('click',e=>{ e.stopPropagation(); $('#rConf').hidden=true; $('#bReset').hidden=false; });
+$('#bResetY').addEventListener('click',e=>{ e.stopPropagation(); $('#rConf').hidden=true; $('#bReset').hidden=false; if(menuOpen) $('#bMenu').click(); resetProgress(); });
+function resetProgress(){ try{ localStorage.removeItem(SAVE_KEY); }catch(_){} ST.scrap=1000; Object.assign(UP,{engine:0,armor:0,cal:0,load:0,stab:0,rk:0,ammo:0,mg:'gau',own:{gau:1},tank:'base',tanks:{base:1},per:{},abl:0,rdr:0}); TK.hp=ARM_HP[0]; TK.dmgS.fill(0);
   refillAmmo(); ST.kits.rep=ST.kits.ammo=0; Object.assign(MS,{i:0,active:false,prog:0,rank:0}); rankUI(); objUI(); for(const k in LOC_STATE) delete LOC_STATE[k];
-  wcur=0; buildGameTank(); updateWeaponUI(); closeHelp(); if(LOC_ID!=='camp') goLocation('camp',null,{x:40,z:44,h:Math.PI}); toast('Прогресс сброшен'); });
+  wcur=0; buildGameTank(); updateWeaponUI(); tutReset(); if(helpOpen) closeHelp(); if(LOC_ID!=='camp') goLocation('camp',null,{x:40,z:44,h:Math.PI}); else { Object.assign(TK,{x:40,z:44,h:Math.PI,tYaw:Math.PI,vx:0,vz:0,vF:0}); tutStart(1.2); } toast('Прогресс сброшен'); }
 $('#help').addEventListener('pointerdown',e=>{ if(e.target.id==='help') closeHelp(); });
 let firstBanner=true;
-function closeHelp(){ helpOpen=false; $('#help').hidden=true; canvas.focus(); if(firstBanner){ firstBanner=false; banner(LOC); } }
+function helpShow(){ helpOpen=true; tutHelpMode(); $('#help').hidden=false; }
+function closeHelp(){ helpOpen=false; $('#help').hidden=true; canvas.focus(); if(firstBanner){ firstBanner=false; banner(LOC); } if(!TUT.done&&!TUT.on) tutStart(2.4); }
 

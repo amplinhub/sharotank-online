@@ -87,7 +87,7 @@ function objUI(){ const o=$('#obj'); if(!MS.active){ o.hidden=true; return; } co
   o.innerHTML=`<span class="lbl">Задание</span><span>${missionText(m)}</span><b>${Math.min(Math.floor(MS.prog),m.n||m.t)} / ${m.n||m.t}${m.k==='hold'?' с':''}</b>`; }
 const HQ={x0:60.5,x1:70.5,z0:31.4,z1:37.5,in:false}, HQ_MARK={x:65.5,y:9.6,z:29.5};
 let mcOpen=false;
-function hqUpdate(){ if(LOC_ID!=='camp'||GAR.open||transit){ if(mcOpen) closeMC(); HQ.in=false; return; }
+function hqUpdate(){ if(LOC_ID!=='camp'||GAR.open||transit||(TUT.on&&TUT.step<3)){ if(mcOpen) closeMC(); HQ.in=false; return; }
   const inside=TK.x>HQ.x0&&TK.x<HQ.x1&&TK.z>HQ.z0&&TK.z<HQ.z1; if(inside&&!HQ.in){ HQ.in=true; openMC(); } else if(!inside&&HQ.in){ HQ.in=false; closeMC(); } }
 function openMC(){ const m=missionAt(MS.i); mcOpen=true; const story=MS.i<STORY.length, nt=MS.active?null:newTypeAt(MS.i);
   $('#mcKind').textContent=(MS.active?'Текущее задание':'Новое задание')+(story?` · ${MS.i+1} из ${STORY.length}`:''); $('#mcTitle').textContent=m.title||missionText(m); $('#mcObj').textContent=missionText(m);
