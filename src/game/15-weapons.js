@@ -10,7 +10,7 @@ function freeProj(p){ if(p.mesh){ p.mesh.visible=false; shellPool.push(p.mesh); 
 let lastMain=0, dryT=0;
 function switchWeapon(i){ if(!wAllowed().includes(i)||i===wcur) return; wcur=i; if(i<2) lastMain=i; wswap=0.35; sfxClick(); sO(1400,700,0.06,0.06,'square'); drumTo(true); }
 const AIM={x:40,y:0,z:30, yawRel:Math.PI, dist:14, lockE:null, manual:null}; const PRED={x:0,y:0,z:0,ok:false};
-const muz=new THREE.Vector3(), mdir=new THREE.Vector3(), piv=new THREE.Vector3();
+const muz=new THREE.Vector3(), mdir=new THREE.Vector3(), piv=new THREE.Vector3(), _tPiv=new THREE.Vector3();
 function solvePitch(gx_,gy,gz,tx,ty,tz,w){ const d=Math.hypot(tx-gx_,tz-gz), h=ty-gy; if(!w.g) return Math.atan2(h,d); const v2=w.speed*w.speed, disc=v2*v2-w.g*(w.g*d*d+2*h*v2); if(disc<0) return 0.6; return Math.atan((v2-Math.sqrt(disc))/(w.g*d)); }
 function fire(w){ const T=tank; const mz=w.id==='mg'?T.mgMuz[mgAlt++%T.mgMuz.length]:T.cnMuz; if(w.id==='mg'&&(mgAlt%(UP.mg==='kpv'?1:2)===0)) casSpawn(mz); mz.getWorldPosition(muz); T.gun.getWorldDirection(mdir);
   stealthShot(); if(w.id==='cn'&&chs().abil==='rail'){ railShot(w); return; }

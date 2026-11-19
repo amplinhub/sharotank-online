@@ -15,7 +15,9 @@ function frame(now){ requestAnimationFrame(frame); SHT.frame++; let dt=(now-last
   const gh=groundH(TK.x,TK.z); shadowM.visible=false; shadowsBegin(); shadowAdd(TK.x,TK.z,3.9,TK.y-gh,0.55); tankTracks(dt);
   T.root.updateMatrixWorld(true);
   aimIdleTick(dt,inp); updateAim();
-  const w=WEAP[wcur]; const tgt=Math.hypot(AIM.x-TK.x,AIM.z-TK.z)>0.8?Math.atan2(AIM.x-TK.x,AIM.z-TK.z):AIM.yawRel;
+  /* v30.5: aim from the turret's own axis, not the hull centre — on «РСЗО-537» the mount sits 1.7 m forward and close side targets were missed by ~2 m */
+  T.stab.getWorldPosition(_tPiv);
+  const w=WEAP[wcur]; const tgt=Math.hypot(AIM.x-_tPiv.x,AIM.z-_tPiv.z)>0.8?Math.atan2(AIM.x-_tPiv.x,AIM.z-_tPiv.z):AIM.yawRel;
   const dY=wrapA(tgt-TK.tYaw), slew=(wcur===0?3.4:2.4)*dt; TK.tYaw+=clamp(dY,-slew,slew); T.turret.rotation.y=wrapA(TK.tYaw-TK.h);
   const arc=chs().arc; if(arc){ const rel=clamp(wrapA(TK.tYaw-TK.h),-arc,arc); TK.tYaw=TK.h+rel; T.turret.rotation.y=rel; } const arcOk=!arc||Math.abs(wrapA(tgt-TK.h))<arc+0.15;
   T.root.updateMatrixWorld(true); T.gun.getWorldPosition(piv);

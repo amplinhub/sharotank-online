@@ -23,7 +23,7 @@ export const tests = [
     const c = await client({ name: 'art' }); ctx.clients.push(c);
     await c.js(() => __dbg.goLocation('north', 'S')); await c.until(() => !__dbg.transit && __dbg.LOC === 'north', null, { timeout: 30000 }); await c.wait(500);
     await c.js(() => { const D = __dbg; for (const e of D.ENEMIES) if (!e.dead) D.eRemove(e); D.TK.hp = 99999; D.ST.kits.art = 1;
-      const e = D.spawnEnemy('bull', D.TK.x + 4, D.TK.z + 18); e.hp = e.maxHp = 99999; e.noScrap = true; window.__art = { e, x0: e.x, z0: e.z }; D.useArt(); });
+      const e = D.spawnEnemy('bull', D.TK.x + 4, D.TK.z + 18); e.hp = e.maxHp = 99999; e.noScrap = true; e.speedW = 0; e.acc = 0; e.cd = 99; /* only the test drags it — its own AI must not add motion */ window.__art = { e, x0: e.x, z0: e.z }; D.useArt(); });
     // drag the robot sideways at ~3 m/s while the salvo is in the air
     let miss = 0, n = 0;
     for (let i = 0; i < 30; i++) {

@@ -208,14 +208,15 @@ function lampLOS(ax,ay,az,bx,by,bz){ // thin walls pass, thick block
   return {clear:true,t:1}; }
 function updLamp(e,dt){ const dx=TK.x-e.x, dz=TK.z-e.z, d=Math.max(1e-3,Math.hypot(dx,dz)); e.t+=dt; e.g.updateMatrixWorld(true); e.lampPos.getWorldPosition(_lp);
   const tY=TK.y+1.3; let see=false; if(d<(STL.on?Math.min(22,STL_R[UP.abl|0]):22)&&!TK.dead){ e.losT=(e.losT||0)-dt; if(e.losT<=0){ e.losT=0.25; e.seeC=lampLOS(_lp.x,_lp.y,_lp.z,TK.x,tY,TK.z).clear; } see=e.seeC; if(see&&!e.seenL&&STL.on) stealthSpotted(); e.seenL=see; }
-  let heatT=0;
+  let heatT=0; const eng=engageNow(e,d,16,see&&e.state!=='disguise');
   switch(e.state){
   case 'disguise': eBrake(e,dt,4); e.idleT=(e.idleT||0)+dt; if(!see&&e.idleT>20){ e.idleT=0; const p=pickNear(e.x+(rnd()-0.5)*24,e.z+(rnd()-0.5)*24,1.2); if(p){ e.state='move'; e.t=0; e.mv={x:p[0],z:p[1]}; } break; } if(see){ e.idleT=0; e.state='charge'; e.t=0; e.aggro=true; e.bx=TK.x; e.by=tY; e.bz=TK.z; sfxCharge(1); } break;
   case 'charge': eBrake(e,dt,4); heatT=1; if(!see){ e.lostC=(e.lostC||0)+dt; if(e.lostC>0.5){ e.state='disguise'; e.t=0; e.lostC=0; e.idleT=0; break; } } else e.lostC=0; e.bx+=(TK.x-e.bx)*Math.min(1,dt*2.6); e.by+=(tY-e.by)*Math.min(1,dt*2.6); e.bz+=(TK.z-e.bz)*Math.min(1,dt*2.6);
     { const k=Math.min(1,e.t/1.5), R=EYE_RED; LINES.push(_lp.x,_lp.y,_lp.z,e.bx,e.by,e.bz,R[0]*k*0.7,R[1]*k*0.7,R[2]*k*0.7,0.3); }
     if(e.t>1.5){ beamShot(e); e.state='cool'; e.t=0; e.shots++; } break;
   case 'cool': eBrake(e,dt,4); heatT=0.6; if(e.t>2.2){ if(e.shots>=3){ e.state='move'; e.t=0; e.shots=0; let tgt=null; for(let k=0;k<12;k++){ const a=rnd()*TAU, r=6+rnd()*6, x=e.x+Math.cos(a)*r, z=e.z+Math.sin(a)*r; if(eFree(x,z,1.2)){ tgt={x,z}; break; } } e.mv=tgt||{x:e.x,z:e.z}; } else e.state=see?'charge':'disguise'; e.t=0; if(e.state==='charge'){ e.bx=TK.x; e.by=tY; e.bz=TK.z; } } break;
-  case 'move': heatT=0.3; navMove(e,e.mv.x,e.mv.z,e.speedW,dt); if(Math.hypot(e.mv.x-e.x,e.mv.z-e.z)<1.2||e.t>9){ e.state='disguise'; e.t=0; } break; }
+  case 'move': heatT=0.3; if(eng){ e.state='charge'; e.t=0; e.shots=Math.max(0,e.shots-1); e.bx=TK.x; e.by=tY; e.bz=TK.z; sfxCharge(1); break; } /* v30.5: tank close — stop and burn it */
+    navMove(e,e.mv.x,e.mv.z,e.speedW,dt); if(Math.hypot(e.mv.x-e.x,e.mv.z-e.z)<1.2||e.t>9){ e.state='disguise'; e.t=0; } break; }
   eIntegrate(e,dt);
   e.heat+=(heatT-e.heat)*Math.min(1,dt*3); const lc=P.lamp, h=e.heat, c=[lerp(lc[0],EYE_RED[0],h),lerp(lc[1],EYE_RED[1],h),lerp(lc[2],EYE_RED[2],h)];
   e.eyeM.color.setRGB(...c); e.halo.material.color.setRGB(...c); e.pool.material.color.setRGB(...c); e.halo.position.copy(_lp); e.pool.position.set(_lp.x,groundH(_lp.x,_lp.z)+0.04,_lp.z);
@@ -361,17 +362,18 @@ function droneDie(d,dx,dz,factoryDead){ if(d.dead) return; d.dead=true; if(!fact
 /* ================= 5. BULL ================= */
 function bullSpot(e){ const b=Math.atan2(e.x-TK.x,e.z-TK.z); for(let k=0;k<16;k++){ const a=b+(rnd()<0.5?-1:1)*(0.6+rnd()*1.1), r=12+rnd()*8, x=TK.x+Math.sin(a)*r, z=TK.z+Math.cos(a)*r;
     if(x<5||z<5||x>75||z>75||!eFree(x,z,e.r)||!navOk(Math.floor(x),Math.floor(z),1.1)) continue; if(e.mod!=='mortar'&&!losClear(x,1.9,z,TK.x,TK.y+1.3,TK.z)) continue; return {x,z}; } return null; }
-function updBull(e,dt){ const dx=TK.x-e.x, dz=TK.z-e.z, d=Math.max(1e-3,Math.hypot(dx,dz)); e.t+=dt; ePerceive(e,dt,32,1.9); e.crouch=0; const W=EW[e.mod];
+function updBull(e,dt){ const dx=TK.x-e.x, dz=TK.z-e.z, d=Math.max(1e-3,Math.hypot(dx,dz)); e.t+=dt; ePerceive(e,dt,32,1.9); e.crouch=0; const W=EW[e.mod]; const eng=engageNow(e,d,13);
   e.g.updateMatrixWorld(true); e.muz.getWorldPosition(_mz); let laser=false;
   if(!(e.cov&&bullCover(e,dt,d,W))) switch(e.state){ /* v30.4: cover cycle tocover → hide → peek in 45 */
   case 'idle': if(e.aggro){ e.state='move'; break; } ePatrol(e,dt,1.4); break;
   case 'move': { if(!e.aggro){ e.state='idle'; break; } e.cvT=(e.cvT||0)-dt;
-    if(e.sees&&d>7&&d<34&&e.cvT<=0){ e.cvT=2; const c=coverFind(e,'bull',12,28); if(c){ e.cov=c; e.cyc=0; e.state='tocover'; e.t=0; break; } }
+    if(eng) e.cd=Math.min(e.cd,0.5); /* v30.5: tank close — fire soon instead of manoeuvring */
+    if(!eng&&e.sees&&d>7&&d<34&&e.cvT<=0){ e.cvT=2; const c=coverFind(e,'bull',12,28); if(c){ e.cov=c; e.cyc=0; e.state='tocover'; e.t=0; break; } }
     e.cd-=dt; const los=(e.sees&&losTank(_mz.x,_mz.y,_mz.z))||(e.mod==='mortar'&&d<30&&e.lostT<3); let tx=TK.x, tz=TK.z;
     if(!e.sees&&e.last){ tx=e.last.x; tz=e.last.z; }
     else if(d<12){ tx=e.x-dx/d*6; tz=e.z-dz/d*6; } else if(d<22&&los){ const a=Math.atan2(-dx,-dz)+0.6*e.side; tx=TK.x+Math.sin(a)*17; tz=TK.z+Math.cos(a)*17; }
     navMove(e,tx,tz,d<22&&los?e.speedW*0.6:e.speedW,dt); if(e.cd<=0&&d<28&&los){ e.state='brace'; e.t=0; } break; }
-  case 'repos': e.cd-=dt; navMove(e,e.rp.x,e.rp.z,e.speedW*1.15,dt); if(Math.hypot(e.rp.x-e.x,e.rp.z-e.z)<1.5||e.t>6){ e.state='move'; e.cd=0.3; } break;
+  case 'repos': e.cd-=dt; if(eng&&e.mag>0&&e.cd<=0){ e.state='brace'; e.t=0; break; } navMove(e,e.rp.x,e.rp.z,e.speedW*1.15,dt); if(Math.hypot(e.rp.x-e.x,e.rp.z-e.z)<1.5||e.t>6){ e.state='move'; e.cd=0.3; } break;
   case 'brace': eBrake(e,dt,8); e.h=turnTo(e.h,Math.atan2(dx,dz),3*dt); e.crouch=Math.min(1,e.t/0.4); if(e.t>0.55){ e.state='laser'; e.t=0; const lt=e.mod==='mortar'?1.6:d/W.speed+0.3; e.tgD=null; const G=GD.d; if(G&&!G.dead&&G.st!=='rise'&&e.mod!=='mortar'){ const dg=Math.hypot(G.p.x-e.x,G.p.z-e.z); if(dg<28&&(dg<d*0.85||rnd()<0.3)&&losClear(e.x,e.y+1,e.z,G.p.x,G.p.y,G.p.z)) e.tgD=G; }
       e.aim=e.tgD?{x:e.tgD.p.x+e.tgD.v.x*lt*0.5,y:e.tgD.p.y,z:e.tgD.p.z+e.tgD.v.z*lt*0.5}:{x:TK.x+TK.vx*lt+(rnd()-0.5)*1.2,y:TK.y+1.2,z:TK.z+TK.vz*lt+(rnd()-0.5)*1.2}; sfxCharge(0.6); } break;
   case 'laser': eBrake(e,dt,8); e.crouch=1; e.h=turnTo(e.h,Math.atan2(e.aim.x-e.x,e.aim.z-e.z),3*dt); { const G=e.tgD&&!e.tgD.dead?e.tgD.p:null; if(G){ e.aim.x+=(G.x-e.aim.x)*dt*1.6; e.aim.y+=(G.y-e.aim.y)*dt*1.6; e.aim.z+=(G.z-e.aim.z)*dt*1.6; } else { e.tgD=null; e.aim.x+=(TK.x-e.aim.x)*dt*0.8; e.aim.z+=(TK.z-e.aim.z)*dt*0.8; } } laser=e.mod!=='mortar';

@@ -33,10 +33,11 @@ const ABL={ten:{t:'Маскировка',cur:l=>`включается через
  pchela:{t:'Рой камикадзе',cur:l=>`${l+1} ${l?'дрона':'дрон'} в рое`,info:'Больше дронов-камикадзе одновременно кружит над танком.'}};
 const RSZ_N=[4,6,8];
 /* v30.2: the cab-roof MG turns 360°, but the barrel (and its fire line, 8 m out) must clear the cab, roof lights, exhaust pipes and the
-   rocket pack. Lowest pitch every 10° of turret yaw, measured by ray-casting the real model at every upgrade level (+0.03 margin):
+   rocket pack. Lowest pitch every 10° of turret yaw, measured by ray-casting the real model at every upgrade level (+0.03 margin;
+   re-measured in v30.5 after the mount went up 0.35 m on a pedestal — sides went from −0.03 to −0.41):
    pack down / pack raised; blended by the pack angle MLRS.ang. */
-const RSZ_DEP0=[-0.37,-0.34,-0.3,-0.03,-0.03,-0.03,-0.03,-0.21,-0.27,-0.29,-0.27,-0.24,-0.19,-0.15,-0.1,0.06,0.06,0.06,-0.1,0.06,0.06,0.06,-0.1,0.08,0.08,0.08,0.06,-0.29,-0.27,-0.21,-0.03,-0.03,-0.03,-0.03,-0.3,-0.34];
-const RSZ_DEP1=[-0.37,-0.34,-0.3,-0.03,-0.03,-0.03,-0.03,-0.21,-0.27,-0.29,-0.27,-0.24,-0.19,-0.15,-0.1,0.06,0.24,0.24,0.24,0.24,0.24,0.06,-0.1,0.08,0.08,0.08,0.06,-0.29,-0.27,-0.21,-0.03,-0.03,-0.03,-0.03,-0.3,-0.34];
+const RSZ_DEP0=[-0.47,-0.47,-0.47,-0.41,-0.41,-0.41,-0.41,-0.47,-0.47,-0.47,-0.47,-0.47,-0.41,-0.34,-0.27,-0.11,-0.11,-0.11,-0.21,-0.11,-0.11,-0.11,-0.27,-0.21,-0.21,-0.21,-0.22,-0.47,-0.47,-0.47,-0.41,-0.41,-0.41,-0.41,-0.47,-0.47];
+const RSZ_DEP1=[-0.47,-0.47,-0.47,-0.41,-0.41,-0.41,-0.41,-0.47,-0.47,-0.47,-0.47,-0.47,-0.41,-0.34,-0.27,-0.11,0.13,0.13,0.13,0.13,0.13,-0.11,-0.27,-0.21,-0.21,-0.21,-0.22,-0.47,-0.47,-0.47,-0.41,-0.41,-0.41,-0.41,-0.47,-0.47];
 function rszDep(y){ const d=((y*180/Math.PI)%360+360)%360/10, i=Math.floor(d)%36, j=(i+1)%36, f=d-Math.floor(d), a=clamp(MLRS.ang||0,0,1);
   const lo=RSZ_DEP0[i]+(RSZ_DEP0[j]-RSZ_DEP0[i])*f, hi=RSZ_DEP1[i]+(RSZ_DEP1[j]-RSZ_DEP1[i])*f; return Math.max(RSZ_DEP0[i],RSZ_DEP0[j],lo+(hi-lo)*a); }
 /* РСЗО state lives here (early file) so HUD code that runs during loading can read it; logic is in 42-mlrs.js */
@@ -236,7 +237,10 @@ const CH_BUILD={
   for(const z of [0.25,L*0.55,L-0.1]) add(B(half*2+0.04,0.06,0.12),Y2,pod,0,0.7,z);
   { const rg=new THREE.Group(); rg.position.set(0,1.25,-0.62); rg.userData.keep=true; Sp.add(rg); add(Cy(0.08,0.08,0.4,10),K2,rg,0,0.2,0); const rod=new THREE.Group(); rod.userData.keep=true; rg.add(rod); add(Cy(0.045,0.045,1,8),M,rod,0,0.5,0); T.rszRam={g:rg,rod}; }
   /* cab-roof MG mount: turns all the way round (v30.2), one barrel or two; how low it may dip per direction — rszDep */
-  Sp.add(T.stab); T.stab.position.set(0,2.58,1.72); T.stab.add(Tu);
+  /* v30.5: the mount stands on a 0.35 m pedestal with a hatch ring, so the barrel can dip much lower over the cab roof */
+  add(Cy(0.3,0.36,0.37,16),Y,Sp,0,2.765,1.72,true); add(Cy(0.37,0.37,0.05,16),K,Sp,0,2.6,1.72,true); add(Cy(0.32,0.32,0.04,16),K,Sp,0,2.93,1.72,true);
+  if(hi){ add(B(0.08,0.2,0.04),K2,Sp,0.31,2.78,1.72,true); add(B(0.08,0.2,0.04),K2,Sp,-0.31,2.78,1.72,true); }
+  Sp.add(T.stab); T.stab.position.set(0,2.93,1.72); T.stab.add(Tu);
   add(Cy(0.34,0.38,0.12,16),K,Tu,0,0.04,0,true); add(B(0.62,0.3,0.46),Y,Tu,0,0.25,-0.08,true); add(B(0.66,0.05,0.5),K,Tu,0,0.42,-0.08);
   for(const s of [-1,1]){ const sh=add(B(0.2,0.44,0.06),Y2,Tu,s*0.3,0.42,0.24,true); sh.rotation.x=-0.15; }
   T.gun.position.set(0,0.34,0.2); T.noMg=true; const two=up.mg==='dshk2';

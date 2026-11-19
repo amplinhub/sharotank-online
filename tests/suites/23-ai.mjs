@@ -26,6 +26,28 @@ export const tests = [
     assert(moved, 'did not react to the broken cover');
     void hidLos; void firedLos;
   } },
+  { name: 'ai: caught while changing position up close — «Бизон», «Каток», «Лампа» stop and attack (v30.5)', timeout: 120, async run(ctx) {
+    const c = await field(ctx, 'ai-eng');
+    // Бизон relocating (repos) past a tank 9 m away
+    await c.js(() => { const D = __dbg; const e = D.spawnEnemy('bull', 80, 69); e.mod = 'mg'; e.hp = e.maxHp = 99999; e.aggro = true; e.mag = 8; e.state = 'repos'; e.t = 0; e.cd = 0.4; e.rp = { x: 95, z: 75 }; window.__b = e; });
+    const bf = await c.until(() => ['brace', 'laser', 'fire'].includes(window.__b.state) ? window.__b.state : null, null, { timeout: 4000 });
+    assert(bf, 'bull kept relocating next to the tank: ' + await c.js(() => window.__b.state));
+    // Бизон running to a cover 20 m away while the tank is 10 m away
+    await c.js(() => { const D = __dbg; const e = window.__b; e.state = 'tocover'; e.t = 0; e.cd = 0; e.mag = 8; e.cov = { x: 95, z: 85, px: 96, pz: 85 }; });
+    const bt = await c.until(() => ['brace', 'laser', 'fire'].includes(window.__b.state) ? window.__b.state : null, null, { timeout: 3000 });
+    assert(bt, 'bull kept running to cover next to the tank: ' + await c.js(() => window.__b.state));
+    await c.js(() => __dbg.eRemove(window.__b));
+    // Лампа wandering off after its 3 shots, tank 10 m away in plain sight
+    await c.js(() => { const D = __dbg; const e = D.spawnEnemy('lamp', 80, 70); e.hp = e.maxHp = 99999; e.aggro = true; e.state = 'move'; e.t = 0; e.mv = { x: 92, z: 80 }; window.__l = e; });
+    const lc = await c.until(() => window.__l.state === 'charge', null, { timeout: 3000 });
+    assert(lc, 'lamp kept walking away: ' + await c.js(() => window.__l.state));
+    await c.js(() => __dbg.eRemove(window.__l));
+    // Каток driving to a far hull-down spot, tank 11 m away: it stops and turns to the tank
+    await c.js(() => { const D = __dbg; const e = D.spawnEnemy('katok', 80, 71); e.hp = e.maxHp = 99999; e.aggro = true; e.state = 'move'; e.h = Math.PI / 2; e.cvT = 99; e.cov = { x: 100, z: 71, mode: 'klow' }; window.__k = e; });
+    await c.wait(1500);
+    const k = await c.js(() => { const e = window.__k; return { x: e.x, sp: Math.hypot(e.vx, e.vz) }; });
+    assert(k.x < 82.5, 'katok kept driving to its cover: ' + JSON.stringify(k));
+  } },
   { name: 'ai: «Каток» turns its front to a flanking tank', timeout: 120, async run(ctx) {
     const c = await field(ctx, 'ai-katok');
     await c.js(() => { const D = __dbg, e = D.spawnEnemy('katok', 80, 74); e.hp = e.maxHp = 99999; e.h = 0; e.aggro = true; e.fcd = 99; window.__k = e; Object.assign(D.TK, { x: 92, z: 74 }); });

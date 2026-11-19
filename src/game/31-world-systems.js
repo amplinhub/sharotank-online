@@ -310,13 +310,14 @@ function buildKatok(e){ Object.assign(e,{hp:640,maxHp:640,r:2.15,hy:1.4,hr:1.9,m
   for(const s of [-1,1]){ const pl=ep(e,EGEO.box,Y,T,s*0.74,0.36,0.05,0.12,0.5,1.3,true); pl.rotation.z=s*-0.18; ep(e,EGEO.box,D,T,s*0.8,0.36,0.3,0.03,0.08,0.6); }
   ep(e,EGEO.box,Mt,T,0.38,0.82,-0.35,0.32,0.22,0.3,true); ep(e,EGEO.box,e.eyeM,T,0.38,0.84,-0.19,0.22,0.08,0.02); ep(e,EGEO.box,D,bar,0,0.22,1.1,0.12,0.06,1.6);
   B.scale.setScalar(1.18); }
-function updKatok(e,dt){ const dx=TK.x-e.x, dz=TK.z-e.z, d=Math.max(1e-3,Math.hypot(dx,dz)); e.t+=dt; ePerceive(e,dt,34,2.2); e.fcd-=dt; e.bump-=dt;
+function updKatok(e,dt){ const dx=TK.x-e.x, dz=TK.z-e.z, d=Math.max(1e-3,Math.hypot(dx,dz)); e.t+=dt; ePerceive(e,dt,34,2.2); e.fcd-=dt; e.bump-=dt; const eng=engageNow(e,d,14);
   const want=Math.atan2(dx,dz); e.ty=turnTo(e.ty,e.aggro?want:e.h,dt*(e.state==='charge'?0.22:0.6));
   if(e.state==='idle'){ if(e.aggro) e.state='move'; else ePatrol(e,dt,1.0); }
   else if(e.state==='move'){ if(!e.aggro) e.state='idle'; else { let tx=TK.x, tz=TK.z; if(!e.sees&&e.last){ tx=e.last.x; tz=e.last.z; }
       /* v30.4: hull-down behind low cover (or a wall behind the stern), front to the tank — 45 */
       const cv=katokCover(e,dt,d,want);
-      if(cv&&d>=7.5){ if(Math.hypot(cv.x-e.x,cv.z-e.z)>1.5) navMove(e,cv.x,cv.z,e.speedW,dt); else { eBrake(e,dt,1.5); e.h=turnTo(e.h,want,0.55*dt); } }
+      if(cv&&d>=7.5&&eng&&Math.hypot(cv.x-e.x,cv.z-e.z)>1.5){ eBrake(e,dt,1.5); e.h=turnTo(e.h,want,0.55*dt); } /* v30.5: caught on the way to cover — stop, face the tank, shoot */
+      else if(cv&&d>=7.5){ if(Math.hypot(cv.x-e.x,cv.z-e.z)>1.5) navMove(e,cv.x,cv.z,e.speedW,dt); else { eBrake(e,dt,1.5); e.h=turnTo(e.h,want,0.55*dt); } }
       else if(!e.sees||d>17) navMove(e,tx,tz,e.speedW,dt); else if(d<7.5) navMove(e,TK.x,TK.z,e.speedW*1.3,dt); else { eBrake(e,dt,1.5); e.h=turnTo(e.h,want,0.55*dt); }
       if(eStuck(e,dt)){ e.stN=(e.stN||0)+1; if(e.stN%2===1){ const fx=e.x+Math.sin(e.h)*(e.r+0.7), fz=e.z+Math.cos(e.h)*(e.r+0.7); explode(fx,0.7,fz,1.1,0.55,Math.sin(e.h),0,Math.cos(e.h),'shell',null,1,e,0); } else { e.state='reverse'; e.t=0; e.rvs=rnd()<0.5?1:-1; } }
       e.g.updateMatrixWorld(true); e.muz.getWorldPosition(_kv);

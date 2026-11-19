@@ -43,12 +43,13 @@ function bullCover(e,dt,d,W){ const lx=e.last?e.last.x:TK.x, lz=e.last?e.last.z:
   const drop=()=>{ e.cov=null; e.state='move'; e.cvT=0; e.t=0; return true; };
   switch(e.state){
   case 'tocover': if(!e.aggro){ e.cov=null; e.state='idle'; return true; }
+    e.cd-=dt; if(e.eng&&e.mag>0&&e.cd<=0){ e.state='brace'; e.t=0; return true; } /* v30.5: under fire up close — shoot back, don't run */
     navMove(e,e.cov.x,e.cov.z,e.speedW*1.15,dt);
     if(Math.hypot(e.cov.x-e.x,e.cov.z-e.z)<1.2){ e.state='hide'; e.t=0; e.hideT=1.5+rnd()*1.5; e.hp0=e.hp; e.cvC=0.5; }
     else if(e.t>8||d<7){ e.cvT=2; return drop(); } return true;
   case 'hide': eBrake(e,dt,8); e.crouch=0.35; e.h=turnTo(e.h,Math.atan2(lx-e.x,lz-e.z),2*dt); e.lostT=Math.min(e.lostT||0,3);
     if(e.mag<=0&&!e.rl){ e.rl=true; bullEject(e); e.hideT=Math.max(e.hideT,2.2); }
-    if(d<7||e.hp<e.hp0) return drop();
+    if(d<7||e.hp<e.hp0){ if(e.eng&&e.mag>0&&!e.rl){ e.cov=null; e.state='brace'; e.t=0; return true; } return drop(); }
     if((e.cvC-=dt)<=0){ e.cvC=0.5; if(!coverAt(e.cov.x,e.cov.z,'bull',e)&&!covBlocked(e.cov.x,groundH(e.cov.x,e.cov.z),e.cov.z,(TK.x-e.cov.x)/Math.max(1,d),(TK.z-e.cov.z)/Math.max(1,d),1.7,3)) return drop(); }
     if(e.t>=e.hideT){ if(e.rl){ e.mag=W.mag; e.rl=false; }
       if(e.mod==='mortar'){ if((e.lostT||0)<3&&d<30){ e.state='brace'; e.t=0; } else { e.t=0; e.hideT=1; } return true; }
@@ -57,8 +58,12 @@ function bullCover(e,dt,d,W){ const lx=e.last?e.last.x:TK.x, lz=e.last?e.last.z:
     return true;
   case 'peek': navMove(e,e.cov.px,e.cov.pz,e.speedW,dt); if(Math.hypot(e.cov.px-e.x,e.cov.pz-e.z)<0.8||e.t>1.4){ e.state='brace'; e.t=0; } return true; }
   return false; }
+/* v30.5: «не перебегать под огнём» — a robot that is changing position stops and fights back when the tank is close and in
+   sight (or further, up to 1.5×R, while it is still «hurt» after a hit — e.hurtT is set by enemyHit and counted down in 22). */
+function engageNow(e,d,R,see){ if(see===undefined) see=e.sees;
+  e.eng=!!(e.aggro&&see&&!TK.dead&&!LOC.safe&&(d<R||(e.hurtT>0&&d<R*1.5))); return e.eng; }
 /* after a burst: back into cover, and every 2–3 bursts look for a new one */
-function bullAfterBurst(e){ if(!e.cov) return false; e.cyc=(e.cyc||0)+1;
+function bullAfterBurst(e){ if(!e.cov) return false; e.cyc=(e.cyc||0)+1; e.cd=0.8+rnd()*0.6;
   if(e.cyc>=2+(rnd()<0.5?1:0)){ e.cyc=0; e.cov=null; e.state='move'; e.cvT=0; } else { e.state='tocover'; } e.t=0; return true; }
 
 /* «Каток»: pick / keep a hull-down spot; returns the point to hold (or null = old behaviour) */
