@@ -314,7 +314,10 @@ function updKatok(e,dt){ const dx=TK.x-e.x, dz=TK.z-e.z, d=Math.max(1e-3,Math.hy
   const want=Math.atan2(dx,dz); e.ty=turnTo(e.ty,e.aggro?want:e.h,dt*(e.state==='charge'?0.22:0.6));
   if(e.state==='idle'){ if(e.aggro) e.state='move'; else ePatrol(e,dt,1.0); }
   else if(e.state==='move'){ if(!e.aggro) e.state='idle'; else { let tx=TK.x, tz=TK.z; if(!e.sees&&e.last){ tx=e.last.x; tz=e.last.z; }
-      if(!e.sees||d>17) navMove(e,tx,tz,e.speedW,dt); else if(d<7.5) navMove(e,TK.x,TK.z,e.speedW*1.3,dt); else eBrake(e,dt,1.5);
+      /* v30.4: hull-down behind low cover (or a wall behind the stern), front to the tank — 45 */
+      const cv=katokCover(e,dt,d,want);
+      if(cv&&d>=7.5){ if(Math.hypot(cv.x-e.x,cv.z-e.z)>1.5) navMove(e,cv.x,cv.z,e.speedW,dt); else { eBrake(e,dt,1.5); e.h=turnTo(e.h,want,0.55*dt); } }
+      else if(!e.sees||d>17) navMove(e,tx,tz,e.speedW,dt); else if(d<7.5) navMove(e,TK.x,TK.z,e.speedW*1.3,dt); else { eBrake(e,dt,1.5); e.h=turnTo(e.h,want,0.55*dt); }
       if(eStuck(e,dt)){ e.stN=(e.stN||0)+1; if(e.stN%2===1){ const fx=e.x+Math.sin(e.h)*(e.r+0.7), fz=e.z+Math.cos(e.h)*(e.r+0.7); explode(fx,0.7,fz,1.1,0.55,Math.sin(e.h),0,Math.cos(e.h),'shell',null,1,e,0); } else { e.state='reverse'; e.t=0; e.rvs=rnd()<0.5?1:-1; } }
       e.g.updateMatrixWorld(true); e.muz.getWorldPosition(_kv);
       if(e.fcd<=0&&e.sees&&d<32&&d>4&&Math.abs(wrapA(want-e.ty))<0.15&&losTank(_kv.x,_kv.y,_kv.z)){ e.state='charge'; e.t=0; sO(55,150,1.1,0.14,'sawtooth'); sNz(1.1,'lowpass',300,1,0.08); } } }

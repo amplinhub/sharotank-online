@@ -363,9 +363,11 @@ function bullSpot(e){ const b=Math.atan2(e.x-TK.x,e.z-TK.z); for(let k=0;k<16;k+
     if(x<5||z<5||x>75||z>75||!eFree(x,z,e.r)||!navOk(Math.floor(x),Math.floor(z),1.1)) continue; if(e.mod!=='mortar'&&!losClear(x,1.9,z,TK.x,TK.y+1.3,TK.z)) continue; return {x,z}; } return null; }
 function updBull(e,dt){ const dx=TK.x-e.x, dz=TK.z-e.z, d=Math.max(1e-3,Math.hypot(dx,dz)); e.t+=dt; ePerceive(e,dt,32,1.9); e.crouch=0; const W=EW[e.mod];
   e.g.updateMatrixWorld(true); e.muz.getWorldPosition(_mz); let laser=false;
-  switch(e.state){
+  if(!(e.cov&&bullCover(e,dt,d,W))) switch(e.state){ /* v30.4: cover cycle tocover → hide → peek in 45 */
   case 'idle': if(e.aggro){ e.state='move'; break; } ePatrol(e,dt,1.4); break;
-  case 'move': { if(!e.aggro){ e.state='idle'; break; } e.cd-=dt; const los=(e.sees&&losTank(_mz.x,_mz.y,_mz.z))||(e.mod==='mortar'&&d<30&&e.lostT<3); let tx=TK.x, tz=TK.z;
+  case 'move': { if(!e.aggro){ e.state='idle'; break; } e.cvT=(e.cvT||0)-dt;
+    if(e.sees&&d>7&&d<34&&e.cvT<=0){ e.cvT=2; const c=coverFind(e,'bull',12,28); if(c){ e.cov=c; e.cyc=0; e.state='tocover'; e.t=0; break; } }
+    e.cd-=dt; const los=(e.sees&&losTank(_mz.x,_mz.y,_mz.z))||(e.mod==='mortar'&&d<30&&e.lostT<3); let tx=TK.x, tz=TK.z;
     if(!e.sees&&e.last){ tx=e.last.x; tz=e.last.z; }
     else if(d<12){ tx=e.x-dx/d*6; tz=e.z-dz/d*6; } else if(d<22&&los){ const a=Math.atan2(-dx,-dz)+0.6*e.side; tx=TK.x+Math.sin(a)*17; tz=TK.z+Math.cos(a)*17; }
     navMove(e,tx,tz,d<22&&los?e.speedW*0.6:e.speedW,dt); if(e.cd<=0&&d<28&&los){ e.state='brace'; e.t=0; } break; }
@@ -375,7 +377,7 @@ function updBull(e,dt){ const dx=TK.x-e.x, dz=TK.z-e.z, d=Math.max(1e-3,Math.hyp
   case 'laser': eBrake(e,dt,8); e.crouch=1; e.h=turnTo(e.h,Math.atan2(e.aim.x-e.x,e.aim.z-e.z),3*dt); { const G=e.tgD&&!e.tgD.dead?e.tgD.p:null; if(G){ e.aim.x+=(G.x-e.aim.x)*dt*1.6; e.aim.y+=(G.y-e.aim.y)*dt*1.6; e.aim.z+=(G.z-e.aim.z)*dt*1.6; } else { e.tgD=null; e.aim.x+=(TK.x-e.aim.x)*dt*0.8; e.aim.z+=(TK.z-e.aim.z)*dt*0.8; } } laser=e.mod!=='mortar';
     if(e.t>0.9){ e.state='fire'; e.t=0; e.shots=0; e.ft=0; } break;
   case 'fire': e.crouch=1; e.ft-=dt; if(e.ft<=0&&e.shots<W.burst&&e.mag>0){ e.ft=W.gap; e.shots++; e.mag--; eShoot(_mz.x,_mz.y,_mz.z,e.aim.x,e.aim.y,e.aim.z,W); const G2=P.glow2; FIRE.spawn(_mz.x,_mz.y,_mz.z,0,0,0,e.mod==='mg'?0.8:1.6,2,0.07,1,G2[0],G2[1],G2[2]); e.kx-=Math.sin(e.h)*0.6; e.kz-=Math.cos(e.h)*0.6; e.mod==='mg'?sfxMgE():sfxCannonE(); }
-    if(e.shots>=W.burst||e.mag<=0){ if(e.mag<=0){ e.state='reload'; e.t=0; const c=new THREE.Vector3(e.x-Math.sin(e.h)*1.3,e.y+0.3,e.z-Math.cos(e.h)*1.3); const box_=new THREE.Mesh(EGEO.box,PKM.ammo); box_.scale.set(0.5,0.3,0.4); box_.position.copy(c); scene.add(box_); EXTRAS.push(box_);
+    if(e.shots>=W.burst||e.mag<=0){ if(bullAfterBurst(e)){ /* back into cover (reloads there) */ } else if(e.mag<=0){ e.state='reload'; e.t=0; const c=new THREE.Vector3(e.x-Math.sin(e.h)*1.3,e.y+0.3,e.z-Math.cos(e.h)*1.3); const box_=new THREE.Mesh(EGEO.box,PKM.ammo); box_.scale.set(0.5,0.3,0.4); box_.position.copy(c); scene.add(box_); EXTRAS.push(box_);
         const g={m:box_,v:new THREE.Vector3(-Math.sin(e.h)*3+(rnd()-0.5)*2,4,-Math.cos(e.h)*3),w:new THREE.Vector3(rnd()*8,rnd()*8,rnd()*8),r:0.15,part:null,t:0,rest:false}; GIBS.push(g); sfxClick(); }
       else { e.t=0; const sp=rnd()<0.5?bullSpot(e):null; if(sp){ e.state='repos'; e.rp=sp; e.cd=0.4; } else { e.state='move'; e.cd=1.2+rnd()*1.2; } } } break;
   case 'reload': eBrake(e,dt,8); e.crouch=0.6; if(e.t>2.0){ e.mag=W.mag; e.t=0; const sp=rnd()<0.5?bullSpot(e):null; if(sp){ e.state='repos'; e.rp=sp; } else { e.state='move'; e.cd=0.5; } } break; }

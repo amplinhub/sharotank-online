@@ -53,11 +53,11 @@ let spotT=0;
 function sfxSpotted(e){ const now=performance.now(); if(now<spotT) return; spotT=now+700; const p=sndAt(e.x,e.z); sO(880,1320,0.07,0.09,'square'); sndOff(p); setTimeout(()=>{ const q=sndAt(e.x,e.z); sO(1320,1760,0.09,0.08,'square'); sndOff(q); },80); }
 function ePerceive(e,dt,range,eyeY){ e.seeT=(e.seeT||0)-dt; const d=Math.hypot(TK.x-e.x,TK.z-e.z);
   if(e.seeT<=0){ e.seeT=0.25+rnd()*0.1; const was=e.sees; e.sees=!TK.dead&&d<(STL.on?Math.min(range,STL_R[UP.abl|0]):range)&&losClear(e.x,e.y+(eyeY||0.5),e.z,TK.x,TK.y+1.4,TK.z); if(e.sees&&!was&&STL.on) stealthSpotted(); if(e.sees&&!was&&!e.aggro&&!e.boss) sfxSpotted(e); }
-  if(e.sees||(e.hurtT>2.6)){ e.aggro=true; e.lostT=0; e.last={x:TK.x,z:TK.z}; } else if(e.aggro){ e.lostT=(e.lostT||0)+dt; if(e.lostT>6){ e.aggro=false; e.wp=null; } }
+  if(e.sees||(e.hurtT>2.6)){ if(e.act) lifeStop(e); e.aggro=true; e.lostT=0; e.last={x:TK.x,z:TK.z}; } else if(e.aggro){ e.lostT=(e.lostT||0)+dt; if(e.lostT>6){ e.aggro=false; e.wp=null; } }
   return e.sees; }
-function ePatrol(e,dt,spd){ e.wpT=(e.wpT||0)-dt;
+function ePatrol(e,dt,spd){ e.wpT=(e.wpT||0)-dt; if(e.act&&lifeUpdate(e,dt)) return; /* v30.4: little things at rest (45) */
   if(e.last&&!e.aggro&&(e.lostT||0)<12&&Math.hypot(e.last.x-e.x,e.last.z-e.z)>2){ navMove(e,e.last.x,e.last.z,spd*1.3,dt); if(Math.hypot(e.last.x-e.x,e.last.z-e.z)<2.5) e.last=null; return; }
-  if(!e.wp||e.wpT<=0||Math.hypot(e.wp.x-e.x,e.wp.z-e.z)<1.6){ e.wpT=8+rnd()*6; e.wp=null; for(let k=0;k<14&&!e.wp;k++){ const a=rnd()*TAU, rr=5+rnd()*14, x=clamp(e.home.x+Math.cos(a)*rr,4,WX-4), z=clamp(e.home.z+Math.sin(a)*rr,4,WZ-4); if(navOk(Math.floor(x),Math.floor(z),e.r*0.8)) e.wp={x,z}; } if(!e.wp) e.wp={x:e.home.x,z:e.home.z}; e.pause=rnd()<0.4?0.8+rnd()*1.6:0; }
+  if(!e.wp||e.wpT<=0||Math.hypot(e.wp.x-e.x,e.wp.z-e.z)<1.6){ e.wpT=8+rnd()*6; e.wp=null; for(let k=0;k<14&&!e.wp;k++){ const a=rnd()*TAU, rr=5+rnd()*14, x=clamp(e.home.x+Math.cos(a)*rr,4,WX-4), z=clamp(e.home.z+Math.sin(a)*rr,4,WZ-4); if(navOk(Math.floor(x),Math.floor(z),e.r*0.8)) e.wp={x,z}; } if(!e.wp) e.wp={x:e.home.x,z:e.home.z}; e.pause=0; if(!(rnd()<0.55&&lifeTry(e))) e.pause=rnd()<0.4?0.8+rnd()*1.6:0; }
   if(e.pause>0){ e.pause-=dt; eBrake(e,dt,5); return; } navMove(e,e.wp.x,e.wp.z,spd,dt); }
 /* stuck detector: no progress while trying to move */
 function eStuck(e,dt){ e.stk=e.stk||{x:e.x,z:e.z,t:0}; const s=e.stk; s.t+=dt; if(s.t>1.1){ const m=Math.hypot(e.x-s.x,e.z-s.z); s.x=e.x; s.z=e.z; s.t=0; return m<0.35&&Math.hypot(e.vx,e.vz)>0.3; } return false; }
