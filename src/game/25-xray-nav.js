@@ -51,9 +51,11 @@ function navMove(e,tx,tz,spd,dt){ e.pathT=(e.pathT||0)-dt; const r=e.navR||Math.
 /* v30.1: an enemy notices you — a short two-tone chirp from where it stands (at most one per 0.7 s for the whole fight) */
 let spotT=0;
 function sfxSpotted(e){ const now=performance.now(); if(now<spotT) return; spotT=now+700; const p=sndAt(e.x,e.z); sO(880,1320,0.07,0.09,'square'); sndOff(p); setTimeout(()=>{ const q=sndAt(e.x,e.z); sO(1320,1760,0.09,0.08,'square'); sndOff(q); },80); }
-function ePerceive(e,dt,range,eyeY){ e.seeT=(e.seeT||0)-dt; const d=Math.hypot(TK.x-e.x,TK.z-e.z);
-  if(e.seeT<=0){ e.seeT=0.25+rnd()*0.1; const was=e.sees; e.sees=!TK.dead&&d<(STL.on?Math.min(range,STL_R[UP.abl|0]):range)&&losClear(e.x,e.y+(eyeY||0.5),e.z,TK.x,TK.y+1.4,TK.z); if(e.sees&&!was&&STL.on) stealthSpotted(); if(e.sees&&!was&&!e.aggro&&!e.boss) sfxSpotted(e); }
-  if(e.sees||(e.hurtT>2.6)){ if(e.act) lifeStop(e); e.aggro=true; e.lostT=0; e.last={x:TK.x,z:TK.z}; } else if(e.aggro){ e.lostT=(e.lostT||0)+dt; if(e.lostT>6){ e.aggro=false; e.wp=null; } }
+/* v30.8: shot from far away → «alert» for 15 s: the robot knows where the shooter is, its sight reaches him (≤ 85 m) and it keeps hunting instead of giving up after 6 s */
+function ePerceive(e,dt,range,eyeY){ e.seeT=(e.seeT||0)-dt; const d=Math.hypot(TK.x-e.x,TK.z-e.z); if(e.alertT>0) e.alertT-=dt;
+  const R0=STL.on?Math.min(range,STL_R[UP.abl|0]):range, R=e.alertT>0?Math.max(R0,Math.min(85,d+4)):R0;
+  if(e.seeT<=0){ e.seeT=0.25+rnd()*0.1; const was=e.sees; e.sees=!TK.dead&&d<R&&losClear(e.x,e.y+(eyeY||0.5),e.z,TK.x,TK.y+1.4,TK.z); if(e.sees&&!was&&STL.on) stealthSpotted(); if(e.sees&&!was&&!e.aggro&&!e.boss) sfxSpotted(e); }
+  if(e.sees||(e.hurtT>2.6)){ if(e.act) lifeStop(e); e.aggro=true; e.lostT=0; e.last={x:TK.x,z:TK.z}; } else if(e.aggro){ if(e.alertT>0&&!TK.dead){ e.lostT=0; e.last={x:TK.x,z:TK.z}; } else { e.lostT=(e.lostT||0)+dt; if(e.lostT>6){ e.aggro=false; e.wp=null; } } }
   return e.sees; }
 function ePatrol(e,dt,spd){ e.wpT=(e.wpT||0)-dt; if(e.act&&lifeUpdate(e,dt)) return; /* v30.4: little things at rest (45) */
   if(e.last&&!e.aggro&&(e.lostT||0)<12&&Math.hypot(e.last.x-e.x,e.last.z-e.z)>2){ navMove(e,e.last.x,e.last.z,spd*1.3,dt); if(Math.hypot(e.last.x-e.x,e.last.z-e.z)<2.5) e.last=null; return; }
@@ -88,7 +90,9 @@ function drawGate(g){ const c=g.ctx, W=g.cv.width, H=g.cv.height, L=LOCS[g.id], 
   g.tex.needsUpdate=true; g.drawn=f; }
 function gatesUpdate(dt){ for(const g of GATES){ const r=g.r, ins=!TK.dead&&TK.x>r[0]&&TK.x<r[2]&&TK.z>r[1]&&TK.z<r[3];
     if(!ins) g.armed=true; if(ins&&!g.inside&&g.armed){ g.pop=1; sfxClick(); } g.inside=ins;
-    if(ins&&g.armed&&!transit){ g.fill=Math.min(1,g.fill+dt/GATE_FILL); if(g.fill>=1){ g.fill=0; drawGate(g); goLocation(g.id,g.side); return; } } else g.fill=Math.max(0,g.fill-dt/0.5);
+    /* v30.8: driving into the map edge inside a gate goes straight through */
+    const edge=ins&&((g.side==='W'&&TK.x<2.2&&TK.vx<-0.5)||(g.side==='E'&&TK.x>WX-2.2&&TK.vx>0.5)||(g.side==='N'&&TK.z<2.2&&TK.vz<-0.5)||(g.side==='S'&&TK.z>WZ-2.2&&TK.vz>0.5));
+    if(ins&&g.armed&&!transit){ g.fill=Math.min(1,g.fill+dt/GATE_FILL); if(g.fill>=1||edge){ g.fill=0; drawGate(g); goLocation(g.id,g.side); return; } } else g.fill=Math.max(0,g.fill-dt/0.5);
     g.pop=Math.max(0,g.pop-dt*3); const pk=g.pop>0?Math.sin((1-g.pop)*Math.PI)*(0.1*g.pop+0.02):0; g.m.scale.set(1+pk,1+pk,1); g.m.position.y=0.07+pk*1.2;
     const hint=!!(MTGT.gate&&MTGT.gate===g.side); if(hint!==g.hint){ g.hint=hint; g.drawn=-1; }
     if(Math.abs(g.fill-g.drawn)>0.012||(g.fill===0&&g.drawn!==0)) drawGate(g); } }

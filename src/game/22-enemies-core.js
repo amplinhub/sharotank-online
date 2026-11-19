@@ -32,7 +32,7 @@ function smashAround(x,z,r,h,maxHard){ const a=Math.floor((x-r)/VS),b=Math.floor
   for(let y=0;y<=yt;y++)for(let zz=f;zz<=g;zz++)for(let xx=a;xx<=b;xx++){ const m=get(xx,y,zz); if(!m||MD[m].hard>maxHard) continue; const wx=(xx+0.5)*VS-x, wz=(zz+0.5)*VS-z; if(wx*wx+wz*wz>r*r) continue; rem.push(xx,y,zz,m); grid[gi(xx,y,zz)]=0; markDirty(xx,y,zz); }
   if(!rem.length) return; destroyed+=rem.length/4; let glass=0;
   for(let i=0;i<rem.length;i+=4){ const m=rem[i+3]; if(MD[m].glass) glass++; if(rnd()>0.5) continue; voxelColor(m,rem[i],rem[i+1],rem[i+2],col); debSpawn((rem[i]+0.5)*VS,(rem[i+1]+0.5)*VS,(rem[i+2]+0.5)*VS,(rnd()-0.5)*4,1+rnd()*3,(rnd()-0.5)*4,col[0],col[1],col[2],VS*(0.6+0.4*rnd())); }
-  if(glass) sfxGlass(0.4); structural(rem); }
+  if(glass) sfxGlass(0.4); structural(rem); return rem.length/4; }
 
 /* ---------- legs: IK + gait ---------- */
 function walkUpdate(e,dt){ const C=e.wc; const ch=Math.cos(e.h), sh=Math.sin(e.h); let sw=0; const yl=(e.yaw||0)*C.lead, cy=Math.cos(yl), sy=Math.sin(yl);
@@ -61,13 +61,22 @@ function eSeparate(){ for(let i=0;i<ENEMIES.length;i++){ const a=ENEMIES[i]; if(
   for(let j=i+1;j<ENEMIES.length;j++){ const b=ENEMIES[j]; if(b.dead||b.noCol) continue; const dx=b.x-a.x, dz=b.z-a.z, d=Math.hypot(dx,dz), m=a.r+b.r; if(!(d<m)||d<1e-3) continue;
     const pen=(m-d)/d, wa=a.static?0:(b.static?1:b.mass/(a.mass+b.mass)); const tx=a.x-dx*pen*wa, tz=a.z-dz*pen*wa, ux=b.x+dx*pen*(1-wa), uz=b.z+dz*pen*(1-wa);
     if(!a.static&&eFree(tx,tz,a.r*0.8)){ a.x=tx; a.z=tz; } if(!b.static&&eFree(ux,uz,b.r*0.8)){ b.x=ux; b.z=uz; } } } }
-function tankVsEnemies(){ for(const e of ENEMIES){ if(e.dead||e.noCol||e.onTank) continue; const dx=e.x-TK.x, dz=e.z-TK.z, d=Math.hypot(dx,dz), m=TR*0.92+e.r; if(!(d<m)||d<1e-3) continue;
+function tankVsEnemies(){ for(const e of ENEMIES){ if(e.dead||e.noCol||e.onTank) continue; if(e.type==='lamp'&&tankVsLampLegs(e)) continue; const dx=e.x-TK.x, dz=e.z-TK.z, d=Math.hypot(dx,dz), m=TR*0.92+e.r; if(!(d<m)||d<1e-3) continue;
   const nx=dx/d, nz=dz/d, rel=(TK.vx-e.vx)*nx+(TK.vz-e.vz)*nz, tv=TK.vx*nx+TK.vz*nz, mr=e.static?1:e.mass/(e.mass+3*(chs().mass||1));
   if(tv>3.5&&e.ramCD<=0&&!LOC.safe){ e.ramCD=0.35; enemyHit(e,(tv-3.5)*16*(UP.armor>=2?1.3:1)*(chs().rmE||1),nx,nz,tv*1.3,'ram'); sfxThud(Math.min(1,tv/12)); shake=Math.min(1,shake+tv*0.02); TK.pitchV+=tv*0.03;
     if(e.mass>2.5) damageTank(tv*0.8*(UP.armor>=2?0.5:1),dx,dz,0); const sc=mix3(P.glow,[1,1,1],0.4); for(let k=0;k<8;k++) spark(TK.x+nx*1.4,1.2,TK.z+nz*1.4,nx*6+(rnd()-0.5)*6,rnd()*5,nz*6+(rnd()-0.5)*6,sc[0],sc[1],sc[2],0.4); }
   if(rel>0){ TK.vx-=nx*rel*mr; TK.vz-=nz*rel*mr; }
   const pen=m-d; if(!e.static&&!e.dead){ const ex=e.x+nx*pen*(1-mr), ez=e.z+nz*pen*(1-mr); if(eFree(ex,ez,e.r*0.8)){ e.x=ex; e.z=ez; } }
   const tx=TK.x-nx*pen*(e.static?1:mr), tz=TK.z-nz*pen*(e.static?1:mr); if(!tankContacts(tx,tz,CT)){ TK.x=tx; TK.z=tz; } } }
+
+/* v30.8: the tall «Маяк» stands on long legs far from its centre — the tank used to drive through them. Now a leg blocks the tank; rammed at > 2.2 m/s it snaps and the robot topples away */
+function tankVsLampLegs(e){ const sp=Math.hypot(TK.vx,TK.vz), R=TR*0.92+0.3;
+  for(let li=0;li<e.legs.length;li++){ const L=e.legs[li]; if(!L.alive||!L.foot) continue;
+    for(let k=0;k<3;k++){ const A=L.knee||L.foot, f=k/2, px=L.foot.x+(A.x-L.foot.x)*f, py=L.foot.y+(A.y-L.foot.y)*f, pz=L.foot.z+(A.z-L.foot.z)*f; if(py>TK.y+2.6) continue;
+      const dx=px-TK.x, dz=pz-TK.z, d=Math.hypot(dx,dz); if(d>=R||d<1e-3) continue; const nx=dx/d, nz=dz/d, tv=TK.vx*nx+TK.vz*nz;
+      if(tv>2.2&&!LOC.safe){ lampLegBreak(e,li,TK.x,TK.z); sfxThud(1); sfxClang(); shake=Math.min(1,shake+0.3); TK.vx*=0.75; TK.vz*=0.75; for(let n=0;n<10;n++) spark(px,py+0.5,pz,nx*5+(rnd()-0.5)*6,rnd()*5,nz*5+(rnd()-0.5)*6,1,0.8,0.4,0.35); return true; }
+      if(tv>0){ TK.vx-=nx*tv; TK.vz-=nz*tv; } const tx=TK.x-nx*(R-d), tz=TK.z-nz*(R-d); if(!tankContacts(tx,tz,CT)){ TK.x=tx; TK.z=tz; } } }
+  return false; }
 
 /* ---------- damage ---------- */
 function enemyArea(px,py,pz,radius,power,skipE,kind){ const R=radius*(kind==='shell'?2.2:1.3), base=kind==='shell'?42:5; zontBlast(px,py,pz,R,base*power*0.8);
@@ -176,11 +185,11 @@ function launchBomb(h){ const a=Math.atan2(TK.x-h.x,TK.z-h.z)+(rnd()-0.5)*1.4, d
 function dieHive(e,dx,dz,src){ const x=e.x, z=e.z; deathFx(x,2,z,2.2); explode(x,1.6,z,2.6,1.6,0,-1,0,'shell',null,1.5,e);
   const n=2+Math.min(3,5-e.bombs.length); for(let k=0;k<n;k++) later(0.18+k*0.17,()=>{ const a=rnd()*TAU, r=1+rnd()*2; explode(x+Math.cos(a)*r,0.8,z+Math.sin(a)*r,1.4,1.1,0,-1,0,'shell',null,0,null); });
   for(const g of e.hpet){ const c=new THREE.Vector3(); g.getWorldPosition(c); gibMeshes([g],c,null,(rnd()-0.5)*10,7+rnd()*5,(rnd()-0.5)*10,0.3); }
-  dropScrap(x,z,40,2); eRemove(e); }
+  dropScrap(x,z,50,2); eRemove(e); }
 
 /* ================= 4. FACTORY — walking spawner with drones ================= */
 function dieFactory(e,dx,dz,src){ deathFx(e.x,e.y,e.z,2.6); explode(e.x,e.y-1,e.z,2.8,1.5,0,-1,0,'shell',null,1.4,e); later(0.25,()=>explode(e.x+1,1.5,e.z-1,1.8,1,0,-1,0,'shell',null,0,null));
-  legGibs(e,dx,dz,null,4); bodyGib(e,null,dx,dz,2,1.4); for(const d of DRONES) if(d.f===e&&!d.dead) droneDie(d,(rnd()-0.5),(rnd()-0.5),true); dropScrap(e.x,e.z,100,3); eRemove(e); }
+  legGibs(e,dx,dz,null,4); bodyGib(e,null,dx,dz,2,1.4); for(const d of DRONES) if(d.f===e&&!d.dead) droneDie(d,(rnd()-0.5),(rnd()-0.5),true); dropScrap(e.x,e.z,125,3); eRemove(e); }
 function dronesUpdate(dt){ for(let i=DRONES.length-1;i>=0;i--){ const d=DRONES[i]; if(d.dead){ DRONES.splice(i,1); continue; } const f=d.f; d.t+=dt;
   let tx=f.x, tz=f.z, ty=f.y+3.5;
   if(d.state==='orbit'){ d.ang+=dt*0.8; tx=f.x+Math.cos(d.ang)*4.5; tz=f.z+Math.sin(d.ang)*4.5; ty=f.y+3.2;
@@ -198,7 +207,7 @@ function dronesUpdate(dt){ for(let i=DRONES.length-1;i>=0;i--){ const d=DRONES[i
 
 /* ================= 5. BULL — braced gunner ================= */
 const _mz=new THREE.Vector3();
-function dieBull(e,dx,dz,src){ deathFx(e.x,e.y,e.z,1.6); legGibs(e,dx,dz,null,5); bodyGib(e,null,dx,dz,4,0.7); dropScrap(e.x,e.z,25,e.y); if(rnd()<0.22) makePickup('ammo',e.x+(rnd()-0.5)*2,e.z+(rnd()-0.5)*2,0); eRemove(e); }
+function dieBull(e,dx,dz,src){ deathFx(e.x,e.y,e.z,1.6); legGibs(e,dx,dz,null,5); bodyGib(e,null,dx,dz,4,0.7); dropScrap(e.x,e.z,31,e.y); if(rnd()<0.22) makePickup('ammo',e.x+(rnd()-0.5)*2,e.z+(rnd()-0.5)*2,0); eRemove(e); }
 
 /* ================= 6. LAMP — sniper disguised as a streetlight ================= */
 const _lp=new THREE.Vector3();
@@ -207,10 +216,11 @@ function lampLOS(ax,ay,az,bx,by,bz){ // thin walls pass, thick block
   for(let i=1;i<n;i++){ const t=i/n, x=ax+dx*t, y=ay+dy*t, z=az+dz*t; if(y<0) return {clear:false,t}; const s=get(Math.floor(x/VS),Math.floor(y/VS),Math.floor(z/VS)); if(s) return {clear:false,t}; }
   return {clear:true,t:1}; }
 function updLamp(e,dt){ const dx=TK.x-e.x, dz=TK.z-e.z, d=Math.max(1e-3,Math.hypot(dx,dz)); e.t+=dt; e.g.updateMatrixWorld(true); e.lampPos.getWorldPosition(_lp);
-  const tY=TK.y+1.3; let see=false; if(d<(STL.on?Math.min(22,STL_R[UP.abl|0]):22)&&!TK.dead){ e.losT=(e.losT||0)-dt; if(e.losT<=0){ e.losT=0.25; e.seeC=lampLOS(_lp.x,_lp.y,_lp.z,TK.x,tY,TK.z).clear; } see=e.seeC; if(see&&!e.seenL&&STL.on) stealthSpotted(); e.seenL=see; }
+  const tY=TK.y+1.3; let see=false; if(e.alertT>0) e.alertT-=dt; const sR=e.alertT>0?Math.min(46,Math.max(22,d+3)):(STL.on?Math.min(22,STL_R[UP.abl|0]):22); if(d<sR&&!TK.dead){ e.losT=(e.losT||0)-dt; if(e.losT<=0){ e.losT=0.25; e.seeC=lampLOS(_lp.x,_lp.y,_lp.z,TK.x,tY,TK.z).clear; } see=e.seeC; if(see&&!e.seenL&&STL.on) stealthSpotted(); e.seenL=see; }
   let heatT=0; const eng=engageNow(e,d,16,see&&e.state!=='disguise');
   switch(e.state){
-  case 'disguise': eBrake(e,dt,4); e.idleT=(e.idleT||0)+dt; if(!see&&e.idleT>20){ e.idleT=0; const p=pickNear(e.x+(rnd()-0.5)*24,e.z+(rnd()-0.5)*24,1.2); if(p){ e.state='move'; e.t=0; e.mv={x:p[0],z:p[1]}; } break; } if(see){ e.idleT=0; e.state='charge'; e.t=0; e.aggro=true; e.bx=TK.x; e.by=tY; e.bz=TK.z; sfxCharge(1); } break;
+  case 'disguise': eBrake(e,dt,4); e.idleT=(e.idleT||0)+dt; if(!see&&e.alertT>0&&e.idleT>1.5){ e.idleT=0; const ux=(TK.x-e.x)/d, uz=(TK.z-e.z)/d, p=pickNear(e.x+ux*Math.min(12,d*0.5),e.z+uz*Math.min(12,d*0.5),1.2); if(p){ e.state='move'; e.t=0; e.mv={x:p[0],z:p[1]}; } break; } /* v30.8: shot at from out of sight — moves up to find a line */
+    if(!see&&e.idleT>20){ e.idleT=0; const p=pickNear(e.x+(rnd()-0.5)*24,e.z+(rnd()-0.5)*24,1.2); if(p){ e.state='move'; e.t=0; e.mv={x:p[0],z:p[1]}; } break; } if(see){ e.idleT=0; e.state='charge'; e.t=0; e.aggro=true; e.bx=TK.x; e.by=tY; e.bz=TK.z; sfxCharge(1); } break;
   case 'charge': eBrake(e,dt,4); heatT=1; if(!see){ e.lostC=(e.lostC||0)+dt; if(e.lostC>0.5){ e.state='disguise'; e.t=0; e.lostC=0; e.idleT=0; break; } } else e.lostC=0; e.bx+=(TK.x-e.bx)*Math.min(1,dt*2.6); e.by+=(tY-e.by)*Math.min(1,dt*2.6); e.bz+=(TK.z-e.bz)*Math.min(1,dt*2.6);
     { const k=Math.min(1,e.t/1.5), R=EYE_RED; LINES.push(_lp.x,_lp.y,_lp.z,e.bx,e.by,e.bz,R[0]*k*0.7,R[1]*k*0.7,R[2]*k*0.7,0.3); }
     if(e.t>1.5){ beamShot(e); e.state='cool'; e.t=0; e.shots++; } break;
@@ -235,7 +245,7 @@ function fallersUpdate(dt){ for(let i=FALLERS.length-1;i>=0;i--){ const f=FALLER
   const th=Math.min(f.th,Math.PI/2), sx=Math.sin(f.fa), sz=Math.cos(f.fa); e.g.position.set(f.px+sx*Math.sin(th)*f.H,f.py+Math.cos(th)*f.H,f.pz+sz*Math.sin(th)*f.H);
   e.g.rotation.set(0,0,0); e.g.rotateOnWorldAxis(new THREE.Vector3(sz,0,-sx),th);
   if(f.th>=Math.PI/2){ for(let k=1;k<=4;k++){ const r=f.H*k/4; later(k*0.06,()=>explode(f.px+sx*r,0.8,f.pz+sz*r,1.2,0.8,0,-1,0,'shell',null,0,null)); }
-    shake=Math.min(1,shake+0.4); dropScrap(f.px+sx*f.H*0.8,f.pz+sz*f.H*0.8,30,1); const c=new THREE.Vector3(); e.body.getWorldPosition(c); gibMeshes([e.body],c,null,sx*2,3,sz*2,0.4); scene.remove(e.g); scene.remove(e.lg); FALLERS.splice(i,1); } } }
+    shake=Math.min(1,shake+0.4); dropScrap(f.px+sx*f.H*0.8,f.pz+sz*f.H*0.8,38,1); const c=new THREE.Vector3(); e.body.getWorldPosition(c); gibMeshes([e.body],c,null,sx*2,3,sz*2,0.4); scene.remove(e.g); scene.remove(e.lg); FALLERS.splice(i,1); } } }
 
 function eIntegrate(e,dt){
   if(!eFree(e.x,e.z,e.r*0.85)){ e.unst=(e.unst||0)+dt; if(e.unst>0.25){ const s=freeSpot(e.x,e.z,e.r); const dx=s[0]-e.x, dz=s[1]-e.z, l=Math.hypot(dx,dz); if(l>0.01){ const st=Math.min(l,4*dt+0.02); e.x+=dx/l*st; e.z+=dz/l*st; } e.vx*=0.5; e.vz*=0.5; return; } } else e.unst=0;
@@ -254,8 +264,11 @@ function armFx(e,k,ux,uz){ if(k>0.8&&k<1.2) return; const now=performance.now();
 function enemyHit(e,dmg,dx,dz,kb,src){ if(e.dead||dmg<=0) return; if(e.inv){ if(src!=='area'&&(dx||dz)){ const l=Math.hypot(dx,dz)||1; armFx(e,0.5,dx/l,dz/l); } return; }
   const AZ=ARMZ[e.type]; if(AZ&&src!=='ram'&&src!=='area'&&(dx||dz)){ const l=Math.hypot(dx,dz)||1, f=(Math.sin(e.h)*dx+Math.cos(e.h)*dz)/l, k=f<-0.38?AZ[0]:f>0.38?AZ[2]:AZ[1]; dmg*=k; armFx(e,k,dx/l,dz/l); }
   if(e.onHit) e.onHit(e,dmg,dx,dz,src); e.hp-=dmg; e.flash=1; e.slow=Math.min(1,e.slow+Math.min(0.5,dmg/40)); const inv=1/(e.mass||1); e.kx+=dx*(kb||0)*inv; e.kz+=dz*(kb||0)*inv; e.aggro=true; e.hurtT=3; e.last={x:TK.x,z:TK.z}; e.lostT=0;
+  if(src!=='area'||Math.hypot(TK.x-e.x,TK.z-e.z)<40) eAlert(e);
   if(e.type==='bull'&&e.hp>0&&(e.aimImm||0)<=0&&['brace','laser','fire'].includes(e.state)){ e.aimImm=1.3; e.state='brace'; e.t=0.15; e.shots=0; e.h+=(rnd()-0.5)*0.5; if(e.aim){ e.aim.x+=(rnd()-0.5)*6; e.aim.z+=(rnd()-0.5)*6; } sparkBurst(e.x,e.y+0.5,e.z,6); }
   if(e.hp<=0) killEnemy(e,dx,dz,src); }
+/* v30.8: a hit puts the robot (and its neighbours within 16 m) on alert — see ePerceive */
+function eAlert(e){ if(e.boss) return; e.alertT=15; for(const o of ENEMIES){ if(o===e||o.dead||o.boss||o.xf||o.fromBoss||Math.hypot(o.x-e.x,o.z-e.z)>16) continue; o.aggro=true; o.alertT=Math.max(o.alertT||0,10); o.last={x:TK.x,z:TK.z}; o.lostT=0; if(o.act) lifeStop(o); } }
 function sparkBurst(x,y,z,n){ const sc=mix3(P.glow,[1,1,1],0.5); for(let k=0;k<n;k++) spark(x,y,z,(rnd()-0.5)*8,rnd()*6,(rnd()-0.5)*8,sc[0],sc[1],sc[2],0.25+rnd()*0.2); }
 function killEnemy(e,dx,dz,src){ if(e.dead) return; e.dead=true; e.lockable=false; e.flash=0; for(const m of e.mats) m.emissive.setRGB(0,0,0); if(e.shadow) e.shadow.visible=false;
   ETYPE[e.type].die(e,dx||0,dz||0,src); onKill(e); fxKill(e); drvKill(e.type,src,e); }

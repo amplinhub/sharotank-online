@@ -37,11 +37,11 @@ function tankUpdate(dt,inp){
   if(n&&speed>2.5&&!LOC.safe){ const pow=speed*0.6*CHc.ram; let smashed=0, hardSum=0;
     for(let k=0;k<CT.length;k+=6){ const m=CT[k+3]; if(MD[m].hard<=pow){ hardSum+=ram(CT[k],CT[k+1],CT[k+2],pow); smashed++; } }
     if(smashed){ n=tankContacts(nx,nz,CT); const slow=Math.pow(0.5,dt*smashed*0.8); TK.vx*=slow; TK.vz*=slow;
-      if(hardSum>0) damageTank(hardSum*0.005*(UP.armor>=2?0.5:1)/CHc.ram,TK.vx,TK.vz,0); } }
+      if(hardSum>0) damageTank(hardSum*0.005*(UP.armor>=2?0.5:1)/CHc.ram*(CHc.colK||1),TK.vx,TK.vz,0); } }
   if(n){ let sx=0,sz=0; for(let k=0;k<CT.length;k+=6){ sx-=CT[k+4]; sz-=CT[k+5]; } const l=Math.hypot(sx,sz)||1; sx/=l; sz/=l;
     const vn=TK.vx*sx+TK.vz*sz; if(vn<0){ TK.vx-=vn*sx*1.12; TK.vz-=vn*sz*1.12; const imp=-vn;
       if(imp>2.5){ const fw=-(sx*nfx+sz*nfz), sd=-(sx*nfz-sz*nfx); TK.pitchV+=imp*0.09*fw; TK.rollV+=imp*0.07*sd; shake=Math.min(1,shake+imp*0.025); sfxThud(Math.min(1,imp/10)); sfxClank(Math.min(1,imp/8));
-        if(imp>4) damageTank((imp-4)*0.8*(UP.armor>=2?0.5:1),-sx,-sz,0);
+        if(imp>4) damageTank((imp-4)*0.8*(UP.armor>=2?0.5:1)*(chs().colK||1),-sx,-sz,0) /* v30.8: heavy machines (colK) shrug off crashes */;
         const dc=mix3(P.mid,P.bg,0.3); for(let k=0;k<3;k++) SMOKE.spawn(TK.x-sx*1.4,0.8,TK.z-sz*1.4,(rnd()-0.5)*2,0.8,(rnd()-0.5)*2,1,1.2,0.9,0.45,dc[0],dc[1],dc[2]); } }
     if(vn<0&&-vn>0.6&&-vn<=2.5) sfxClank(Math.min(0.5,-vn/6));
     if(speed>1.2){ scrapeT-=dt; if(scrapeT<=0){ scrapeT=0.12; sfxScrape(Math.min(1,speed/8)); if(rnd()<0.6) spark(TK.x-sx*1.5,0.6,TK.z-sz*1.5,(rnd()-0.5)*3,1+rnd()*2,(rnd()-0.5)*3,1,0.8,0.4,0.25); } }

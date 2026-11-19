@@ -33,7 +33,8 @@ const TUT_HINTS={
 
 function tutLoad(hadSave){ let d=null; try{ d=JSON.parse(localStorage.getItem(TUT_KEY)||'null'); }catch(_){ d=null; }
   if(d&&typeof d==='object'){ TUT.done=!!d.done; TUT.hints=d.h&&typeof d.h==='object'?d.h:{}; }
-  else if(hadSave){ TUT.done=true; TUT.hints={lock:1,repair:1}; tutSave(); } }   /* players from before v30.7 skip it */
+  else if(hadSave){ TUT.done=true; TUT.hints={lock:1,repair:1}; tutSave(); }
+  else { ST.scrap+=500; TUT.bonus=true; tutSave(); } }   /* v30.8: welcome bonus for a brand-new player */   /* players from before v30.7 skip it */
 function tutSave(){ try{ localStorage.setItem(TUT_KEY,JSON.stringify({done:TUT.done?1:0,h:TUT.hints})); }catch(_){} }
 function tutHelpMode(){ $('#help').classList.toggle('fresh',!TUT.done); $('#bGo').textContent=TUT.done?'Продолжить':'Поехали'; }
 const tutKb=()=>document.body.classList.contains('kbm');

@@ -67,7 +67,8 @@ function rdMake(){ const g=new THREE.Group(), add=(geo,mat,x,y,z,sx,sy,sz,par)=>
 function rdLocal(lx,ly,lz,out){ const ch=Math.cos(TK.h), sh=Math.sin(TK.h); out.set(TK.x+lx*ch+lz*sh,TK.y+ly,TK.z-lx*sh+lz*ch); return out; }
 const _rt=new THREE.Vector3(), _rp=new THREE.Vector3();
 function rdUpdate(dt,t){ const want=Math.max(0,Math.min(2,UP.rdr|0)); while(RDR.list.length<want) RDR.list.push(rdMake()); while(RDR.list.length>want){ const d=RDR.list.pop(); scene.remove(d.g); }
-  const need=!TK.dead&&(TK.hp<maxHP()-0.3||TK.dmgS.some(v=>v>0.01))&&Math.hypot(TK.vx,TK.vz)<ENG_V[UP.engine]*chs().spd*0.7, still=Math.hypot(TK.vx,TK.vz)<0.6, rate=still?1.8:1;
+  /* v30.8: works only while armour is missing — scorch marks on the sides used to keep the drones welding at full armour */
+  const need=!TK.dead&&TK.hp<maxHP()-0.3&&Math.hypot(TK.vx,TK.vz)<ENG_V[UP.engine]*chs().spd*0.7, still=Math.hypot(TK.vx,TK.vz)<0.6, rate=still?1.8:1;
   RDR.list.forEach((d,i)=>{ d.g.visible=!transit; if(d.loc!==LOC_ID){ d.loc=LOC_ID; rdLocal(i?-2.4:2.4,3.4,-1.8,d.p); d.v.set(0,0,0); d.st='follow'; }
     d.cool-=dt; d.snd-=dt;
     if(d.st==='follow'&&need&&d.cool<=0){ let best=-1, bv=-1; TK.dmgS.forEach((v,k)=>{ const s=v+rnd()*0.08; if(s>bv&&!RDR.list.some(o=>o!==d&&o.st!=='follow'&&o.part===k)){ bv=s; best=k; } }); d.part=best<0?(rnd()*5)|0:best; d.st='go'; d.goT=0; }
@@ -82,7 +83,7 @@ function rdUpdate(dt,t){ const want=Math.max(0,Math.min(2,UP.rdr|0)); while(RDR.
     else if(d.st==='weld'){ d.wt-=dt; const tip=_rp; for(let n=0;n<3;n++) spark(tip.x,tip.y+0.05,tip.z,(rnd()-0.5)*7,1+rnd()*4,(rnd()-0.5)*7,1,0.85+rnd()*0.15,0.5+rnd()*0.4,0.22+rnd()*0.25);
       if(rnd()<0.5) FIRE.spawn(tip.x,tip.y+0.05,tip.z,0,0.3,0,0.35+rnd()*0.25,1,0.06,1,0.75,0.95,1); if(rnd()<0.08) SMOKE.spawn(tip.x,tip.y+0.1,tip.z,0,0.8,0,0.25,1.2,0.6,0.25,0.75,0.78,0.82);
       if(d.snd<=0){ d.snd=0.09+rnd()*0.08; sNz(0.08,'highpass',3000+rnd()*2500,1.2,0.05); }
-      TK.hp=Math.min(maxHP(),TK.hp+1.6*rate*dt); TK.dmgS[d.part]=Math.max(0,TK.dmgS[d.part]-0.05*rate*dt);
+      TK.hp=Math.min(maxHP(),TK.hp+1.6*rate*dt); TK.dmgS[d.part]=Math.max(0,TK.dmgS[d.part]-0.05*rate*dt); if(TK.hp>=maxHP()-0.3){ TK.hp=maxHP(); TK.dmgS.fill(0); }
       if(d.wt<=0){ d.st=rnd()<0.6&&need?'go':'follow'; d.goT=0; d.cool=0.4+rnd()*1.1; if(d.st==='go') d.part=(rnd()<0.5?d.part:(rnd()*5)|0); } }
     d.tip.visible=d.st==='weld'&&rnd()<0.8; d.g.position.copy(d.p); d.g.rotation.y=turnTo(d.g.rotation.y,TK.h,dt*3);
     const ch=Math.cos(d.g.rotation.y), sh=Math.sin(d.g.rotation.y), lvx=d.v.x*ch-d.v.z*sh, lvz=d.v.x*sh+d.v.z*ch;
@@ -148,7 +149,7 @@ function flagBuild(){ if(FLG.g){ scene.remove(FLG.g); FLG.g=null; } if(!MS.activ
   if(!FLG.guarded[MS.i]){ FLG.guarded[MS.i]=true; const n=3+Math.min(2,MS.i>>3); for(let k=0;k<n;k++){ const a=k/n*TAU+rnd()*0.5, q=pickNear(p[0]+Math.cos(a)*7,p[1]+Math.sin(a)*7,1); if(!q) continue; const t=k===0&&MS.i>3?'bull':'jian'; const e=spawnEnemy(t,q[0],q[1],t==='bull'?{mod:'ac'}:null); e.home={x:p[0],z:p[1]}; } } }
 function flagUpdate(dt,t){ const m=MS.active?missionAt(MS.i):null; const on=m&&m.k==='flag';
   if(FLG.g){ if(!on||MS.flag){ scene.remove(FLG.g); FLG.g=null; } else { flagWave(FLG.cloth,t,1); FLG.g.children[3].material.opacity=0.55+0.4*Math.sin(t*5);
-      if(!TK.dead&&Math.hypot(TK.x-FLG.x,TK.z-FLG.z)<2.6){ MS.flag=true; scene.remove(FLG.g); FLG.g=null; sfxPickup(1); toast('Флаг у тебя · доставь его в штаб'); popText(TK.x,TK.y+2.6,TK.z,'флаг захвачен','ammo'); objUI(); save(); } } }
+      if(!TK.dead&&Math.hypot(TK.x-FLG.x,TK.z-FLG.z)<2.6){ MS.flag=true; scene.remove(FLG.g); FLG.g=null; sfxPickup(1); if(missionAt(MS.i).title==='Карта путей') flagAmbush(); toast('Флаг у тебя · доставь его в штаб'); popText(TK.x,TK.y+2.6,TK.z,'флаг захвачен','ammo'); objUI(); save(); } } }
   const carry=on&&MS.flag&&!transit; if(carry&&!FLG.carry){ const f=flagMesh(0.62); FLG.carry=f; } if(!carry&&FLG.carry){ scene.remove(FLG.carry.g); FLG.carry=null; }
   if(FLG.carry){ const g=FLG.carry.g; rdLocal(-0.55,1.25,-1.3,_rt); g.position.copy(_rt); g.rotation.set(0,TK.h+Math.PI/2,0); flagWave(FLG.carry.cloth,t,1+Math.min(1.5,Math.hypot(TK.vx,TK.vz)*0.15));
     if(TK.dead){ MS.flag=false; toast('Флаг потерян · он вернулся на место'); objUI(); save(); }
@@ -263,6 +264,11 @@ function vBlip(base){ const ctx=SND.ctx; if(!ctx||SND.muted) return; const t=ctx
   g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.17,t+0.004); g.gain.exponentialRampToValueAtTime(0.0001,t+0.055); o.connect(f); f.connect(g); g.connect(SND.master); o.start(t); o.stop(t+0.07); }
 function vSeek(){ sNz(0.02,'bandpass',1500+rnd()*1200,3,0.16); sO(120,70,0.03,0.09,'square'); }
 function vKey(){ sO(1500,1100,0.025,0.12,'square'); sNz(0.18,'bandpass',2800,0.6,0.09); }
+/* v30.8: «Карта путей» — with the map on board, two «Бизоны» step out at the exit you came in by (out of sight) and block the way */
+function flagAmbush(){ const c=WX/2, ex=ENTRY.x, ez=ENTRY.z, nx=c-ex, nz=c-ez, l=Math.hypot(nx,nz)||1, ux=nx/l, uz=nz/l;
+  for(const s of [-1,1]){ let p=null; for(const k of [9,12,15,7]){ const x=ex+ux*k-uz*s*3.4, z=ez+uz*k+ux*s*3.4; p=pickNear(x,z,1.1); if(p&&(Math.hypot(p[0]-TK.x,p[1]-TK.z)>32||!losClear(TK.x,TK.y+1.4,TK.z,p[0],1.9,p[1]))) break; }
+    if(!p) continue; const e=spawnEnemy('bull',p[0],p[1],{mod:s>0?'ac':'mg'}); e.home={x:p[0],z:p[1]}; e.h=Math.atan2(-ux,-uz); e.guard=true; dustAt(p[0],p[1],1); }
+  later(1.5,()=>radioSay('Водитель, у выезда, которым ты въехал, два «Бизона». Выход перекрыт — пробивайся или ищи обход.')); }
 function radioStop(fin){ if(VOICE.timer){ clearInterval(VOICE.timer); VOICE.timer=null; } if(VOICE.el&&fin) VOICE.el.textContent=VOICE.text; if(VOICE.av) VOICE.av.classList.remove('talk'); const d=VOICE.done; VOICE.done=null; if(fin&&d) d(); }
 function radioType(el,text,av,done){ radioStop(false); Object.assign(VOICE,{el,text,i:0,av,done}); el.textContent=''; av.classList.add('talk'); vKey(); let pause=0; const base=150+rnd()*30;
   VOICE.timer=setInterval(()=>{ if(pause>0){ pause--; return; } const ch=text[VOICE.i++]; if(ch==null){ vKey(); radioStop(true); return; } el.textContent=text.slice(0,VOICE.i); if(el.id==='mcBrief'){ const c=el.closest('#mcard'); if(c&&c.scrollHeight>c.clientHeight+2){ const r=el.getBoundingClientRect(), cr=c.getBoundingClientRect(); if(r.bottom>cr.bottom-4) c.scrollTop+=r.bottom-cr.bottom+8; } }
@@ -341,7 +347,7 @@ function dieKatok(e,dx,dz,src){ deathFx(e.x,e.y+1.3,e.z,2.4); explode(e.x,e.y+1,
   e.g.updateMatrixWorld(true); const c=new THREE.Vector3(); e.tur.getWorldPosition(c); gibMeshes([e.tur],c,null,dx*2+(rnd()-0.5)*3,10+rnd()*3,dz*2+(rnd()-0.5)*3,0.7); e.tur.visible=false;
   const hull=bodyGib(e,null,dx,dz,0.4,0.9); hull.v.set(dx*0.6,1.2,dz*0.6); hull.w.multiplyScalar(0.08);
   for(let k=1;k<14;k++) later(k*0.32,()=>{ const p=hull.m.position; for(let n=0;n<3;n++) FIRE.spawn(p.x+(rnd()-0.5)*1.6,p.y+0.6+rnd()*0.6,p.z+(rnd()-0.5)*1.6,(rnd()-0.5),2+rnd()*2,(rnd()-0.5),0.9+rnd()*0.6,1.5,0.5,1,1,0.55,0.2); SMOKE.spawn(p.x,p.y+1.4,p.z,(rnd()-0.5),2.4,(rnd()-0.5),1,2.2,2,0.6,0.07,0.07,0.08); });
-  dropScrap(e.x,e.z,60,e.y+1); if(rnd()<0.3) makePickup('ammo',e.x+(rnd()-0.5)*3,e.z+(rnd()-0.5)*3,0); eRemove(e); }
+  dropScrap(e.x,e.z,75,e.y+1); if(rnd()<0.3) makePickup('ammo',e.x+(rnd()-0.5)*3,e.z+(rnd()-0.5)*3,0); eRemove(e); }
 
 /* ---- «Зонт»: support robot that keeps its allies under a shield dome ---- */
 const ZR=7, domeGeo=new THREE.IcosahedronGeometry(1,2), domeEdges=new THREE.EdgesGeometry(new THREE.IcosahedronGeometry(1,1));
@@ -385,6 +391,6 @@ function updZont(e,dt){ e.t+=dt; ePerceive(e,dt,30,1); e.ztT-=dt; if(e.ztT<=0){ 
   e.umb.rotation.y+=dt*(on?2.4:0.3); if(e.eyeM) e.eyeM.color.setRGB(on?0.5:1,on?0.91:0.3,on?1:0.25); }
 function dieZont(e,dx,dz,src){ deathFx(e.x,e.y+0.8,e.z,1.1); legGibs(e,dx,dz,null,4); bodyGib(e,null,dx,dz,4,0.5); sO(700,90,0.5,0.1,'sawtooth');
   const gy=groundH(e.x,e.z); if(e.down<=0) for(let k=0;k<24;k++){ const a=rnd()*TAU, b=rnd()*1.3; spark(e.x+Math.cos(a)*Math.cos(b)*ZR,gy+Math.sin(b)*ZR,e.z+Math.sin(a)*Math.cos(b)*ZR,0,-3,0,0.5,0.95,1,0.5); }
-  dropScrap(e.x,e.z,14,e.y); eRemove(e); }
+  dropScrap(e.x,e.z,18,e.y); eRemove(e); }
 
 ETYPE.katok={build:buildKatok,update:updKatok,die:dieKatok}; ETYPE.zont={build:buildZont,update:updZont,die:dieZont}; ER.katok=2.15; ER.zont=0.95;

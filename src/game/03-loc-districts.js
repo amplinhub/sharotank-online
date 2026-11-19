@@ -172,7 +172,7 @@ function boat(x,z,ax){ lbox(x,z,ax,-2.6,2.6,-0.75,0.75,0,0.35,M.WOOD); lbox(x,z,
 
 /* ================= LOCATION: CAMP (centre, safe) ================= */
 const CAMP_TREES=[];
-function campTree(x,z,dx,dz){ CAMP_TREES.push([x-dx*0.5,z-dz*0.5]); LAMPS.push({x:x+dx*0.45,y:3.1,z:z+dz*0.45,r:4.2,col:'lamp',size:2.2,keep:true}); }
+function campTree(x,z,dx,dz){ CAMP_TREES.push([x-dx*0.5,z-dz*0.5]); } /* v30.8: no light in the crowns any more (looked like glowing trees) */
 function hangar(x0,z0,w,d){ FLOORS.push([x0,z0,x0+w,z0+d,'conc']); const H=4.2, R=w/2, cx=x0+w/2, th=Math.max(VS,0.4);
   shell(x0,z0,x0+w,z0+d,0,H,(side,u,v)=>{ if(side===1) return -1; if(side===0) return M.ARMY; return (u%3)<0.35?M.DARK:((v>2.6&&v<3.5&&(u%3)>1)?M.WIN:M.ARMY); },0.4);
   const a=c(x0),b=c(x0+w),f=c(z0),g=c(z0+d);
@@ -246,14 +246,12 @@ function genCamp(R){
   for(const [x,z] of [[34.4,0.6],[45.6,0.6],[34.4,79.4],[45.6,79.4],[0.6,34.4],[0.6,45.6],[79.4,34.4],[79.4,45.6]]) post(x,z);
   for(const [x,z] of [[33.4,1.6],[46.6,78.4],[1.6,46.6],[78.4,33.4]]) box(x-0.15,0,z-0.15,x+0.15,6,z+0.15,(X,Y,Z)=>(Math.floor(Y*VS/0.6)%2)?M.AWN:M.WALL);
   hangar(8,6,14,18);
-  crates(26,8); crates(27,12); cyl(28.5,19,1.1,0,2.6,M.ARMY); cyl(28.5,22,1.1,0,2.6,M.ARMY);
+  /* v30.8: crates, barrels and sandbag walls are pushable meshes now (CAMP_PUSH in 29-camp) */ cyl(28.5,19,1.1,0,2.6,M.ARMY); cyl(28.5,22,1.1,0,2.6,M.ARMY);
   for(const tx of [50,58,66]){ tent(tx,4,6,8); tent(tx,16,6,8); }
   hqBuilding(59,25);
   watchtower(75,5); watchtower(5,75); flagpole(47.5,30.5);
   truck(6,54,false); for(const [x,z,id] of FLEET_AT) fleetHull(x,z,id);
-  truck(8,70,true); cyl(31.4,75,1.1,0,2.4,M.ARMY); cyl(33.6,73.4,1.1,0,2.4,M.ARMY);
-  sandbags(46.5,71,53.5,72,1.1); sandbags(66,49,77,50,1.1); sandbags(76,50,77,58,1.1);
-  crates(52,74); crates(56,75); crates(73,72);
+  truck(8,70,true);
   for(let k=0;k<8;k++){ const a=k/8*TAU; box(62+Math.cos(a)*6.4-0.15,0,62+Math.sin(a)*6.4-0.15,62+Math.cos(a)*6.4+0.15,0.25,62+Math.sin(a)*6.4+0.15,M.LAMP); }
   /* v30.3: no lamp posts in the camp — bendable trees (meshes, 29-camp) with the light kept in their crowns */
   CAMP_TREES.length=0;

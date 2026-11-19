@@ -16,7 +16,31 @@ function mirrorHalf(axis,lamp0){ if(axis==='z'){ const hz=NZ>>1; for(let y=0;y<N
   else { const hx=NX>>1; for(let y=0;y<NY;y++) for(let z=0;z<NZ;z++){ const r=NX*(z+NZ*y); for(let x=0;x<hx;x++) grid[r+NX-1-x]=grid[r+x]; } }
   const n=LAMPS.length; for(let i=lamp0;i<n;i++){ const l=Object.assign({},LAMPS[i]); if(axis==='z') l.z=WZ-l.z; else l.x=WX-l.x; LAMPS.push(l); } }
 /* side helper: s=0 first half (as written), s=1 mirrored; X/Z map a first-half coordinate to the given side */
-const ARENA={piles:[],panes:[],pads:[],bases:[],ring:null};
+const ARENA={piles:[],panes:[],pads:[],bases:[],ring:null,rides:[]};
+/* ---- v30.8: «Выс» — animated luna-park rides (meshes over the voxel frames); they stop when their column is shot away ---- */
+let RMAT=null; function rideMats(){ if(RMAT) return RMAT; const T=c=>new THREE.MeshToonMaterial({color:c,gradientMap:gradTex});
+  RMAT={w:T(0xf3ead6),gold:T(0xe8b04a),red:T(0xd8473a),blue:T(0x3d7fd0),dk:T(0x2a2f34),mt:T(0x9aa3ad),bulb:new THREE.MeshBasicMaterial({color:0xfff1b8}),pink:T(0xe86aa0)}; return RMAT; }
+const RG={box:new THREE.BoxGeometry(1,1,1),cyl:new THREE.CylinderGeometry(0.5,0.5,1,8),sph:new THREE.SphereGeometry(0.5,12,8)};
+function rP(par,g,m,x,y,z,sx,sy,sz,rx,ry,rz){ const o=new THREE.Mesh(g,m); o.position.set(x,y,z); o.scale.set(sx,sy,sz); if(rx||ry||rz) o.rotation.set(rx||0,ry||0,rz||0); par.add(o); return o; }
+function rideSwing(x,z){ const M_=rideMats(), g=new THREE.Group(); g.position.set(x,6.25,z); addExtra(g); const chairs=[];
+  for(let k=0;k<12;k++){ const a=k/12*TAU, pv=new THREE.Group(); pv.position.set(Math.cos(a)*3.4,0,Math.sin(a)*3.4); pv.rotation.y=-a; g.add(pv); const sw=new THREE.Group(); pv.add(sw);
+    for(const s of [-1,1]) rP(sw,RG.cyl,M_.mt,0,-1.65,s*0.17,0.025,3.3,0.025); const c=[M_.red,M_.blue,M_.gold][k%3]; rP(sw,RG.box,c,0,-3.35,0,0.42,0.07,0.38); rP(sw,RG.box,c,-0.19,-3.1,0,0.05,0.45,0.38); rP(sw,RG.box,M_.dk,0.22,-3.5,0,0.05,0.3,0.3); rP(sw,RG.box,M_.mt,0.05,-3.18,0,0.32,0.03,0.4);
+    rP(g,RG.sph,M_.bulb,Math.cos(a+0.26)*3.72,0.15,Math.sin(a+0.26)*3.72,0.12,0.12,0.12); chairs.push(sw); }
+  ARENA.rides.push({k:'swing',g,chairs,x,z,a:0,v:0,t:rnd()*20,dead:false}); }
+function rideCarousel(x,z){ const M_=rideMats(), g=new THREE.Group(); g.position.set(x,0.75,z); addExtra(g); const horses=[];
+  for(let k=0;k<12;k++){ const a=k/12*TAU, r=k%2?3.0:3.9, h=new THREE.Group(); h.position.set(Math.cos(a)*r,0,Math.sin(a)*r); h.rotation.y=-a; g.add(h); rP(h,RG.cyl,M_.gold,0,2.0,0,0.06,4.0,0.06);
+    const b=new THREE.Group(); b.position.y=1.0; h.add(b); const C=k%3===0?M_.w:k%3===1?M_.pink:M_.blue;
+    rP(b,RG.sph,C,0,0,0,0.32,0.36,0.9); rP(b,RG.box,C,0,0.28,0.45,0.18,0.48,0.2,-0.5); rP(b,RG.box,C,0,0.5,0.64,0.16,0.16,0.34); rP(b,RG.box,M_.dk,0,0.62,0.5,0.06,0.18,0.22);
+    for(const [lx,lz,rx] of [[-0.12,0.3,-0.7],[0.12,0.3,-0.5],[-0.12,-0.32,0.6],[0.12,-0.32,0.8]]) rP(b,RG.box,C,lx,-0.28,lz,0.08,0.5,0.08,rx); rP(b,RG.box,M_.red,0,0.2,0,0.34,0.08,0.4); rP(b,RG.box,M_.dk,0,0.05,-0.5,0.06,0.4,0.06,0.6);
+    horses.push({b,ph:k*0.9}); }
+  for(let k=0;k<24;k++){ const a=k/24*TAU; rP(g,RG.sph,M_.bulb,Math.cos(a)*6.3,4.1,Math.sin(a)*6.3,0.13,0.13,0.13); }
+  ARENA.rides.push({k:'car',g,horses,x,z,a:0,v:0,t:rnd()*20,dead:false}); }
+function ridesUpdate(dt){ const L=ARENA.rides; if(!L||!L.length) return;
+  for(const r of L){ if(r.dead){ if(r.g.visible){ r.fy=(r.fy||0)-12*dt; r.g.position.y+=r.fy*dt; r.g.rotation.z+=dt*0.6; if(r.g.position.y<-6) r.g.visible=false; } continue; }
+    r.chk=(r.chk||0)-dt; if(r.chk<=0){ r.chk=1; if(!get(Math.floor(r.x/VS),Math.floor(3/VS),Math.floor(r.z/VS))){ r.dead=true; continue; } }
+    r.t+=dt; const cyc=r.t%32, want=cyc<5?0:cyc<26?1:0; r.v+=((want?(r.k==='swing'?1.25:0.6):0)-r.v)*Math.min(1,dt*0.35); r.a+=r.v*dt; r.g.rotation.y=r.a;
+    if(r.k==='swing'){ const th=0.08+0.62*Math.min(1,r.v/1.25); for(const c of r.chairs) c.rotation.z+=(th-c.rotation.z)*Math.min(1,dt*2); }
+    else for(const h of r.horses){ h.b.position.y=1.0+Math.sin(r.a*3+h.ph)*0.35*Math.min(1,r.v/0.6+0.15); } } }
 function sideXZ(axis,s,x,z){ return s?(axis==='z'?[x,WZ-z]:[WX-x,z]):[x,z]; }
 function arenaEdge(gate,mat,h){ const W=WX, c0=W/2-5.5, c1=W/2+5.5, t=0.6, w=(x0,z0,x1,z1)=>box(x0,0,z0,x1,h,z1,mat);
   if(gate==='N'){ w(0.1,0.1,c0,t); w(c1,0.1,W-0.1,t); } else w(0.1,0.1,W-0.1,t);
@@ -105,6 +129,12 @@ function iceKiosk(x,z,ax,col){ lbox(x,z,ax,-1.1,1.1,-0.7,0.7,0.35,1.3,LF(x,z,ax,
 function popcorn(x,z){ box(x-0.8,0,z-0.55,x+0.8,0.25,z+0.55,M.DARK); box(x-0.75,0.25,z-0.5,x+0.75,1.1,z+0.5,(X,Y)=>(((X>>1)&1)?M.CRED:M.WALL)); box(x-0.7,1.1,z-0.45,x+0.7,1.9,z+0.45,M.WIN); box(x-0.85,1.9,z-0.6,x+0.85,2.15,z+0.6,M.CRED); box(x-0.4,2.15,z-0.3,x+0.4,2.45,z+0.3,M.TAXI); LAMPS.push({x,y:1.5,z,r:1.1,col:'lamp',size:1}); }
 function balloons(x,z,R){ box(x-0.25,0,z-0.25,x+0.25,0.8,z+0.25,M.WOOD); box(x-0.05,0.8,z-0.05,x+0.05,2.2,z+0.05,M.METAL); const cols=[M.CRED,M.CBLUE,M.TAXI,M.CGRN,M.BLOS,M.CORNG,M.CRED];
   for(let k=0;k<7;k++){ const a=k/7*TAU+R(), r=0.5+R()*0.4, bx=x+Math.cos(a)*r, bz=z+Math.sin(a)*r, by=3.0+R()*0.9; for(let t=0.15;t<1;t+=0.3) box(x+(bx-x)*t-0.04,2.2+(by-2.6)*t-0.04,z+(bz-z)*t-0.04,x+(bx-x)*t+0.04,2.2+(by-2.6)*t+0.04,z+(bz-z)*t+0.04,M.DARK); sphere(bx,by,bz,0.36,cols[k]); } }
+function parkPlanters(x0,z0,x1,z1){ const L=Math.hypot(x1-x0,z1-z0), n=Math.max(2,Math.round(L/3.2));
+  for(let k=0;k<=n;k++){ const f=k/n, x=x0+(x1-x0)*f, z=z0+(z1-z0)*f, t=k%3;
+    box(x-0.7,0,z-0.7,x+0.7,0.5,z+0.7,(X,Y,Z)=>{ const u=(X+0.5)*VS-x, w=(Z+0.5)*VS-z; return Math.max(Math.abs(u),Math.abs(w))>0.52?M.MID:(Y*VS>0.38?M.TRUNK:M.MID); });
+    if(t===0){ sphere(x,1.15,z,0.62,(X,Y,Z)=>hash3(X,Y,Z)<0.1?M.BLOS:M.LEAF); sphere(x,1.9,z,0.34,M.LEAF); }
+    else if(t===1){ for(let i=0;i<4;i++) cyl(x,z,0.62-i*0.14,0.5+i*0.42,0.92+i*0.42,M.LEAF); }
+    else { cyl(x,z,0.12,0.5,1.3,M.TRUNK); sphere(x,1.65,z,0.55,(X,Y,Z)=>hash3(X,Y,Z)<0.25?M.BLOS:M.LEAF); } } }
 function flowerBed(x,z){ cyl(x,z,1.15,0,0.32,M.MID); cyl(x,z,0.9,0.32,0.55,(X,Y,Z)=>hash3(X,Y,Z)<0.45?M.BLOS:M.LEAF); }
 function lounger(x,z,col){ for(const [dx,dz] of [[-0.3,-0.75],[0.3,-0.75],[-0.3,0.85],[0.3,0.85]]) box(x+dx-0.07,0,z+dz-0.07,x+dx+0.07,0.3,z+dz+0.07,M.METAL);
   box(x-0.38,0.3,z-0.5,x+0.38,0.45,z+1.0,col); box(x-0.38,0.45,z-0.75,x+0.38,0.68,z-0.45,col); box(x-0.38,0.68,z-0.95,x+0.38,0.92,z-0.68,col); box(x-0.38,0.92,z-1.12,x+0.38,1.15,z-0.88,col); box(x-0.3,0.45,z+0.6,x+0.3,0.55,z+0.95,M.WALL); }
@@ -319,7 +349,9 @@ function genAuto(R){ arenaEdge('W',M.METAL,1.8); const l0=LAMPS.length;
   for(const z of [69,91]) box(66,0.3,z+(z<80?0.3:-0.9),94,1.0,z+(z<80?0.9:-0.3),M.LEAF);
   for(const x of [64,96]) arenaGlassWall(x,69,x,91,0.55,4.6,7,[80]); for(const z of [69,91]) arenaGlassWall(64,z,96,z,0.55,4.6,10);
   glyphSign(76,5.75,90.6,90.9,'汽车',false,M.DARK,M.NEON,0.5); glyphSign(76,5.75,69.1,69.4,'汽车',false,M.DARK,M.NEON,0.5);
-  for(const [x,z,col,sp] of [[71,74,M.CRED,1],[89,74,M.TAXI,0],[80,80,M.CORNG,1],[71,86,M.CBLUE,0],[89,86,M.CGRN,1]]){ cyl(x,z,2.4,0.3,0.42,M.NEON); sedan(x,z,true,col,x<80?1:-1,sp,0.14); }
+  for(const [x,z,col,sp] of [[71,74,M.CRED,1],[89,74,M.TAXI,0],[80,80,M.CORNG,1],[71,86,M.CBLUE,0],[89,86,M.CGRN,1]]){ cyl(x,z,2.4,0.3,0.42,M.NEON); sedan(x,z,true,col,x<80?1:-1,sp,0.14); vehDetail('showcar',x,z,true,CARS[CARS.length-1],0.14);
+    /* v30.8: four floor spotlights per car — real lamps, they go dark when shot */
+    for(const [dx,dz] of [[-2.9,-2.1],[2.9,-2.1],[-2.9,2.1],[2.9,2.1]]){ const lx=x+dx, lz=z+dz; box(lx-0.22,0.3,lz-0.22,lx+0.22,0.62,lz+0.22,M.METAL); box(lx-0.14,0.62,lz-0.14,lx+0.14,0.74,lz+0.14,M.LAMP); LAMPS.push({x:lx,y:0.7,z:lz,r:3.4,col:'lamp',size:1.5}); } }
   arenaPanes(72.2,74.2,87.8,85.8,5.7,3.12);
   for(const z of [74,86]) for(const x of [58,61]){ box(x-0.1,0,z-0.1,x+0.1,4.4,z+0.1,M.METAL); box(x-0.1,1.6,z-0.6,x+0.1,4.2,z-0.12,[M.CRED,M.NEON][(x>59)|0]); }
   amplinBoard(31,69,true); amplinBoard(155,80,false);
@@ -378,6 +410,7 @@ function chairSwing(x,z){ cyl(x,z,2.1,0,0.45,M.MID); cyl(x,z,1.5,0.45,1.3,M.CBLU
   const ang=(X,Z)=>Math.atan2((Z+0.5)*VS-z,(X+0.5)*VS-x); for(let i=0;i<4;i++){ const rr=3.7-i*0.85, y=6.6+i*0.3; cyl(x,z,rr,y,y+0.32,(X,Y,Z)=>((((ang(X,Z)+Math.PI)/TAU*12)|0)%2)?M.AWN:M.WALL); }
   cyl(x,z,3.75,6.25,6.6,(X,Y,Z)=>{ const d=Math.hypot((X+0.5)*VS-x,(Z+0.5)*VS-z); return d<3.3?-1:((((ang(X,Z)+Math.PI)/TAU*30)|0)%2?M.NEON:-1); }); cyl(x,z,0.6,7.8,8.3,M.NEON); box(x-0.05,8.3,z-0.05,x+0.05,9.1,z+0.05,M.METAL); box(x,8.7,z-0.05,x+0.7,9.05,z+0.05,M.CRED);
   LAMPS.push({x,y:7.1,z,r:2.6,col:'neon',size:2.2});
+  if(Q==='high'){ rideSwing(x,z); rideSwing(WX-x,z); return; } /* v30.8: «Выс» — real spinning chairs on chains (meshes), both halves */
   for(let k=0;k<12;k++){ const a=k/12*TAU, tx=x+Math.cos(a)*3.4, tz=z+Math.sin(a)*3.4, sx=x+Math.cos(a)*4.7, sz=z+Math.sin(a)*4.7; for(let t=0.08;t<0.95;t+=0.14) box(tx+(sx-tx)*t-0.06,6.25+(2.9-6.25)*t-0.06,tz+(sz-tz)*t-0.06,tx+(sx-tx)*t+0.06,6.25+(2.9-6.25)*t+0.06,tz+(sz-tz)*t+0.06,M.METAL);
     obox(sx,2.75,sz,0.34,0.08,0.3,Math.atan2(Math.cos(a),Math.sin(a)),0,0,[M.CRED,M.CBLUE,M.TAXI][k%3]); obox(sx+Math.cos(a)*0.28,3.05,sz+Math.sin(a)*0.28,0.34,0.3,0.08,Math.atan2(Math.cos(a),Math.sin(a)),0,0,[M.CRED,M.CBLUE,M.TAXI][k%3]); } }
 function genPark(R){ arenaEdge('N',M.RUST,1.4); const l0=LAMPS.length;
@@ -394,7 +427,8 @@ function genPark(R){ arenaEdge('N',M.RUST,1.4); const l0=LAMPS.length;
   kiosk2(8,84,4,3,M.CRED); kiosk2(60,20,4,3,M.CBLUE); kiosk2(10,40,4,3,M.TAXI); kiosk2(62,116,4,3,M.CGRN); kiosk2(66,150,4,3,M.CORNG);
   box(6,0,112,15,2.8,116,(X,Y,Z)=>{ const y=(Y+0.5)*VS; return y>1.0&&y<2.2&&(Z+0.5)*VS>115.5?M.DARK:M.WOOD; }); box(5.6,2.8,111.6,15.4,3.05,116.4,M.AWN);
   for(let x=7;x<15;x+=1.6) box(x-0.25,1.3,112.2,x+0.25,1.8,112.4,M.NEON);
-  hedge(28,72,40,73); hedge(26,85,40,86); hedge(66,96,72,112); hedge(66,40,72,54); hedge(4,150,24,151); hedge(30,20,48,21);
+  /* v30.8: the solid hedge blocks (6×14 m dark slabs) are rows of planters with clipped topiaries, gaps between them */
+  parkPlanters(28,72.5,40,72.5); parkPlanters(26,85.5,40,85.5); parkPlanters(69,96,69,112); parkPlanters(69,40,69,54); parkPlanters(4,150.5,24,150.5); parkPlanters(30,20.5,48,20.5);
   for(let z=12;z<=150;z+=14) if(Math.abs(z-80)>18) { lantern(73.5,2.2,z,true); box(73.4,0,z-0.1,73.6,1.85,z+0.1,M.DARK); }
   for(const [x,z] of [[30,55],[22,104],[50,82],[66,134]]) tree(x,z,R,true);
   scatter(R,22,4,4,71,156,1.2,arenaAvoid([[80,80,14],[15,67,12]]),(x,z,k)=>{ const t=k%4; if(t===0) bench(x,z); else if(t===1) binPost(x,z); else if(t===2) flowerBed(x,z); else { bench(x,z); binPost(x+1.4,z); } });
@@ -404,7 +438,7 @@ function genPark(R){ arenaEdge('N',M.RUST,1.4); const l0=LAMPS.length;
   cyl(80,80,7.2,0,0.5,M.TILE); cyl(80,80,6.8,0.5,0.75,M.WOOD); cyl(80,80,1.0,0.75,5.0,M.NEON); for(let k=0;k<12;k++){ const a=k/12*TAU, x=80+Math.cos(a)*5.2, z=80+Math.sin(a)*5.2; box(x-0.06,0.75,z-0.06,x+0.06,4.8,z+0.06,M.METAL); box(x-0.25,1.4+0.4*(k%2),z-0.6,x+0.25,2.1+0.4*(k%2),z+0.6,[M.WALL,M.TAXI,M.CRED][k%3]); }
   for(let i=0;i<8;i++){ const r=7.4-i*0.9, y=4.8+i*0.32; cyl(80,80,r,y,y+0.34,i%2?M.AWN:M.WALL,i===0?0:0.9); } sphere(80,7.6,80,0.5,M.LANT);
   for(let k=0;k<16;k++){ const a=k/16*TAU; LAMPS.push({x:80+Math.cos(a)*7.3,y:4.9,z:80+Math.sin(a)*7.3,r:1.2,col:'neon',size:1.2}); }
-  ringFence(80,80,9.6,[[0,0.2],[Math.PI/2,0.2],[Math.PI,0.2],[-Math.PI/2,0.2]]);
+  ringFence(80,80,9.6,[[0,0.2],[Math.PI/2,0.2],[Math.PI,0.2],[-Math.PI/2,0.2]]); if(Q==='high') rideCarousel(80,80);
   ARENA.lair=[80,80]; ARENA.ring=[[80,40],[110,52],[122,80],[110,110],[80,122],[50,110],[38,80],[50,52]]; }
 function paintPark(s){ const grass=mix3(P.ground,[0.22,0.36,0.2],0.32), path=mix3(P.side,P.wall,0.25), tile=mix3(P.road,P.side,0.6);
   gx.fillStyle=cssA(grass,1); R_(0,0,WX/2,WZ); gx.fillStyle=cssA(path,1); R_(76,0,4,160);

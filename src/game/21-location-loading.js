@@ -24,7 +24,7 @@ function streetDress(id,R){ if(id==='camp'||(LOCS[id]&&LOCS[id].size>80)) return
     n++; return ok; };
   for(const sd of [-1,1]){ const off=40+sd*6.7;
     for(let a=6;a<=74;a+=5.5){ if(Math.abs(a-40)<8.5) continue; tryPut(off,a+R()*0.8,true,sd); tryPut(a+R()*0.8,off,false,sd); } } }
-function rebuild(q){ ready=false; Q=q; mapResize(LOC.size||80); bossFxClear(); ARENA.piles=[]; ARENA.panes=[]; ARENA.lions=null; ARENA.lair=null; ARENA.ring=null; shadowCfg(); const qq=QUALITY[q]; VS=qq.vs; WH=LOC.wh; NX=Math.round(WX/VS); NZ=Math.round(WZ/VS); NY=Math.round(WH/VS); grid=new Uint8Array(NX*NY*NZ);
+function rebuild(q){ ready=false; Q=q; mapResize(LOC.size||80); bossFxClear(); ARENA.piles=[]; ARENA.panes=[]; ARENA.rides=[]; ARENA.lions=null; ARENA.lair=null; ARENA.ring=null; shadowCfg(); const qq=QUALITY[q]; VS=qq.vs; WH=LOC.wh; NX=Math.round(WX/VS); NZ=Math.round(WZ/VS); NY=Math.round(WH/VS); grid=new Uint8Array(NX*NY*NZ);
   CS=q==='low'?24:q==='med'?32:40; CX=Math.ceil(NX/CS); CY=Math.ceil(NY/CS); CZ=Math.ceil(NZ/CS);
   if(chunks) for(const ch of chunks){ if(ch.mesh){ scene.remove(ch.mesh); ch.mesh.geometry.dispose(); } if(ch.smesh){ scene.remove(ch.smesh); ch.smesh=null; } }
   chunks=new Array(CX*CY*CZ); for(let i=0;i<chunks.length;i++){ const cy=Math.floor(i/(CX*CZ)), rem=i-cy*CX*CZ, cz=Math.floor(rem/CX), cx=rem-cz*CX;

@@ -63,11 +63,11 @@ function holdBuild(){ HOLD.active=false; if(HOLD.m){ scene.remove(HOLD.m); scene
   for(let k=0;k<4;k++){ const a=k*Math.PI/2+Math.PI/4, p=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,2.2,6),new THREE.MeshBasicMaterial({color:MCOL})); p.position.set(Math.cos(a)*m.rad,1.1,Math.sin(a)*m.rad); g.add(p); }
   g.position.set(m.x,0.08,m.z); g.renderOrder=3; scene.add(g); HOLD.m=g;
   const cv=document.createElement('canvas'); cv.width=512; cv.height=128; HOLD.lc=cv; HOLD.ltex=new THREE.CanvasTexture(cv); HOLD.label=new THREE.Sprite(new THREE.SpriteMaterial({map:HOLD.ltex,transparent:true,depthWrite:false,depthTest:false})); HOLD.label.scale.set(8,2,1); HOLD.label.position.set(m.x,4.4,m.z); HOLD.label.renderOrder=30; scene.add(HOLD.label);
-  HOLD.active=true; HOLD.waveT=4; HOLD.lastTxt=''; holdLabel(m); }
+  HOLD.active=true; HOLD.waveT=4; HOLD.lastTxt=''; HOLD.rolled=false; holdLabel(m); }
 function holdLabel(m){ const c=HOLD.lc.getContext('2d'), sec=Math.max(0,Math.ceil(m.t-MS.prog)), txt=`УДЕРЖИВАЙ · ${m.name.toUpperCase()} · ${sec} С`; if(txt===HOLD.lastTxt) return; HOLD.lastTxt=txt;
   c.clearRect(0,0,512,128); c.fillStyle='rgba(6,12,26,0.78)'; c.fillRect(8,24,496,80); c.strokeStyle='#3dffb5'; c.lineWidth=4; c.strokeRect(8,24,496,80); c.fillStyle='#3dffb5'; c.font="800 22px Unbounded, 'Arial Black', sans-serif"; c.textAlign='center'; c.textBaseline='middle'; c.fillText(txt,256,66); HOLD.ltex.needsUpdate=true; }
 function holdUpdate(dt,t){ if(!HOLD.active) return; if(!MS.active){ holdBuild(); return; } const m=missionAt(MS.i); if(m.k!=='hold'){ holdBuild(); return; }
-  const inside=!TK.dead&&Math.hypot(TK.x-m.x,TK.z-m.z)<m.rad; if(inside){ MS.prog=Math.min(m.t,MS.prog+dt); HOLD.started=true; }
+  const inside=!TK.dead&&Math.hypot(TK.x-m.x,TK.z-m.z)<m.rad; if(inside){ MS.prog=Math.min(m.t,MS.prog+dt); HOLD.started=true; if(!HOLD.rolled){ HOLD.rolled=true; sfxDrumRoll(); } }
   /* v30.1: zone sounds — rising chime in, falling out, a tick every 2 s while holding (faster near the end) */
   if(inside!==!!HOLD.wasIn){ HOLD.wasIn=inside; if(inside){ sO(520,1040,0.25,0.1,'triangle'); setTimeout(()=>{ sndOff(); sO(780,1560,0.2,0.08,'triangle'); },110); } else sO(700,300,0.35,0.1,'triangle'); HOLD.tickT=1; }
   if(inside&&(HOLD.tickT=(HOLD.tickT||0)-dt)<=0){ const f=MS.prog/m.t; HOLD.tickT=f>0.8?0.7:2; sO(1200+f*600,1200+f*600,0.05,0.05,'square'); }
@@ -75,7 +75,28 @@ function holdUpdate(dt,t){ if(!HOLD.active) return; if(!MS.active){ holdBuild();
   const f=MS.prog/m.t; if(Math.abs(f-(HOLD.pf||-1))>0.004){ HOLD.pf=f; HOLD.prog.geometry.dispose(); HOLD.prog.geometry=new THREE.RingGeometry(m.rad+0.15,m.rad+0.55,72,1,Math.PI/2,-Math.max(0.001,f*TAU)); }
   holdLabel(m); HOLD.label.position.y=4.4+Math.sin(t*2)*0.15; HOLD.objT=(HOLD.objT||0)-dt; if(HOLD.objT<=0){ HOLD.objT=0.25; objUI(); }
   if(HOLD.started&&inside){ HOLD.waveT-=dt; const alive=ENEMIES.filter(e=>!e.dead&&e.wave).length; if(HOLD.waveT<=0&&alive<10){ HOLD.waveT=9; holdWave(m); } }
-  if(MS.prog>=m.t){ HOLD.started=false; completeMission(); } }
+  if(MS.prog>=m.t){ HOLD.started=false; const hx=m.x, hz=m.z; completeMission(); later(1.2,()=>victoryFlag(hx,hz)); } }
+/* v30.8: entering the zone — a short snare roll that swells into a hit, like before the important moment */
+function sfxDrumRoll(){ if(!SND.ctx) return; const N=26; let t=0; for(let i=0;i<N;i++){ const f=i/N, gap=0.085-0.045*f; t+=gap; setTimeout(()=>{ sNz(0.05,'bandpass',2200+f*900,1.3,0.05+0.11*f); sO(190,150,0.04,0.025+0.03*f,'triangle'); },t*1000); }
+  setTimeout(()=>{ sO(90,42,0.45,0.22,'sine'); sNz(0.5,'highpass',5200,0.6,0.12); sNz(0.18,'bandpass',1800,1,0.14); },(t+0.09)*1000); }
+/* v30.8: hold won — a red flag with a star rises on a pole on the nearest building in view */
+const VFLAGS=[]; let VF_TEX=null;
+function vfTex(){ if(VF_TEX) return VF_TEX; const cv=document.createElement('canvas'); cv.width=256; cv.height=160; const c=cv.getContext('2d'); c.fillStyle='#d42a20'; c.fillRect(0,0,256,160);
+  const st=(cx,cy,R)=>{ c.beginPath(); for(let k=0;k<10;k++){ const a=-Math.PI/2+k*Math.PI/5, r=k%2?R*0.4:R; c.lineTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r); } c.closePath(); c.fill(); };
+  c.fillStyle='#ffd23a'; st(64,58,34); VF_TEX=new THREE.CanvasTexture(cv); return VF_TEX; }
+function victoryFlag(cx,cz){ if(transit) return; let best=null, bd=1e9; const _v=new THREE.Vector3();
+  for(let dz=-34;dz<=34;dz+=1.5) for(let dx=-34;dx<=34;dx+=1.5){ const x=TK.x+dx, z=TK.z+dz; if(x<3||z<3||x>WX-3||z>WZ-3) continue; const top=colTop(x,z); if(top<4.5) continue;
+    const d=Math.hypot(dx,dz); if(d>=bd) continue; _v.set(x,top+1.5,z).project(camera); if(Math.abs(_v.x)>0.85||Math.abs(_v.y)>0.8||_v.z>1) continue;
+    if(colTop(x+0.6,z)<top-0.4||colTop(x-0.6,z)<top-0.4||colTop(x,z+0.6)<top-0.4||colTop(x,z-0.6)<top-0.4) continue; bd=d; best={x,z,y:top}; }
+  if(!best) best={x:cx,z:cz,y:groundH(cx,cz)};
+  const g=new THREE.Group(); g.position.set(best.x,best.y,best.z); addExtra(g); const Mt=new THREE.MeshToonMaterial({color:0xb8c0c8,gradientMap:gradTex});
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.08,4.2,8),Mt); pole.position.y=2.1; g.add(pole); const base=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.36,0.2,10),Mt); base.position.y=0.1; g.add(base);
+  const ball=new THREE.Mesh(new THREE.SphereGeometry(0.11,10,8),new THREE.MeshBasicMaterial({color:0xffd23a})); ball.position.y=4.26; g.add(ball);
+  const geo=new THREE.PlaneGeometry(1.9,1.2,12,4); geo.translate(0.95+0.07,-0.6,0); const fl=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({map:vfTex(),side:THREE.DoubleSide})); fl.position.y=0.8; g.add(fl);
+  g.rotation.y=rnd()*TAU; VFLAGS.push({g,fl,base:geo.attributes.position.array.slice(),t:0}); sfxFanfareFlag(); popText(best.x,best.y+2.5,best.z,'★'); }
+function sfxFanfareFlag(){ if(!SND.ctx) return; [[392,0],[523,0.18],[659,0.36],[784,0.6]].forEach(([f,t])=>setTimeout(()=>{ sO(f,f,0.32,0.07,'square'); sO(f*0.5,f*0.5,0.32,0.05,'triangle'); },t*1000)); }
+function victoryFlagsUpdate(dt,t){ for(let i=VFLAGS.length-1;i>=0;i--){ const f=VFLAGS[i]; if(!f.g.parent){ VFLAGS.splice(i,1); continue; } f.t+=dt; f.fl.position.y=0.8+Math.min(1,f.t/3.2)*(4.15-0.8);
+    const P_=f.fl.geometry.attributes.position, A=P_.array, B=f.base; for(let k=0;k<A.length;k+=3){ const u=B[k]-0.07; A[k+2]=Math.sin(u*3.2-t*6)*0.14*u; } P_.needsUpdate=true; } }
 function holdWave(m){ HOLD.wave++; const sides=['N','S','W','E'].sort(()=>rnd()-0.5).slice(0,2); const n=2+Math.min(3,HOLD.wave>>1);
   for(const s of sides){ const ex=s==='W'?5:s==='E'?75:null, ez=s==='N'?5:s==='S'?75:null;
     for(let k=0;k<n;k++){ const x=ex!=null?ex:12+rnd()*56, z=ez!=null?ez:12+rnd()*56; if(Math.hypot(x-TK.x,z-TK.z)<16) continue; const p=pickNear(x,z,1); if(!p) continue;

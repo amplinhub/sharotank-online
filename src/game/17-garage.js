@@ -270,7 +270,15 @@ $('#gpanel').addEventListener('click',e=>{ const b=e.target.closest('button'); i
     if(u.k==='armor') TK.hp+=(ARM_HP[l+1]-ARM_HP[l])*chs().hp; if(u.k==='ammo') refillAmmo(); if(u.v) GAR.view=u.v; sfxBuy(); garRebuildModel(); renderGarage(); save(); return; }
   if(b.dataset.mg){ const k=b.dataset.mg, m=MGS[k]; if(!UP.own[k]){ if(ST.scrap<m.cost) return; ST.scrap-=m.cost; UP.own[k]=1; sfxBuy(); } else sfxClick(); UP.mg=k; GAR.view='mg'; garRebuildModel(); renderGarage(); save(); } });
 $('#gpanel').addEventListener('pointerover',e=>{ const c_=e.target.closest('[data-view]'); if(!c_||!c_.dataset.view||c_.dataset.view===GAR.view) return; GAR.view=c_.dataset.view; garApplyView(); document.querySelectorAll('#gpanel .gcard').forEach(x=>x.classList.toggle('focus',x.dataset.view===GAR.view)); });
-function garUpdate(dt,t){ GAR.idle+=dt; if(GAR.idle>2.5&&!GAR.drag) GAR.ang+=dt*0.22; const r=GAR.dist*(innerWidth<innerHeight?1.25:1);
+/* v30.8: workshop ambience in the garage and the motor pool — a hammer now and then, a power tool, the lift */
+const GAMB={t:2.5,last:''};
+function garAmb(dt){ if(!SND.ctx||SND.muted) return; GAMB.t-=dt; if(GAMB.t>0) return; GAMB.t=4+rnd()*7;
+  const opts=GAR.mode==='park'?['hammer','lift','tool','air']:['hammer','tool','lift','hammer','air']; let k=opts[(rnd()*opts.length)|0]; if(k===GAMB.last) k=opts[(opts.indexOf(k)+1)%opts.length]; GAMB.last=k;
+  if(k==='hammer'){ const n=3+((rnd()*4)|0), gap=0.32+rnd()*0.12, f=1100+rnd()*500; for(let i=0;i<n;i++) setTimeout(()=>{ sO(f,f*0.7,0.09,0.045,'triangle'); sO(f*2.7,f*2.2,0.05,0.02,'sine'); sNz(0.04,'bandpass',3000,2,0.03); },i*gap*1000); }
+  else if(k==='tool'){ const d=1.2+rnd()*1.6, f=260+rnd()*120; sO(f*0.5,f,0.25,0.02,'sawtooth'); setTimeout(()=>{ sO(f,f*1.06,d,0.025,'sawtooth'); sNz(d,'highpass',4200,0.8,0.022); },220); setTimeout(()=>sO(f,f*0.3,0.5,0.02,'sawtooth'),220+d*1000); }
+  else if(k==='lift'){ sO(62,82,2.4,0.05,'sine'); sO(124,160,2.4,0.018,'triangle'); setTimeout(()=>{ sNz(0.5,'highpass',2500,0.7,0.03); sO(140,60,0.18,0.06,'square'); },2400); }
+  else { sNz(0.35,'highpass',3500,1,0.04); setTimeout(()=>sNz(0.25,'highpass',3800,1,0.03),450); } }
+function garUpdate(dt,t){ GAR.idle+=dt; garAmb(dt); if(GAR.idle>2.5&&!GAR.drag) GAR.ang+=dt*0.22; const r=GAR.dist*(innerWidth<innerHeight?1.25:1);
   GAR.cam.position.set(Math.sin(GAR.ang)*r,GAR.hgt,Math.cos(GAR.ang)*r); GAR.cam.lookAt(0,1.15,0);
   const M_=GAR.model; if(M_){ for(const sp of M_.spinners) sp.rotation.y+=dt*2.5; for(const b of M_.barrels) b.rotation.z+=dt*0.6; M_.beacon.visible=(t%1200)<600; tankDamageUniforms(M_); }
   const ts=t/1000, park=GAR.mode==='park'; GAR.mech.g.visible=park; GAR.mech2.g.visible=park; for(const L of GAR.lie) L.g.visible=!park;

@@ -45,7 +45,7 @@ function winOut(){ const w=$('#win'); if(w.hidden||w.classList.contains('out')) 
 function winUpdate(dt){ if(winT>0){ winT-=dt; if(winT<=0) winOut(); } }
 for(const ev of ['pointerdown','touchstart','click']) $('#win').addEventListener(ev,e=>{ if(!e.target.closest('.wbx')) return; e.stopPropagation(); if(ev==='click'||ev==='pointerdown') winOut(); },{passive:true});
 /* ---- defeat: sad jingle, desaturated screen, the general on the radio ---- */
-function onTankLost(){ SHD.on=false; sfxLose(); canvas.classList.add('lost'); setTimeout(()=>radioSay(['Водитель, ты подбит! Тягач уже выехал, эвакуируем тебя в лагерь.','Машина горит! Держись, водитель, вытащим тебя в лагерь.','Подбит, но жив — это главное. Механики в лагере тебя подлатают.'][(rnd()*3)|0]),900); }
+function onTankLost(){ SHD.on=false; { const b=BOSS.e; if(b&&!b.dead&&b.type==='hornet'){ MS.ease=MS.ease||{}; MS.ease.hornet=1; save(); } } sfxLose(); canvas.classList.add('lost'); setTimeout(()=>radioSay(['Водитель, ты подбит! Тягач уже выехал, эвакуируем тебя в лагерь.','Машина горит! Держись, водитель, вытащим тебя в лагерь.','Подбит, но жив — это главное. Механики в лагере тебя подлатают.'][(rnd()*3)|0]),900); }
 function v11Update(dt){ mgMotorUpdate(); winUpdate(dt); if(!TK.dead&&canvas.classList.contains('lost')) canvas.classList.remove('lost'); }
 
 /* ================= v12: tank abilities · motor pool (автопарк) ================= */
@@ -86,7 +86,7 @@ function railsUpdate(dt){ for(let i=RAILS.length-1;i>=0;i--){ const r=RAILS[i]; 
 /* ---- motor pool: buy and switch tanks ---- */
 $('#gpanel').addEventListener('click',e=>{ if(GAR.mode!=='park') return; const b=e.target.closest('button');
   if(b&&!b.disabled&&b.dataset.tkbuy){ const id=b.dataset.tkbuy, c=CHASSIS[id]; if(ST.scrap<c.cost) return; ST.scrap-=c.cost; UP.tanks[id]=1; selectTank(id); GAR.pick=id; sfxBuy(); later(0.3,sfxAccept); toast(`${c.name} теперь твой`); garRebuildModel(); renderPark(); return; }
-  if(b&&!b.disabled&&b.dataset.tk){ selectTank(b.dataset.tk); GAR.pick=b.dataset.tk; sfxRev(b.dataset.tk); garRebuildModel(); renderPark(); return; }
+  if(b&&!b.disabled&&b.dataset.tk){ selectTank(b.dataset.tk); GAR.pick=b.dataset.tk; sfxRev(b.dataset.tk); closeGarage(); return; } /* v30.8: «Выехать на нём» drives straight out */
   const s=e.target.closest('[data-pick]'); if(s&&!b&&GAR.pick!==s.dataset.pick){ GAR.pick=s.dataset.pick; sfxClick(); garRebuildModel(); renderPark(); } });
 /* ---- «Пчела»: kamikaze drone swarm launched from the hull hatch ---- */
 const BEE={list:[],cd:0,hatch:0};
@@ -104,7 +104,7 @@ function beesClear(){ for(const d of BEE.list.slice()) beeRemove(d); }
 const _bv=new THREE.Vector3();
 
 function beesUpdate(dt,t){ if(chs().abil!=='drones'||TK.dead||!tank||!tank.hatchPt){ if(BEE.list.length) beesClear(); return; } const mx=1+(UP.abl|0);
-  BEE.cd-=dt; if(BEE.list.length<mx&&BEE.cd<=0&&!transit){ beeLaunch(); BEE.cd=3.5; }
+  BEE.cd-=dt; if(BEE.list.length<mx&&BEE.cd<=0&&!transit){ beeLaunch(); BEE.cd=2.6; } /* v30.8: 3.5 → 2.6 s */
   BEE.hatch=Math.max(0,BEE.hatch-dt*1.1); if(tank.hatch) tank.hatch.rotation.x=-Math.min(1,BEE.hatch*2.2)*1.9;
   for(const d of BEE.list.slice()){ if(d.loc!==LOC_ID){ beeRemove(d); continue; } d.t+=dt; d.g.visible=!transit;
     let tx,ty,tz,k=3, vm=9;

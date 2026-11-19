@@ -17,7 +17,17 @@ function vehBuild(v){ const D=vmat('dk',0x1c2226), Mt=vmat('mt',0x8d96a1), Rim=v
     add(VG.box,Mt,d*(L+0.025),0.56,0,0.02,0.05,w*1.0,2); lights(d*(L+0.02),0.3,[-w*0.7,w*0.7],VGLOW.amber,0.06); add(VG.box,D,-d*(L+0.03),0.24,w*0.5*d,0.1,0.08,0.08,2);
     for(const s of [-1,1]){ add(VG.box,D,0,0.3,s*(w+0.02),L*1.05,0.07,0.03,2); for(const du of (isV?[0.2,-1.0]:[0.15,-0.85])) add(VG.box,D,d*du,isV?1.2:0.66,s*(w+0.012),0.03,isV?1.6:0.62,0.02,2);
       if(!isV) add(VG.box,D,d*1.02,0.99,s*0.32,0.03,0.03,0.46,2); else { add(VG.box,Mt,0,2.78,s*0.82,L*1.3,0.06,0.06,2); } }
-    if(isV){ for(const du of [-1,0,1]) add(VG.box,Mt,du,2.8,0,0.06,0.06,1.7,2); add(VG.box,D,-d*(L+0.012),1.5,0,0.02,1.9,0.03,2); } }
+    if(isV){ for(const du of [-1,0,1]) add(VG.box,Mt,du,2.8,0,0.06,0.06,1.7,2); add(VG.box,D,-d*(L+0.012),1.5,0,0.02,1.9,0.03,2); }
+    /* v30.8: spokes on every wheel, roof antenna, chrome beltline (Сред/Выс) */
+    { const ry=isV?0.36:0.3, rr=isV?0.3:0.24; for(const u of [-L*0.6,L*0.6]) for(const s of [-1,1]) for(let k=0;k<5;k++){ const a=k/5*TAU; add(VG.box,Mt,u+Math.cos(a)*rr*0.5,ry+Math.sin(a)*rr*0.5,s*(w+0.085),0.05,rr*0.95,0.02,2,m=>{ m.rotation.set(0,v.ax?0:Math.PI/2,0); m.rotateZ(a+Math.PI/2); }); }
+      if(!isV){ add(VG.box,D,-d*0.7,1.72,0.35,0.02,0.32,0.02,2); for(const s of [-1,1]) add(VG.box,Mt,0,0.98,s*(w-0.02),L*1.0,0.025,0.02,2); } } }
+  else if(v.kind==='showcar'){ /* v30.8: showroom cars — sport detail on top of the regular sedan parts */
+    const Cr=vmat('cr',0xdfe6ec), Bk=vmat('bk3',0x14181c), Rd=vmat('rd3',0xd03a2a); const L=2.0, w=0.95;
+    for(const u of [-L*0.6,L*0.6]) for(const s of [-1,1]){ add(VG.hub,Cr,u,0.3,s*(w+0.1),0.2,0.2,0.04,2,m=>{ m.rotation.y=v.ax?0:Math.PI/2; m.scale.set(0.2,0.2,0.04); }); add(VG.hub,Rd,u+0.1,0.3,s*(w+0.04),0.1,0.1,0.06,2,m=>{ m.rotation.y=v.ax?0:Math.PI/2; m.scale.set(0.06,0.12,0.12); }); }
+    for(const s of [-1,1]){ add(VG.box,Cr,0.05,1.22,s*0.86,1.9,0.03,0.03,2); add(VG.box,Cr,0.9,0.96,s*0.88,0.18,0.03,0.04,2); add(VG.box,Bk,1.3,0.55,s*(w+0.03),0.4,0.12,0.03,2); add(VG.box,Cr,1.95,0.45,s*0.62,0.08,0.06,0.3,2); add(VG.box,Cr,-1.95,0.36,s*0.55,0.12,0.1,0.12,2); }
+    add(VG.box,Bk,2.06,0.18,0,0.25,0.04,1.8,2); add(VG.box,Bk,-1.9,1.12,0,0.3,0.05,1.75,2); for(const s of [-1,1]) add(VG.box,Bk,-1.85,0.98,s*0.7,0.06,0.28,0.06,2);
+    add(VG.box,Cr,2.05,0.6,0,0.02,0.1,0.18,2); add(VG.box,VGLOW.blue,0,0.12,0,3.6,0.02,1.7,1);
+    for(const s of [-1,1]){ add(VG.box,Mt,2.6,0.5,s*1.6,0.06,1.0,0.06,2); add(VG.box,Bk,2.6,1.05,s*1.6,0.04,0.32,0.5,2); add(VG.box,VGLOW.warm,2.62,1.05,s*1.6,0.02,0.24,0.4,2); } }
   else if(v.kind==='taxi'){ hubs([-1.15,1.15],[-0.94,0.94],0.3,0.27,1); lights(1.93,0.68,[-0.55,0.55],VGLOW.warm,0.16); lights(-1.93,0.7,[-0.55,0.55],VGLOW.red,0.14);
     add(VG.box,D,1.94,0.46,0,0.04,0.16,1.0,2); add(VG.box,D,-1.94,0.4,0,0.04,0.14,1.4,2); add(VG.box,D,1.95,0.32,0,0.08,0.1,1.7,2); add(VG.box,D,-1.95,0.32,0,0.08,0.1,1.7,2);
     for(const s of [-1,1]){ add(VG.box,D,0.78,1.12,s*0.98,0.14,0.1,0.12,2); for(const u of [0.05,-0.85]) add(VG.box,D,u,0.7,s*0.905,0.02,0.6,0.02,2); add(VG.box,Mt,0.4,0.82,s*0.91,0.14,0.03,0.02,2); add(VG.box,Mt,-0.5,0.82,s*0.91,0.14,0.03,0.02,2); }

@@ -61,10 +61,10 @@ $('#bReset').addEventListener('click',e=>{ e.stopPropagation(); $('#rConf').hidd
 $('#bResetN').addEventListener('click',e=>{ e.stopPropagation(); $('#rConf').hidden=true; $('#bReset').hidden=false; });
 $('#bResetY').addEventListener('click',e=>{ e.stopPropagation(); $('#rConf').hidden=true; $('#bReset').hidden=false; if(menuOpen) $('#bMenu').click(); resetProgress(); });
 function resetProgress(){ try{ localStorage.removeItem(SAVE_KEY); }catch(_){} ST.scrap=1000; Object.assign(UP,{engine:0,armor:0,cal:0,load:0,stab:0,rk:0,ammo:0,mg:'gau',own:{gau:1},tank:'base',tanks:{base:1},per:{},abl:0,rdr:0}); TK.hp=ARM_HP[0]; TK.dmgS.fill(0);
-  refillAmmo(); ST.kits.rep=ST.kits.ammo=0; Object.assign(MS,{i:0,active:false,prog:0,rank:0}); rankUI(); objUI(); for(const k in LOC_STATE) delete LOC_STATE[k];
+  refillAmmo(); ST.kits.rep=ST.kits.ammo=0; Object.assign(MS,{i:0,active:false,prog:0,rank:0,ease:{}}); rankUI(); objUI(); for(const k in LOC_STATE) delete LOC_STATE[k];
   wcur=0; buildGameTank(); updateWeaponUI(); tutReset(); if(helpOpen) closeHelp(); if(LOC_ID!=='camp') goLocation('camp',null,{x:40,z:44,h:Math.PI}); else { Object.assign(TK,{x:40,z:44,h:Math.PI,tYaw:Math.PI,vx:0,vz:0,vF:0}); tutStart(1.2); } toast('Прогресс сброшен'); }
 $('#help').addEventListener('pointerdown',e=>{ if(e.target.id==='help') closeHelp(); });
 let firstBanner=true;
 function helpShow(){ helpOpen=true; tutHelpMode(); $('#help').hidden=false; }
-function closeHelp(){ helpOpen=false; $('#help').hidden=true; canvas.focus(); if(firstBanner){ firstBanner=false; banner(LOC); } if(!TUT.done&&!TUT.on) tutStart(2.4); }
+function closeHelp(){ helpOpen=false; $('#help').hidden=true; canvas.focus(); if(firstBanner){ firstBanner=false; banner(LOC); } if(TUT.bonus){ TUT.bonus=false; setTimeout(()=>{ toast('Приветственный бонус · +500 лома'); sfxBuy(); },900); } if(!TUT.done&&!TUT.on) tutStart(2.4); }
 

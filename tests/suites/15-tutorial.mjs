@@ -88,7 +88,7 @@ export const tests = [
     await c.until(() => !document.querySelector('#tut').hidden, null, { timeout: 15000 });
     await c.page.click('#tutSkip'); await c.wait(300);
     const sk = await c.js(() => ({ on: __dbg.TUT.on, done: __dbg.TUT.done, tg: __dbg.TUT.tg.length, scrap: __dbg.ST.scrap }));
-    assert(!sk.on && sk.done && sk.tg === 0 && sk.scrap === 1000, 'skip: ' + JSON.stringify(sk));
+    assert(!sk.on && sk.done && sk.tg === 0 && sk.scrap === 1500, 'skip: ' + JSON.stringify(sk));
     await c.page.click('#bMenu'); await c.wait(300);
     assert(!(await c.js(() => !!document.querySelector('#bTouch'))) && await V(c, '#bCtrl'), 'menu still has «Кнопки»');
     assert(await c.js(() => getComputedStyle(document.querySelector('#padR')).display === 'none'), 'sticks appear on a PC after opening the menu');

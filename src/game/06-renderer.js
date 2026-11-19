@@ -23,7 +23,7 @@ function shadowMark(dt){ if(!REALSH) return; shMarkT-=dt; if(shMarkT>0) return; 
   const mark=root=>{ if(root) root.traverse(o=>{ if(!o.isMesh) return; const m=o.material; o.castShadow=!!m&&!Array.isArray(m)&&!m.transparent&&m!==outlineMat&&!m.isMeshBasicMaterial&&!m.isShaderMaterial; }); };
   if(tank) mark(tank.root); for(const e of ENEMIES) if(!e.dead){ mark(e.g); mark(e.lg); } for(const d of DRONES) if(!d.dead) mark(d.g);
   for(const b of BEE.list) mark(b.g); for(const d of RDR.list) mark(d.g); for(const c of CIV.list) mark(c.g); for(const s of SOLDIERS) mark(s.g);
-  if(hi){ if(chunks) for(const ch of chunks) if(ch.mesh) ch.mesh.castShadow=true; for(const im of VINST) im.castShadow=true; mark(CDK.g); } }
+  if(hi){ if(chunks) for(const ch of chunks) if(ch.mesh) ch.mesh.castShadow=true; for(const im of VINST) im.castShadow=true; mark(CDK.g); } else if(CDK.shG) for(const g of CDK.shG) mark(g); } /* v30.8: camp trees and props cast shadows on «Сред» too */
 const worldMat=new THREE.MeshBasicMaterial({vertexColors:true});
 const XR={p:{value:new THREE.Vector2(-9999,-9999)},r:{value:0},z:{value:0},e:{value:[new THREE.Vector4(),new THREE.Vector4(),new THREE.Vector4(),new THREE.Vector4()]}};
 worldMat.onBeforeCompile=sh=>{ sh.uniforms.uTP=XR.p; sh.uniforms.uTR=XR.r; sh.uniforms.uTZ=XR.z; sh.uniforms.uXE=XR.e;
