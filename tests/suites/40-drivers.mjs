@@ -67,6 +67,31 @@ export const tests = [
     for (const w of ['страхую машину', 'употреблять', 'мандарин', 'небанальный', 'cocktail', 'assassin', 'хлебать', 'утварь']) assert(!c.shClean(w).bad, 'false positive: ' + w);
     for (const w of ['х у й', 'п.и.з.д.а', 'blyat', 'nahuy', 'заебал', 'fuuuck', 'sh1t', 'долбоёб']) assert(c.shClean(w).bad, 'missed: ' + w);
   } },
+  { name: 'online core v5: read marks, delete (own → both, received → only me), idle pilots hidden from the rating (v30.9)', timeout: 20, async run() {
+    const c = loadCore(), db = memDb(c.SH_COLS); let now = 3e12; const H = p => c.shHandle(db, p, now, sha);
+    for (const [n, pin] of [['Аня', '1234'], ['Боря', '0000'], ['Amplin', '7777'], ['Вова', '5555']]) assert(H({ a: 'reg', nick: n, pin }).ok, 'reg ' + n);
+    H({ a: 'friend', nick: 'Аня', pin: '1234', who: 'Боря', on: '1' }); H({ a: 'friend', nick: 'Боря', pin: '0000', who: 'Аня', on: '1' });
+    const s1 = H({ a: 'send', nick: 'Аня', pin: '1234', to: 'Боря', kind: 'msg', text: 'раз' }); assert(s1.ok && s1.mid, 'send returns mid');
+    const s2 = H({ a: 'send', nick: 'Аня', pin: '1234', to: 'Боря', kind: 'msg', text: 'два' });
+    const card = (who, me, pin, rd) => H(Object.assign({ a: 'card', who, nick: me, pin }, rd ? { rd: '1' } : {}));
+    card('Аня', 'Боря', '0000'); // background warm-up does not count as read
+    assert(card('Боря', 'Аня', '1234').log.every(m => !m.read), 'read without the chat open');
+    card('Аня', 'Боря', '0000', true);
+    let la = card('Боря', 'Аня', '1234').log; assert(la.length === 2 && la.every(m => m.out && m.read === 1 && m.mid), 'read marks: ' + JSON.stringify(la));
+    assert(H({ a: 'del', nick: 'Вова', pin: '5555', mid: s1.mid }).err === 'no_msg', 'a stranger deleted a message');
+    assert(H({ a: 'del', nick: 'Боря', pin: '0000', mid: s2.mid }).ok, 'hide received');
+    assert(card('Аня', 'Боря', '0000').log.length === 1 && card('Боря', 'Аня', '1234').log.length === 2, 'received message must vanish only for its addressee');
+    assert(H({ a: 'del', nick: 'Аня', pin: '1234', mid: s1.mid }).ok, 'delete own');
+    assert(card('Аня', 'Боря', '0000').log.length === 0 && card('Боря', 'Аня', '1234').log.length === 1, 'own message must vanish for both');
+    const s3 = H({ a: 'send', nick: 'Аня', pin: '1234', to: 'Боря', kind: 'msg', text: 'три' }); H({ a: 'del', nick: 'Аня', pin: '1234', mid: s3.mid });
+    assert(H({ a: 'poll', nick: 'Боря', pin: '0000' }).inbox.length === 0, 'deleted before delivery still delivered');
+    // idle pilots
+    const P = n => db.T.Pilots.find(x => x.nick === n); const top = () => { now += 61000; return H({ a: 'top' }).list.map(x => x.n).sort().join(','); };
+    P('Аня').lastSeen = now - 31 * 864e5; P('Аня').score = 50; P('Боря').lastSeen = now - 31 * 864e5; P('Боря').score = 150; P('Amplin').lastSeen = now - 400 * 864e5; P('Amplin').score = 0;
+    assert(top() === 'Amplin,Боря,Вова', 'idle filter (30 days / <100 points): ' + top());
+    P('Боря').lastSeen = now - 91 * 864e5; assert(top() === 'Amplin,Вова', '90 days: ' + top());
+    H({ a: 'login', nick: 'Боря', pin: '0000' }); assert(top() === 'Amplin,Боря,Вова', 'came back → shown again');
+  } },
   { name: 'profile: news tab (background load, likes) and the chat field always on screen on a phone (v30.6)', timeout: 120, async run(ctx) {
     const sh = await startSheets(); ctx.onDone = () => sh.close();
     try {
@@ -87,10 +112,10 @@ export const tests = [
       // like, then switch to dislike
       await b.js(() => document.querySelector('.dnw[data-nid="n5"] [data-vote="1"]').click());
       const row = () => sh.db.T.News.find(n => n.id === 'n5');
-      for (let i = 0; i < 40 && row().up !== 1; i++) await b.wait(150);
+      for (let i = 0; i < 40 && (row().up !== 1 || await b.js(() => (document.querySelector('.dnw[data-nid="n5"] .dv.up.on b') || {}).textContent) !== '1'); i++) await b.wait(150);
       assert(row().up === 1 && await b.js(() => document.querySelector('.dnw[data-nid="n5"] .dv.up.on b').textContent) === '1', 'like: ' + JSON.stringify(row()));
       await b.js(() => document.querySelector('.dnw[data-nid="n5"] [data-vote="-1"]').click());
-      for (let i = 0; i < 40 && row().down !== 1; i++) await b.wait(150);
+      for (let i = 0; i < 40 && (row().down !== 1 || !await b.js(() => !!document.querySelector('.dnw[data-nid="n5"] .dv.dn.on'))); i++) await b.wait(150);
       assert(row().up === 0 && row().down === 1 && await b.js(() => !!document.querySelector('.dnw[data-nid="n5"] .dv.dn.on')), 'dislike: ' + JSON.stringify(row()));
       // a new post shows up on the next background refresh, no reload of the tab
       sh.db.T.News.push({ _r: 9, id: 'n9', time: Date.now(), title: 'Свежая', text: '', up: 0, down: 0, votes: '' }); sh.db.cache.delete('news');
@@ -105,6 +130,59 @@ export const tests = [
       const r = await b.js(() => { const t = document.querySelector('#drvTxt').getBoundingClientRect(); return [t.top, t.bottom, innerHeight]; });
       assert(r[0] > 0 && r[1] <= r[2], 'chat field off screen: ' + r);
     } finally { /* sh closed by ctx */ }
+  } },
+  { name: 'profile v30.9: «был … назад» in the lists, ✓✓ when read, delete and retry from the bubble menu', timeout: 200, async run(ctx) {
+    const sh = await startSheets(); ctx.onDone = () => sh.close();
+    try {
+      const a = await client({ name: 'fox', net: { sheets: sh.url } }), b = await client({ name: 'wolf', net: { sheets: sh.url } }); ctx.clients.push(a, b);
+      assert(await auth(a, 'reg', 'Лиса', '1111') === 'Лиса', 'Лиса'); assert(await auth(b, 'reg', 'Волк', '2222') === 'Волк', 'Волк');
+      sh.db.T.Pilots.find(p => p.nick === 'Волк').lastSeen = Date.now() - 2 * 3600e3; sh.db.cache.delete('top');
+      await a.js(() => { __dbg.DRV.topT = 0; }); await a.until(() => (__dbg.DRV.cache.top || []).some(x => x.n === 'Волк'), null, { timeout: 8000 });
+      await a.js(() => __dbg.drvTab('top'));
+      const row = await a.js(() => document.querySelector('#drvBody li[data-who="Волк"] .nm small').textContent);
+      assert(row === 'был 2 часа назад', 'rating row: ' + row);
+      assert(!(await a.js(() => /мед\./.test(document.querySelector('#drvBody').textContent))), 'medal count still in the list');
+      await a.js(() => document.querySelector('[data-star="Волк"]').click()); await b.js(() => { __dbg.DRV.topT = 0; });
+      await b.until(() => (__dbg.DRV.cache.top || []).some(x => x.n === 'Лиса'), null, { timeout: 8000 }); await b.js(() => __dbg.drvTab('top'));
+      await b.js(() => document.querySelector('[data-star="Лиса"]').click());
+      await a.until(() => __dbg.DRV.friends.includes('Волк'), null, { timeout: 8000 }); await b.until(() => __dbg.DRV.friends.includes('Лиса'), null, { timeout: 8000 });
+      // Лиса writes: one tick; Волк opens the chat → two ticks at Лиса
+      await a.js(() => __dbg.drvCardOpen('Волк')); await a.until(() => document.querySelector('#drvTxt'), null, { timeout: 8000 });
+      await a.page.fill('#drvTxt', 'привет'); await a.js(() => document.querySelector('[data-say]').click());
+      await a.until(() => { const m = document.querySelector('#drvChat .dmsg.out'); return m && !m.classList.contains('pend') && /✓/.test(m.textContent); }, null, { timeout: 8000 });
+      assert(await a.js(() => !document.querySelector('#drvChat .dst.rd')), 'read before it was opened');
+      await b.js(() => __dbg.drvCardOpen('Лиса'));
+      for (let i = 0; i < 40 && !sh.db.T.Messages.some(m => m.read); i++) await b.wait(200);
+      await a.js(() => { __dbg.DRV.chatT = 0; });
+      assert(await a.until(() => { const d = document.querySelector('#drvChat .dmsg.out .dst'); return d && d.classList.contains('rd') && d.textContent === '✓✓'; }, null, { timeout: 8000 }), 'no ✓✓ after reading');
+      await a.shot('read-ticks');
+      // a failed send shows «!»; the bubble menu offers «Повторить», and it goes through
+      await a.js(() => { const S = window.SHT_SHEETS, c0 = S.call.bind(S); window.__c0 = c0; S.call = (act, q) => act === 'send' ? Promise.resolve({ ok: false, err: 'net' }) : c0(act, q); });
+      await a.page.fill('#drvTxt', 'ещё раз'); await a.js(() => document.querySelector('[data-say]').click());
+      await a.until(() => document.querySelector('#drvChat .dmsg.err'), null, { timeout: 8000 });
+      await a.js(() => { window.SHT_SHEETS.call = window.__c0; document.querySelector('#drvChat .dmsg.err').click(); });
+      const menu = await a.js(() => [...document.querySelectorAll('.dmenu button')].map(b => b.textContent));
+      assert(menu.join('|') === 'Повторить|Удалить', 'menu for a failed message: ' + menu);
+      await a.wait(400); await a.shot('bubble-menu');
+      await a.js(() => document.querySelector('.dmenu [data-mre]').click());
+      assert(await a.until(() => !document.querySelector('#drvChat .dmsg.err') && !document.querySelector('#drvChat .dmsg.pend'), null, { timeout: 8000 }) && sh.db.T.Messages.some(m => m.text === 'ещё раз'), 'retry did not send');
+      // delete own message → gone for both
+      await a.js(() => { const m = [...document.querySelectorAll('#drvChat .dmsg.out')].find(x => /привет/.test(x.textContent)); m.click(); });
+      assert(await a.js(() => document.querySelector('.dmenu [data-mdel]').textContent) === 'Удалить у всех', 'own sent message menu');
+      await a.js(() => document.querySelector('.dmenu [data-mdel]').click());
+      await a.until(() => ![...document.querySelectorAll('#drvChat .dmsg')].some(x => /привет/.test(x.textContent)), null, { timeout: 4000 });
+      for (let i = 0; i < 40 && !sh.db.T.Messages.find(m => m.text === 'привет').del; i++) await a.wait(200);
+      assert(sh.db.T.Messages.find(m => m.text === 'привет').del, 'delete not sent to the server');
+      await b.js(() => { __dbg.DRV.chatT = 0; });
+      assert(await b.until(() => { const t = document.querySelector('#drvChat').textContent; return /ещё раз/.test(t) && !/привет/.test(t); }, null, { timeout: 8000 }), 'deleted message still at the other side');
+      // Волк hides a received message — only for himself
+      await b.js(() => { const m = [...document.querySelectorAll('#drvChat .dmsg.in')].find(x => /ещё раз/.test(x.textContent)); m.click(); });
+      assert(await b.js(() => document.querySelector('.dmenu [data-mdel]').textContent) === 'Удалить', 'received message menu');
+      await b.js(() => document.querySelector('.dmenu [data-mdel]').click());
+      for (let i = 0; i < 40 && !sh.db.T.Messages.find(m => m.text === 'ещё раз').hid; i++) await b.wait(200);
+      await a.js(() => { __dbg.DRV.chatT = 0; }); await a.wait(1500);
+      assert(await a.js(() => /ещё раз/.test(document.querySelector('#drvChat').textContent)), 'hidden message vanished for the sender too');
+    } finally { await sh.close(); }
   } },
   { name: 'online rating: not configured → clear message', timeout: 60, async run(ctx) {
     const c = await client({ name: 'drv-off' }); ctx.clients.push(c);

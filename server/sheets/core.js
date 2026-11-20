@@ -8,14 +8,17 @@
      db.flagGet/flagSet(k,v), db.cacheGet(k,now)/cachePut(k,v,secs,now) — быстрый кэш (CacheService в Apps Script), без чтения листов
    Все ответы — {ok:true,...} или {ok:false,err:'код'}.
    Вход: позывной + PIN из 4 цифр (на сервере только SHA-256 от id+PIN); 5 неверных PIN подряд → блок на 10 мин. */
-var SH_VER = 4;
+var SH_VER = 5;
 var SH_COLS = {
   Pilots:   ['id', 'nick', 'pinHash', 'created', 'lastSeen', 'av', 'score', 'kills', 'kbt', 'deaths', 'med', 'tank', 'tlv', 'rank', 'missions', 'friends', 'fails', 'lockT', 'muteT'],
-  Messages: ['mid', 'time', 'fromId', 'fromNick', 'toId', 'toNick', 'kind', 'text', 'amount', 'got'],
+  /* v30.9: read = when the addressee saw it, del = the sender deleted it (gone for both), hid = the addressee hid it (gone for him only) */
+  Messages: ['mid', 'time', 'fromId', 'fromNick', 'toId', 'toNick', 'kind', 'text', 'amount', 'got', 'read', 'del', 'hid'],
   /* v30.6: news feed — rows are added by hand (or by Claude through the Sheets API): id, time (ms), title, text; votes = {pilotId: 1|-1} */
   News:     ['id', 'time', 'title', 'text', 'up', 'down', 'votes']
 };
-var SH_LIM = { msgLen: 50, msgPerDay: 100, msgPerMin: 10, muteH: 24, seenMin: 4, topSecs: 60, scrapPerDay: 5, scrapMin: 10, scrapMax: 1000, keepDays: 7, fails: 5, lockMin: 10, friends: 50, medal: 50, top: 300, log: 30, news: 50, newsSecs: 60 };
+var SH_LIM = { msgLen: 50, msgPerDay: 100, msgPerMin: 10, muteH: 24, seenMin: 4, topSecs: 60, scrapPerDay: 5, scrapMin: 10, scrapMax: 1000, keepDays: 7, fails: 5, lockMin: 10, friends: 50, medal: 50, top: 300, log: 30, news: 50, newsSecs: 60, idleDays: 90, idleLowDays: 30, idleLowScore: 100 };
+/* v30.9: the creator is always in the rating */
+var SH_KEEP = ['amplin'];
 
 function shErr(e) { return { ok: false, err: e }; }
 function shNum(v) { var n = Number(v); return isFinite(n) ? n : 0; }
@@ -39,13 +42,16 @@ function shAuth(db, p, now, hash) {
   if (shNum(pl.fails)) { pl.fails = 0; db.update('Pilots', pl); }
   return pl;
 }
+/* v30.9: who is shown in the rating — not seen for 90 days, or for 30 days with fewer than 100 points, is hidden (the pilot stays and comes back on the next visit) */
+function shShown(x, now) { if (SH_KEEP.indexOf(shLow(x.nick)) >= 0) return true; var idle = now - shNum(x.lastSeen);
+  if (idle > SH_LIM.idleDays * 864e5) return false; if (shNum(x.score) < SH_LIM.idleLowScore && idle > SH_LIM.idleLowDays * 864e5) return false; return true; }
 function shScore(pl) { return shNum(pl.kills) + 50 * shJ(pl.med, []).length; }
 function shFriends(db, pl) { var out = []; shJ(pl.friends, []).forEach(function (id) { var f = shById(db, id); if (f) out.push(f.nick); }); return out; }
 function shMe(db, pl) { return { nick: pl.nick, av: shAv(pl.av), kills: shNum(pl.kills), kbt: shJ(pl.kbt, {}), deaths: shNum(pl.deaths), med: shJ(pl.med, []), friends: shFriends(db, pl), score: shNum(pl.score) }; }
 function shPrune(db, now) { var r = db.rows('Messages'), old = now - SH_LIM.keepDays * 864e5, n = 0; while (n < r.length && shNum(r[n].time) < old) n++; if (n) db.dropHead('Messages', n); }
 function shFlagKey(nick) { return 'in:' + shLow(nick); }
 function shInbox(db, me, now) { var inbox = [];
-  db.rows('Messages').forEach(function (m) { if (String(m.toId) === String(me.id) && !m.got) { m.got = now; db.update('Messages', m); inbox.push({ from: m.fromNick, kind: m.kind, text: m.text || '', amount: shNum(m.amount), time: shNum(m.time) }); } });
+  db.rows('Messages').forEach(function (m) { if (String(m.toId) === String(me.id) && !m.got) { m.got = now; db.update('Messages', m); if (!m.del && !m.hid) inbox.push({ mid: String(m.mid), from: m.fromNick, kind: m.kind, text: m.text || '', amount: shNum(m.amount), time: shNum(m.time) }); } });
   if (db.flagSet) db.flagSet(shFlagKey(me.nick), null); return inbox; }
 function shSince(db, me, kind, since) { return db.rows('Messages').filter(function (m) { return String(m.fromId) === String(me.id) && m.kind === kind && shNum(m.time) >= since; }).length; }
 function shToday(db, me, kind, now) { var day = now - 864e5; return db.rows('Messages').filter(function (m) { return String(m.fromId) === String(me.id) && m.kind === kind && shNum(m.time) >= day; }).length; }
@@ -78,7 +84,7 @@ function shHandle(db, p, now, hash) {
 
   if (a === 'top') {
     var hit = db.cacheGet && db.cacheGet('top', now); if (hit) return JSON.parse(hit);
-    var list = db.rows('Pilots').slice().sort(function (x, y) { return shNum(y.score) - shNum(x.score) || shNum(x.created) - shNum(y.created); }).slice(0, SH_LIM.top)
+    var list = db.rows('Pilots').filter(function (x) { return shShown(x, now); }).sort(function (x, y) { return shNum(y.score) - shNum(x.score) || shNum(x.created) - shNum(y.created); }).slice(0, SH_LIM.top)
       .map(function (x) { return { n: x.nick, av: shAv(x.av), s: shNum(x.score), k: shNum(x.kills), m: shJ(x.med, []).length, t: x.tank || '', seen: shNum(x.lastSeen) }; });
     var res = { ok: true, list: list, now: now }; if (db.cachePut) db.cachePut('top', JSON.stringify(res), SH_LIM.topSecs, now);
     return res;
@@ -93,7 +99,9 @@ function shHandle(db, p, now, hash) {
       out.friend = shJ(me.friends, []).indexOf(t.id) >= 0;
       var old = now - SH_LIM.keepDays * 864e5, log = [];
       db.rows('Messages').forEach(function (m) { if (shNum(m.time) < old) return; var mine = String(m.fromId) === String(me.id) && String(m.toId) === String(t.id), his = String(m.fromId) === String(t.id) && String(m.toId) === String(me.id);
-        if (mine || his) log.push({ out: mine, kind: m.kind, text: m.text || '', amount: shNum(m.amount), time: shNum(m.time) }); });
+        if (m.del || (his && m.hid)) return;
+        if (his && !m.read && String(p.rd) === '1') { m.read = now; db.update('Messages', m); } /* the chat is open on his screen = read (background warm-ups do not count) */
+        if (mine || his) log.push({ mid: String(m.mid), out: mine, kind: m.kind, text: m.text || '', amount: shNum(m.amount), time: shNum(m.time), read: mine && shNum(m.read) ? 1 : 0 }); });
       out.log = log.slice(-SH_LIM.log); } }
     return out;
   }
@@ -146,7 +154,14 @@ function shHandle(db, p, now, hash) {
       if (shToday(db, me2, 'scrap', now) >= SH_LIM.scrapPerDay) return shErr('limit'); msg.amount = amt;
     } else return shErr('bad');
     db.append('Messages', msg); me2.lastSeen = now; db.update('Pilots', me2); if (db.flagSet) db.flagSet(shFlagKey(to.nick), '1');
-    return { ok: true, to: to.nick, text: msg.text, muted: muted ? shNum(me2.muteT) : 0, left: p.kind === 'scrap' ? SH_LIM.scrapPerDay - shToday(db, me2, 'scrap', now) : SH_LIM.msgPerDay - shToday(db, me2, 'msg', now) };
+    return { ok: true, mid: msg.mid, to: to.nick, text: msg.text, muted: muted ? shNum(me2.muteT) : 0, left: p.kind === 'scrap' ? SH_LIM.scrapPerDay - shToday(db, me2, 'scrap', now) : SH_LIM.msgPerDay - shToday(db, me2, 'msg', now) };
+  }
+
+  /* v30.9: delete a message — your own one disappears for both, a received one only for you */
+  if (a === 'del') {
+    var dm = null; db.rows('Messages').forEach(function (m) { if (String(m.mid) === String(p.mid)) dm = m; }); if (!dm) return { ok: true, gone: 1 };
+    if (String(dm.fromId) === String(me2.id)) dm.del = now; else if (String(dm.toId) === String(me2.id)) dm.hid = now; else return shErr('no_msg');
+    db.update('Messages', dm); return { ok: true };
   }
 
   if (a === 'vote') {

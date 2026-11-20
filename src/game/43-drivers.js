@@ -16,9 +16,13 @@ const drvTank=id=>(CHASSIS[id]&&CHASSIS[id].name)||'—';
 const drvEName=t=>{ const n=ENAME[t]||t, m=/«(.+)»/.exec(n); return m?m[1]:n; };
 const drvScore=()=>DRV.kills+50*Object.keys(DRV.medals).length;
 function drvErr(r){ if(r.err==='muted') return `Сообщения закрыты до ${new Date(r.until).toLocaleString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}: в прошлом было запрещённое слово.`; return DRV_ERR[r.err]||'Не получилось'; }
-function drvAgo(seen,now){ if(!seen) return ''; const m=Math.max(0,Math.round(((now||Date.now())-seen)/60000)); return m<6?'в игре сейчас':m<60?`был ${m} мин назад`:m<2880?`был ${Math.round(m/60)} ч назад`:`был ${Math.round(m/1440)} дн назад`; }
+const ruN=(n,a,b,c)=>{ const d=n%10, h=n%100; return d===1&&h!==11?a:d>=2&&d<=4&&(h<12||h>14)?b:c; };
+/* v30.9: «был час назад», «был 2 дня назад» — in the lists and on the card */
+function drvAgo(seen,now){ if(!seen) return ''; const m=Math.max(0,Math.round(((now||Date.now())-seen)/60000)); if(m<6) return 'в игре сейчас'; if(m<60) return `был ${m} ${ruN(m,'минуту','минуты','минут')} назад`;
+  const h=Math.round(m/60); if(h<24) return h===1?'был час назад':`был ${h} ${ruN(h,'час','часа','часов')} назад`; const d=Math.round(m/1440); if(d===1) return 'был вчера'; if(d<7) return `был ${d} ${ruN(d,'день','дня','дней')} назад`;
+  if(d<30){ const w=Math.round(d/7); return w===1?'был неделю назад':`был ${w} ${ruN(w,'неделю','недели','недель')} назад`; } const mo=Math.round(d/30); return mo===1?'был месяц назад':mo<12?`был ${mo} ${ruN(mo,'месяц','месяца','месяцев')} назад`:'давно не заходил'; }
 function drvLoad(){ try{ const d=JSON.parse(localStorage.getItem(DRV_KEY)||'null'); if(d) for(const k of DRV_SAVE) if(d[k]!=null) DRV[k]=d[k]; }catch(_){ /* приватный режим */ }
-  DRV.st=Object.assign({ram:0,civ:0,flag:0,msg:0,gift:0},DRV.st); DRV.cache=Object.assign({top:null,topT:0,cards:{},news:null,newsT:0,nv:{}},DRV.cache); }
+  DRV.st=Object.assign({ram:0,civ:0,flag:0,msg:0,gift:0},DRV.st); DRV.cache=Object.assign({top:null,topT:0,cards:{},news:null,newsT:0,nv:{},gone:{},delQ:[]},DRV.cache); const old=Date.now()-8*864e5; for(const k of Object.keys(DRV.cache.gone)) if(DRV.cache.gone[k]<old) delete DRV.cache.gone[k]; }
 function drvSave(){ DRV.ls=false; try{ const o={}; for(const k of DRV_SAVE) o[k]=DRV[k]; localStorage.setItem(DRV_KEY,JSON.stringify(o)); }catch(_){ /* приватный режим */ } }
 function drvApi(){ return window.SHT_SHEETS||null; }
 const drvOn=()=>!OFFLINE&&!!(drvApi()&&drvApi().url());
@@ -34,12 +38,12 @@ function drvStat(k){ DRV.st[k]=(DRV.st[k]|0)+1; DRV.dirty=true; medalsCheck(); d
 /* ---- medals ---- */
 function medalGive(id){ if(DRV.medals[id]) return; const m=MEDALS.find(x=>x[0]===id); if(!m) return; DRV.medals[id]=Date.now(); DRV.dirty=true; drvSave(); drvNote('НОВАЯ МЕДАЛЬ',m[1]); sfxBuy(); }
 function medalsCheck(){ const k=DRV.kbt, s=DRV.st, give=(c,id)=>{ if(c&&!DRV.medals[id]) medalGive(id); };
-  give(DRV.kills>=100,'k100'); give(DRV.kills>=1000,'k1000'); give(DRV.kills>=5000,'k5000'); give(s.ram>=25,'ram'); give((k.drone|0)>=30,'drones'); give((k.katok|0)>=10,'katok');
-  give(s.civ>=20,'rescue'); give(s.flag>=3,'flags'); give(DRV.streak>=10,'streak'); give(s.msg>=10,'radio'); give(s.gift>=1000,'gift'); give(DRV.friends.length>=3,'team');
+  const N=MED_N; give(DRV.kills>=N.k100,'k100'); give(DRV.kills>=N.k1000,'k1000'); give(DRV.kills>=N.k5000,'k5000'); give(s.ram>=N.ram,'ram'); give((k.drone|0)>=N.drones,'drones'); give((k.katok|0)>=N.katok,'katok');
+  give(s.civ>=N.rescue,'rescue'); give(s.flag>=N.flags,'flags'); give(DRV.streak>=N.streak,'streak'); give(s.msg>=N.radio,'radio'); give(s.gift>=N.gift,'gift'); give(DRV.friends.length>=N.team,'team');
   give(['krot','hornet','dragon','crypt'].every(b=>DRV.medals[b]),'all4');
   if(!DRV.medals.fleet&&Object.keys(UP.tanks||{}).length>=CH_ORDER.length) medalGive('fleet');
   if(!DRV.medals.major&&MS.rank>=RANKS.indexOf('Майор')) medalGive('major');
-  if(!DRV.medals.tuned){ const all=[UP].concat(Object.values(UP.per||{})); if(all.some(u=>u&&(u.engine|0)>=3&&(u.armor|0)>=3)) medalGive('tuned'); } }
+  if(!DRV.medals.tuned){ const all=[[UP.tank,UP]].concat(Object.entries(UP.per||{})); if(all.some(([id,u])=>u&&(u.engine|0)>=3&&(u.armor|0)>=3&&((u.abl|0)>=2||!ABL[id]))) medalGive('tuned'); } }
 
 /* ---- boss fights: timer and hits taken (medals «Молния», «Без царапины») ---- */
 function drvTick(dt){ const e=BOSS.e;
@@ -52,10 +56,16 @@ function drvTick(dt){ const e=BOSS.e;
   else if((DRV.pollT=(DRV.pollT==null?DRV_POLL:DRV.pollT)-dt)<=0){ DRV.pollT=DRV_POLL; drvPoll(); }
   if((DRV.topT-=dt)<=0){ DRV.topT=$('#drivers').hidden?DRV_TOP:45; drvTop(); }
   if((DRV.newsT=(DRV.newsT==null?8:DRV.newsT)-dt)<=0){ DRV.newsT=$('#drivers').hidden?DRV_NEWS:60; drvNews(); }
-  if(DRV.preQ.length&&(DRV.preT-=dt)<=0){ DRV.preT=5; drvCardFetch(DRV.preQ.shift(),true); } }
+  if(DRV.preQ.length&&(DRV.preT-=dt)<=0){ DRV.preT=5; drvCardFetch(DRV.preQ.shift(),true); }
+  /* v30.9: an open chat refreshes every 12 s — the other side sees «✓✓», we see his deletions */
+  if(drvChatOpen()&&(DRV.chatT=(DRV.chatT==null?12:DRV.chatT)-dt)<=0){ DRV.chatT=12; drvCardFetch(DRVUI.who,true); }
+  if(DRV.cache.delQ.length&&(DRV.delT=(DRV.delT||0)-dt)<=0){ DRV.delT=20; drvDelFlush(); } }
+const drvChatOpen=()=>!$('#drivers').hidden&&DRVUI.view==='card'&&DRVUI.pane==='chat'&&DRVUI.who!==DRV.nick&&DRV.friends.includes(DRVUI.who);
 async function drvPoll(){ if(DRV.busy) return; DRV.busy=true; try{ const r=await drvCall('poll',{},true); if(r.ok) for(const m of r.inbox||[]) drvInbox(m); } finally{ DRV.busy=false; } }
 function drvBossWin(e){ const f=DRV.fight&&DRV.fight.e===e?DRV.fight:null; DRV.fight=null; if(DRV.dbg){ DRV.dbg=false; return; } if(!f||!DRV_BOSSN[e.type]) return;
-  medalGive('first'); medalGive(e.type); if(f.lost<f.max*0.1) medalGive('clean'); if(f.t<90) medalGive('fast'); if(UP.tank==='ten') medalGive('shadow'); if(UP.tank==='rszo') medalGive('arty');
+  medalGive('first'); medalGive(e.type); if(f.lost<f.max*MED_N.clean) medalGive('clean'); if(f.t<MED_N.fast) medalGive('fast');
+  const bo=DRV.st.bossOn||(DRV.st.bossOn={}); const L=bo[UP.tank]||(bo[UP.tank]=[]); if(!L.includes(e.type)) L.push(e.type);
+  if((bo.ten||[]).length>=MED_N.bossOn) medalGive('shadow'); if((bo.rszo||[]).length>=MED_N.bossOn) medalGive('arty');
   medalsCheck(); DRV.dirty=true; DRV.syncT=Math.min(DRV.syncT,2); }
 
 /* ---- sync: my numbers up, inbox down ---- */
@@ -69,9 +79,9 @@ async function drvSync(){ if(DRV.busy) return; DRV.busy=true;
     const r=await drvCall('sync',p,true); if(!r.ok){ DRV.dirty=true; return; } drvMerge(r.me); drvSave();
     for(const m of r.inbox||[]) drvInbox(m); if(!$('#drivers').hidden) drvRender(true); }
   finally{ DRV.busy=false; } }
-function drvInbox(m){ const c=DRV.cache.cards[m.from]; if(c){ c.log=c.log||[]; c.log.push({out:false,kind:m.kind,text:m.text,amount:m.amount,time:m.time}); }
+function drvInbox(m){ const c=DRV.cache.cards[m.from]; if(c){ c.log=c.log||[]; c.log.push({mid:m.mid,out:false,kind:m.kind,text:m.text,amount:m.amount,time:m.time}); }
   const open=!$('#drivers').hidden&&DRVUI.view==='card'&&DRVUI.who===m.from;
-  if(open) drvChatSync(); else { DRV.unread[m.from]=(DRV.unread[m.from]|0)+1; if(!$('#drivers').hidden) drvRender(true); } drvSave();
+  if(open){ drvChatSync(); DRV.chatT=1.5; } else { DRV.unread[m.from]=(DRV.unread[m.from]|0)+1; if(!$('#drivers').hidden) drvRender(true); } drvSave();
   if(m.kind==='scrap'){ ST.scrap+=m.amount; save(); drvNote(`ПОСЫЛКА ОТ ${m.from}`,`+${m.amount} лома`); sfxPickup(1); }
   else drvNote(`ВХОДЯЩЕЕ СООБЩЕНИЕ ОТ ${m.from}`,m.text,{reply:m.from}); }
 async function drvTop(){ const r=await drvCall('top',{}); if(!r.ok) return; DRV.cache.top=r.list; DRV.cache.topT=Date.now(); DRV.cache.topNow=r.now; drvSave();
@@ -79,22 +89,22 @@ async function drvTop(){ const r=await drvCall('top',{}); if(!r.ok) return; DRV.
   const want=DRV.friends.concat(r.list.slice(0,8).map(x=>x.n)).filter((n,i,a)=>n!==DRV.nick&&a.indexOf(n)===i);
   DRV.preQ=want.filter(n=>{ const c=DRV.cache.cards[n]; return !c||Date.now()-c.t>300000; }); DRV.preT=1;
   if(!$('#drivers').hidden&&DRVUI.view!=='card') drvRender(true); }
-async function drvCardFetch(who,quiet){ const r=await drvCall('card',{who},true); if(!r.ok){ if(!quiet&&DRVUI.view==='card'&&DRVUI.who===who) drvMsg(DRV_ERR[r.err]||'Ошибка',true); return; }
-  r.t=Date.now(); const old=DRV.cache.cards[r.nick]; if(old&&old.log){ const loc=old.log.filter(m=>m.st); if(loc.length) r.log=(r.log||[]).concat(loc); } DRV.cache.cards[r.nick]=r; const ks=Object.keys(DRV.cache.cards); if(ks.length>40){ ks.sort((a,b)=>DRV.cache.cards[a].t-DRV.cache.cards[b].t); delete DRV.cache.cards[ks[0]]; }
-  drvSave(); if(DRVUI.view==='card'&&DRVUI.who===r.nick) drvRender(true); }
+async function drvCardFetch(who,quiet){ const rd=drvChatOpen()&&DRVUI.who===who?'1':''; const r=await drvCall('card',rd?{who,rd}:{who},true); if(!r.ok){ if(!quiet&&DRVUI.view==='card'&&DRVUI.who===who) drvMsg(DRV_ERR[r.err]||'Ошибка',true); return; }
+  r.t=Date.now(); r.log=(r.log||[]).filter(m=>!(m.mid&&DRV.cache.gone[m.mid])); const old=DRV.cache.cards[r.nick]; if(old&&old.log){ const loc=old.log.filter(m=>m.st); if(loc.length) r.log=r.log.concat(loc); } DRV.cache.cards[r.nick]=r; const ks=Object.keys(DRV.cache.cards); if(ks.length>40){ ks.sort((a,b)=>DRV.cache.cards[a].t-DRV.cache.cards[b].t); delete DRV.cache.cards[ks[0]]; }
+  drvSave(); if(DRVUI.view==='card'&&DRVUI.who===r.nick){ if(DRVUI.menu) return; if(drvChatOpen()&&DRVUI.caKey) drvChatSync(); else drvRender(true); } }
 
 /* ---- dialog «Профиль» (v30.3: clearer layout, messenger-style chat, optimistic sending) ---- */
 const DRVUI={view:'top',tab:'top',who:'',med:'',amt:100,txt:'',pane:'chat',mode:'reg',caKey:'',seen:new Set()};
 function drvMsg(s,err){ const m=$('#drvMsg'); m.textContent=s||''; m.classList.toggle('err',!!err); }
 function drvAnim(el){ if(!el) return; el.classList.remove('vin'); void el.offsetWidth; el.classList.add('vin'); }
-function drvOpen(){ $('#drivers').hidden=false; drvMsg(''); drvAnim($('#drivers .card'));
+function drvOpen(){ const D=$('#drivers'); clearTimeout(DRVUI.closeT); D.classList.remove('out'); D.hidden=false; drvMsg(''); D.classList.remove('opn'); void D.offsetWidth; D.classList.add('opn');
   if(!drvOn()){ $('#drvReg').hidden=true; $('#drvMain').hidden=true; drvMsg(DRV_ERR.nourl,true); return; }
   if(!DRV.nick){ $('#drvReg').hidden=false; $('#drvMain').hidden=true; drvRegRender(); return; }
   $('#drvReg').hidden=true; $('#drvMain').hidden=false; if(DRVUI.view==='card') DRVUI.view=DRVUI.tab; drvRender();
   if(Date.now()-DRV.cache.topT>45000) DRV.topT=0; if(Date.now()-(DRV.cache.newsT||0)>60000) DRV.newsT=0; }
-function drvClose(){ $('#drivers').hidden=true; drvTkStop(); }
-function drvTab(t){ DRVUI.tab=DRVUI.view=t; drvMsg(''); drvRender(); drvAnim($('#drvBody')); }
-function drvCardOpen(who){ DRVUI.view='card'; DRVUI.who=who; DRVUI.med=''; DRVUI.caKey=''; DRVUI.txt=''; DRVUI.pane='chat'; DRVUI.seen=new Set(); drvMsg('');
+function drvClose(){ const D=$('#drivers'); drvMenuClose(); D.classList.add('out'); drvTkStop(); clearTimeout(DRVUI.closeT); DRVUI.closeT=setTimeout(()=>{ D.hidden=true; D.classList.remove('out'); },190); }
+function drvTab(t){ if(DRVUI.tab===t&&DRVUI.view===t) return; DRVUI.tab=DRVUI.view=t; drvMsg(''); DRVUI.stag=true; drvRender(); drvAnim($('#drvBody')); }
+function drvCardOpen(who){ DRVUI.view='card'; DRVUI.who=who; DRVUI.med=''; DRVUI.caKey=''; DRVUI.txt=''; DRVUI.pane='chat'; DRVUI.seen=new Set(); DRVUI.menu=null; DRV.chatT=12; drvMsg('');
   if(DRV.unread[who]){ delete DRV.unread[who]; drvSave(); } drvRender(); drvAnim($('#drvCard')); if(who!==DRV.nick) drvCardFetch(who); }
 
 /* registration / login: one form, one main button */
@@ -111,35 +121,35 @@ async function drvAuth(kind){ const nick=$('#drvNick').value.trim(), pin=$('#drv
 
 /* lists */
 const drvOnline=(x,now)=>x&&x.seen&&((now||Date.now())-x.seen)<360000;
-function drvRow(x,i,now){ const me=x.n===DRV.nick, fr=DRV.friends.includes(x.n), un=DRV.unread[x.n]|0, pl=i<0?'—':i+1;
-  return `<li class="${me?'me':''}${i>=0&&i<3?' p'+(i+1):''}" data-who="${drvEsc(x.n)}"><span class="n">${pl}</span><span class="av">${avSvg(x.av)}${drvOnline(x,now)?'<i class="on"></i>':''}</span>`+
-    `<span class="nm">${drvEsc(x.n)}<small>${me?'<em>это ты</em> · ':''}${drvEsc(x.t?drvTank(x.t):'—')} · ${x.m} мед.</small></span>`+
+function drvRow(x,i,now,j){ const me=x.n===DRV.nick, fr=DRV.friends.includes(x.n), un=DRV.unread[x.n]|0, pl=i<0?'—':i+1;
+  return `<li style="--i:${Math.min(j==null?i:j,14)}" class="${me?'me':''}${i>=0&&i<3?' p'+(i+1):''}" data-who="${drvEsc(x.n)}"><span class="n">${pl}</span><span class="av">${avSvg(x.av)}${drvOnline(x,now)?'<i class="on"></i>':''}</span>`+
+    `<span class="nm">${drvEsc(x.n)}<small>${me?'<em>это ты</em> · '+drvEsc(x.t?drvTank(x.t):'—'):`<span class="${drvOnline(x,now)?'onl':''}">${drvEsc(drvAgo(x.seen,now)||'—')}</span>`}</small></span>`+
     (un?`<span class="dun">${un}</span>`:'<span></span>')+`<b>${x.s}<small>очк.</small></b>`+(me?'<i></i>':`<button class="dstar${fr?' on':''}" data-star="${drvEsc(x.n)}" aria-label="${fr?'Убрать из друзей':'В друзья'}">${fr?'★':'☆'}</button>`)+'</li>'; }
 function drvMine(){ return {n:DRV.nick,av:DRV.av,s:drvScore(),k:DRV.kills,m:Object.keys(DRV.medals).length,t:UP.tank,seen:Date.now()}; }
 function drvList(){ const L=(DRV.cache.top||[]).map(x=>x.n===DRV.nick?drvMine():x); if(!L.some(x=>x.n===DRV.nick)) L.push(drvMine()); return L.sort((a,b)=>b.s-a.s); }
 function drvRender(bg){ const B=$('#drvBody');
   const L=drvList(), place=L.findIndex(x=>x.n===DRV.nick)+1, un=Object.values(DRV.unread).reduce((a,b)=>a+b,0), mc=Object.keys(DRV.medals).length;
-  document.querySelectorAll('.drvTabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===DRVUI.tab)); const bd=$('#drvBadge'); bd.hidden=!un; bd.textContent=un;
+  document.querySelectorAll('.drvTabs button').forEach((b,i)=>{ b.classList.toggle('on',b.dataset.t===DRVUI.tab); if(b.dataset.t===DRVUI.tab) $('.drvTabs').style.setProperty('--ti',i); }); const bd=$('#drvBadge'); bd.hidden=!un; bd.textContent=un;
   $('#drvMe').innerHTML=`<span class="av big">${avSvg(DRV.av)}</span><span class="nm">${drvEsc(DRV.nick)}<small>${drvEsc(RANKS[MS.rank]||'')}</small></span>`+
     `<span class="dme"><span><b>${drvScore()}</b>очков</span><span><b>${place?place:'—'}</b>место</span><span><b>${mc}</b>медалей</span></span><span class="dgo">›</span>`;
   const card=DRVUI.view==='card'; $('.drvTabs').hidden=card; $('#drvMe').hidden=card;
-  if(!card){ drvTkStop(); $('#drvCard').hidden=true; B.hidden=false; if(bg&&B.contains(document.activeElement)) return; const now=(DRV.cache.top&&DRV.cache.topNow)||Date.now();
+  if(!card){ drvTkStop(); $('#drvCard').hidden=true; B.hidden=false; if(bg&&B.contains(document.activeElement)) return; const now=DRV.cache.top&&DRV.cache.topNow?DRV.cache.topNow+(Date.now()-DRV.cache.topT):Date.now(); const stag=DRVUI.stag&&!bg?' stag':''; DRVUI.stag=false;
     if(DRVUI.view==='news'){ const st=B.scrollTop, end=B.scrollHeight-B.clientHeight-st<30; B.innerHTML=drvNewsHtml(); B.scrollTop=bg&&!end?st:B.scrollHeight; return; }
-    if(DRVUI.view==='fr'){ const idx=new Map(L.map((x,i)=>[x.n,i])); const F=DRV.friends.map(n=>L.find(y=>y.n===n)||{n,av:(DRV.cache.cards[n]||{}).av|0,s:0,k:0,m:0,t:''});
-      B.innerHTML=F.length?'<ol class="drvL">'+F.map(x=>drvRow(x,idx.has(x.n)?idx.get(x.n):-1,now)).join('')+'</ol>':'<div class="dempty"><b>☆</b><p>Здесь будут друзья. Нажми ☆ у пилота в рейтинге — ему можно будет писать и отправлять лом.</p></div>'; }
-    else B.innerHTML='<p class="dhint">Очки = уничтоженные роботы + 50 за каждую медаль</p>'+(DRV.cache.top?'':'<p class="drvMsg">Подтягиваю рейтинг…</p>')+'<ol class="drvL">'+L.map((x,i)=>drvRow(x,i,now)).join('')+'</ol>';
+    if(DRVUI.view==='fr'){ const idx=new Map(L.map((x,i)=>[x.n,i])); const F=DRV.friends.map(n=>L.find(y=>y.n===n)||{n,av:(DRV.cache.cards[n]||{}).av|0,s:(DRV.cache.cards[n]||{}).score|0,k:0,m:0,t:'',seen:(DRV.cache.cards[n]||{}).seen||0});
+      B.innerHTML=F.length?`<ol class="drvL${stag}">`+F.map((x,j)=>drvRow(x,idx.has(x.n)?idx.get(x.n):-1,now,j)).join('')+'</ol>':'<div class="dempty"><b>☆</b><p>Здесь будут друзья. Нажми ☆ у пилота в рейтинге — ему можно будет писать и отправлять лом.</p></div>'; }
+    else B.innerHTML='<p class="dhint">Очки = уничтоженные роботы + 50 за каждую медаль</p>'+(DRV.cache.top?'':'<p class="drvMsg">Подтягиваю рейтинг…</p>')+`<ol class="drvL${stag}">`+L.map((x,i)=>drvRow(x,i,now)).join('')+'</ol>';
     return; }
   B.hidden=true; $('#drvCard').hidden=false; drvCardRender(); }
 
 /* ---- news feed (v30.6): fetched in the background, kept in the cache, drawn instantly ---- */
-async function drvNews(){ const r=await drvCall('news',{}); if(!r.ok||!Array.isArray(r.news)) return; const C=DRV.cache;
+async function drvNews(){ const t0=Date.now(); const r=await drvCall('news',{}); if(!r.ok||!Array.isArray(r.news)) return; if(t0<=(DRV.voteT||0)+1500) return; /* a list asked for before my last vote is stale */ const C=DRV.cache;
   const sig=JSON.stringify(r.news), was=JSON.stringify(C.news); C.news=r.news; C.newsT=Date.now(); C.newsNow=r.now;
   for(const id of Object.keys(C.nv)) if(!r.news.some(n=>n.id===id)) delete C.nv[id];
   drvSave(); if(sig!==was&&!$('#drivers').hidden&&DRVUI.view==='news') drvRender(true); }
 async function drvVote(id,v){ const n=(DRV.cache.news||[]).find(x=>x.id===id); if(!n) return; const C=DRV.cache, old=C.nv[id]|0, nv=old===v?0:v;
   if(old===1) n.up--; if(old===-1) n.down--; if(nv===1) n.up++; if(nv===-1) n.down++; if(nv) C.nv[id]=nv; else delete C.nv[id];
-  sfxClick(); drvSave(); drvNewsVotes(id);
-  const r=await drvCall('vote',{id,v:nv},true); if(r.ok){ n.up=r.up; n.down=r.down; if(r.my) C.nv[id]=r.my; else delete C.nv[id]; drvSave(); drvNewsVotes(id); }
+  sfxClick(); drvSave(); drvNewsVotes(id); DRV.voteT=Date.now();
+  const r=await drvCall('vote',{id,v:nv},true); DRV.voteT=Date.now(); if(r.ok){ n.up=r.up; n.down=r.down; if(r.my) C.nv[id]=r.my; else delete C.nv[id]; drvSave(); drvNewsVotes(id); }
   else drvMsg(DRV_ERR[r.err]||'Голос не засчитан — нет связи.',true); }
 function drvVoteBtns(n){ const my=DRV.cache.nv[n.id]|0;
   return `<button class="dv up${my===1?' on':''}" data-vote="1" data-nid="${drvEsc(n.id)}" aria-label="Нравится">${THUMB_SVG}<b>${Math.max(0,n.up|0)}</b></button>`+
@@ -161,8 +171,8 @@ function drvCardData(who){ if(who===DRV.nick) return {nick:DRV.nick,av:DRV.av,ki
   return DRV.cache.cards[who]||null; }
 /* how far along a count-based medal is (own card only) */
 function medProg(id){ const k=DRV.kbt, s=DRV.st, n=Object.keys(UP.tanks||{}).length;
-  const P={k100:[DRV.kills,100],k1000:[DRV.kills,1000],k5000:[DRV.kills,5000],ram:[s.ram,25],drones:[k.drone|0,30],katok:[k.katok|0,10],rescue:[s.civ,20],flags:[s.flag,3],streak:[DRV.streak,10],
-    team:[DRV.friends.length,3],radio:[s.msg,10],gift:[s.gift,1000],fleet:[n,CH_ORDER.length],all4:[['krot','hornet','dragon','crypt'].filter(b=>DRV.medals[b]).length,4]};
+  const N=MED_N, bo=s.bossOn||{}; const P={k100:[DRV.kills,N.k100],k1000:[DRV.kills,N.k1000],k5000:[DRV.kills,N.k5000],ram:[s.ram,N.ram],drones:[k.drone|0,N.drones],katok:[k.katok|0,N.katok],rescue:[s.civ,N.rescue],flags:[s.flag,N.flags],streak:[DRV.streak,N.streak],
+    team:[DRV.friends.length,N.team],radio:[s.msg,N.radio],gift:[s.gift,N.gift],shadow:[(bo.ten||[]).length,N.bossOn],arty:[(bo.rszo||[]).length,N.bossOn],fleet:[n,CH_ORDER.length],all4:[['krot','hornet','dragon','crypt'].filter(b=>DRV.medals[b]).length,4]};
   return P[id]||null; }
 function drvCardRender(){ const who=DRVUI.who, r=drvCardData(who), H=$('#drvCH'), C=$('#drvCI'); const fr=DRV.friends.includes(who), me=who===DRV.nick;
   const top=(DRV.cache.top||[]).find(x=>x.n===who), on=me||drvOnline(r||top,r&&r.now);
@@ -198,12 +208,28 @@ function drvActions(r,me,fr){ const A=$('#drvCA'), key=`${DRVUI.who}|${me}|${fr}
 function drvChatSync(){ const box=$('#drvChat'); if(!box) return; const c=DRV.cache.cards[DRVUI.who], log=(c&&c.log)||[], near=box.scrollHeight-box.scrollTop-box.clientHeight<40||!box.childElementCount;
   if(!log.length){ box.innerHTML='<p class="dempty1">Сообщений пока нет — напиши первым.</p>'; return; }
   let day='', h='';
-  for(const m of log){ const d=new Date(m.time), dl=d.toLocaleDateString('ru-RU',{day:'numeric',month:'long'}), k=m.k||(m.time+'|'+m.kind+'|'+m.text+'|'+m.amount);
+  for(const m of log){ const d=new Date(m.time), dl=d.toLocaleDateString('ru-RU',{day:'numeric',month:'long'}), k=drvMk(m);
     if(dl!==day){ day=dl; h+=`<div class="dday">${dl}</div>`; }
     const fresh=!DRVUI.seen.has(k); DRVUI.seen.add(k);
-    const st=m.st==='pend'?'<i class="dst">◷</i>':m.st==='err'?'<i class="dst err">!</i>':m.out?'<i class="dst">✓</i>':'';
-    h+=`<div class="dmsg ${m.out?'out':'in'}${m.kind==='scrap'?' gift':''}${m.st?' '+m.st:''}${fresh?' fresh':''}">${m.kind==='scrap'?`<b>⬢ ${m.amount} лома</b>`:drvEsc(m.text)}<small>${d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}${st}</small></div>`; }
+    const st=m.st==='pend'?'<i class="dst">◷</i>':m.st==='err'?'<i class="dst err">!</i>':m.out?(m.read?'<i class="dst rd" title="Прочитано">✓✓</i>':'<i class="dst" title="Доставлено">✓</i>'):'';
+    h+=`<div data-k="${drvEsc(k)}" class="dmsg ${m.out?'out':'in'}${m.kind==='scrap'?' gift':''}${m.st?' '+m.st:''}${fresh?' fresh':''}">${m.kind==='scrap'?`<b>⬢ ${m.amount} лома</b>`:drvEsc(m.text)}<small>${d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}${st}</small></div>`; }
   box.innerHTML=h; if(near) box.scrollTop=box.scrollHeight; }
+const drvMk=m=>m.k||m.mid||(m.time+'|'+m.kind+'|'+m.text+'|'+m.amount);
+/* v30.9: tap a bubble → «Удалить» (and «Повторить» for one that failed) */
+function drvMenuClose(){ const o=document.querySelector('.dmenu'); if(o){ o.classList.add('out'); setTimeout(()=>o.remove(),140); } document.querySelectorAll('.dmsg.sel').forEach(e=>e.classList.remove('sel')); DRVUI.menu=null; }
+function drvMsgMenu(el){ const k=el.dataset.k; if(DRVUI.menu===k){ drvMenuClose(); return; } drvMenuClose(); const c=DRV.cache.cards[DRVUI.who], m=c&&c.log&&c.log.find(x=>drvMk(x)===k); if(!m) return;
+  DRVUI.menu=k; el.classList.add('sel'); const M=document.createElement('div'); M.className='dmenu '+(m.out?'out-side':'in-side');
+  M.innerHTML=(m.st==='err'?'<button data-mre="1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>Повторить</button>':'')+`<button data-mdel="1" class="del"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>${m.out&&m.mid?'Удалить у всех':'Удалить'}</button>`;
+  /* fixed to the screen next to the bubble: below it when there is room above the message bar, otherwise above */
+  $('#drivers').appendChild(M); const r=el.getBoundingClientRect(), bar=$('#drivers .dbar'), lim=(bar?bar.getBoundingClientRect().top:innerHeight)-6, h=M.offsetHeight, w=M.offsetWidth;
+  const y=r.bottom+6+h<=lim?r.bottom+6:Math.max(8,r.top-6-h); M.style.top=y+'px'; M.style.left=Math.max(8,Math.min(innerWidth-w-8,m.out?r.right-w:r.left))+'px'; if(y<r.top) M.classList.add('up'); sfxClick(); }
+function drvMsgDel(k){ const c=DRV.cache.cards[DRVUI.who]; if(!c||!c.log) return; const m=c.log.find(x=>drvMk(x)===k); drvMenuClose(); if(!m) return;
+  const el=document.querySelector(`.dmsg[data-k="${CSS.escape(k)}"]`); if(el){ el.style.height=el.offsetHeight+'px'; void el.offsetWidth; el.classList.add('gone'); }
+  sNz(0.12,'highpass',2600,0.8,0.04); sO(700,300,0.12,0.03,'triangle');
+  setTimeout(()=>{ const i=c.log.indexOf(m); if(i>=0) c.log.splice(i,1); if(m.mid&&!m.st){ DRV.cache.gone[m.mid]=Date.now(); DRV.cache.delQ.push(m.mid); DRV.delT=0; } drvSave(); drvChatSync(); },230); }
+async function drvDelFlush(){ const q=DRV.cache.delQ; if(!q.length||DRV.delBusy) return; DRV.delBusy=true;
+  try{ while(q.length){ const r=await drvCall('del',{mid:q[0]},true); if(!r.ok&&r.err!=='no_msg') break; q.shift(); drvSave(); } } finally{ DRV.delBusy=false; } }
+function drvMsgRetry(k){ const c=DRV.cache.cards[DRVUI.who], m=c&&c.log&&c.log.find(x=>drvMk(x)===k); drvMenuClose(); if(!m||m.st!=='err'||!m.p) return; drvSendGo(m,DRVUI.who,true); }
 
 /* ---- 3D model of the pilot's last machine ---- */
 const TKV={r:null,scene:null,cam:null,T:null,sig:'',raf:0,t:0,last:0};
@@ -260,7 +286,7 @@ async function drvReplySend(){ const R=$('#drvReply'), who=R.dataset.who, t=$('#
   if(!DRV.friends.includes(who)){ const f=await drvCall('friend',{who,on:'1'},true); if(f.ok){ DRV.friends=f.friends; medalsCheck(); } }
   const r=await drvCall('send',{to:who,kind:'msg',text:t.slice(0,50)},true); b.disabled=false;
   if(!r.ok){ $('#drvRepMsg').textContent=drvErr(r); return; }
-  const c=DRV.cache.cards[who]; if(c){ c.log=c.log||[]; c.log.push({out:true,kind:'msg',text:r.text||t,amount:0,time:Date.now()}); }
+  const c=DRV.cache.cards[who]; if(c){ c.log=c.log||[]; c.log.push({mid:r.mid,out:true,kind:'msg',text:r.text||t,amount:0,time:Date.now()}); }
   DRV.st.msg++; medalsCheck(); drvSave(); sfxBuy(); drvReplyClose(); toast(r.muted?'Ответ ушёл, но мат скрыт · сообщения закрыты на 24 ч':'Ответ ушёл к '+r.to); }
 $('#drvRepGo').addEventListener('click',e=>{ e.stopPropagation(); drvReplySend(); });
 $('#drvRepX').addEventListener('click',e=>{ e.stopPropagation(); drvReplyClose(); });
@@ -286,16 +312,22 @@ async function drvSend(kind){ const who=DRVUI.who; let p;
   if(kind==='scrap'){ const n=Math.floor(+$('#drvAmtN').value||0); if(n<10) return drvMsg('Минимум 10 лома.',true); if(n>ST.scrap) return drvMsg('Не хватает лома.',true); p={to:who,kind,amount:n}; }
   else { const inp=$('#drvTxt'), t=inp.value.replace(/\s+/g,' ').trim(); if(!t) return; p={to:who,kind,text:t.slice(0,50)}; inp.value=''; DRVUI.txt=''; $('#drvCnt').textContent='0/50'; inp.focus(); }
   const c=DRV.cache.cards[who]||(DRV.cache.cards[who]={nick:who,log:[],t:0}); c.log=c.log||[];
-  const m={out:true,kind,text:p.text||'',amount:p.amount||0,time:Date.now(),st:'pend',k:'l'+Date.now()+Math.random()}; c.log.push(m);
-  if(kind==='scrap'){ ST.scrap-=p.amount; save(); DRVUI.pane='chat'; DRVUI.caKey=''; drvCardRender(); } else drvChatSync(); sfxClick();
+  const m={out:true,kind,text:p.text||'',amount:p.amount||0,time:Date.now(),st:'pend',k:'l'+Date.now()+Math.random(),p}; c.log.push(m);
+  if(kind==='scrap'){ DRVUI.pane='chat'; DRVUI.caKey=''; drvCardRender(); }
+  drvSendGo(m,who); }
+async function drvSendGo(m,who,retry){ const p=m.p, kind=p.kind;
+  if(kind==='scrap'){ if(p.amount>ST.scrap){ m.st='err'; drvMsg('Не хватает лома.',true); drvChatSync(); return; } ST.scrap-=p.amount; save(); }
+  m.st='pend'; if(retry){ m.time=Date.now(); drvMsg(''); } drvChatSync(); sfxClick();
   const r=await drvCall('send',p,true);
   if(!r.ok){ m.st='err'; if(kind==='scrap'){ ST.scrap+=p.amount; save(); } drvMsg(drvErr(r),true); drvChatSync(); return; }
-  m.st=''; if(r.text) m.text=r.text;
+  m.st=''; delete m.p; if(r.mid) m.mid=r.mid; if(r.text) m.text=r.text;
   if(kind==='scrap'){ DRV.st.gift+=p.amount; drvMsg(`Отправлено ${r.to}: ${p.amount} лома. Посылок сегодня ещё можно: ${r.left}.`); }
   else { DRV.st.msg++; drvMsg(r.muted?'Запрещённые слова заменены символами. Писать снова можно через 24 часа.':'',!!r.muted); }
   medalsCheck(); drvSave(); sfxBuy(); drvChatSync(); }
 function drvAmt(v){ const s=$('#drvAmt'), n=$('#drvAmtN'); if(!s) return; v=Math.max(10,Math.min(+s.max,Math.floor(+v||0))); DRVUI.amt=v; s.value=String(v); if(document.activeElement!==n) n.value=String(v); $('#drvAmtB').textContent=v; }
-$('#drivers').addEventListener('click',e=>{ const b=e.target.closest('button,li[data-who]'); if(!b||!$('#drivers').contains(b)) return; e.stopPropagation();
+$('#drivers').addEventListener('click',e=>{ const mb=e.target.closest('.dmenu button'); if(mb){ e.stopPropagation(); const k=DRVUI.menu; if(mb.dataset.mdel) drvMsgDel(k); else if(mb.dataset.mre) drvMsgRetry(k); return; }
+  const bub=e.target.closest('.dmsg[data-k]'); if(bub&&$('#drvChat')&&$('#drvChat').contains(bub)){ e.stopPropagation(); drvMsgMenu(bub); return; } if(DRVUI.menu) drvMenuClose();
+  const b=e.target.closest('button,li[data-who]'); if(!b||!$('#drivers').contains(b)) return; e.stopPropagation();
   if(b.dataset.star){ drvStar(b.dataset.star); return; }
   if(b.dataset.vote){ drvVote(b.dataset.nid,+b.dataset.vote); return; }
   if(b.dataset.av!=null){ DRV.av=+b.dataset.av; DRV.dirty=true; DRV.syncT=Math.min(DRV.syncT,1); drvSave(); sfxClick(); if(DRV.nick) drvRender(); else drvRegRender(); return; }
@@ -304,6 +336,7 @@ $('#drivers').addEventListener('click',e=>{ const b=e.target.closest('button,li[
   if(b.dataset.q5){ drvAmt(b.dataset.q5); sfxClick(); return; }
   if(b.dataset.gift!=null){ drvSend('scrap'); return; } if(b.dataset.say!=null){ drvSend('msg'); return; }
   if(b.dataset.who){ sfxClick(); drvCardOpen(b.dataset.who); } });
+$('#drivers').addEventListener('scroll',()=>{ if(DRVUI.menu) drvMenuClose(); },true);
 $('#drivers').addEventListener('input',e=>{ const t=e.target;
   if(t.id==='drvAmt'||t.id==='drvAmtN') drvAmt(t.value);
   if(t.id==='drvTxt'){ DRVUI.txt=t.value; const c=$('#drvCnt'); if(c) c.textContent=t.value.length+'/50'; } });

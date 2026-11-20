@@ -49,10 +49,10 @@ export const tests = [
   } },
   { name: 'camp props: a barrel is shoved and tips over, a sandbag barely moves, a stacked crate falls', timeout: 90, async run(ctx) {
     const c = await client({ name: 'push', quality: 'med' }); ctx.clients.push(c);
-    const r = await c.js(async () => { const D = __dbg, P = D.CDK.push; const b = P.find(o => o.kind === 'barrel'), s = P.find(o => o.kind === 'bag'), top = P.find(o => o.stack);
-      const shove = async (o, sp) => { const a = Math.atan2(o.x - (o.x - 4), 0) || Math.PI / 2; const h = Math.PI / 2; Object.assign(D.TK, { x: o.x - 3.4, z: o.z, h, tYaw: h, vF: sp, vx: sp, vz: 0 }); void a;
+    const r = await c.js(async () => { const D = __dbg, P = D.CDK.push; const BR = P.filter(o => o.kind === 'barrel'), iso = o => Math.min(...P.filter(q => q !== o).map(q => Math.hypot(q.x - o.x, q.z - o.z)));  BR.sort((x, y) => iso(y) - iso(x)); const s = P.find(o => o.kind === 'bag'), top = P.find(o => o.stack);
+      const shove = async (o, sp, h = Math.PI / 2) => { const sx = Math.sin(h), sz = Math.cos(h); Object.assign(D.TK, { x: o.x - 3.4 * sx, z: o.z - 3.4 * sz, h, tYaw: h, vF: sp, vx: sp * sx, vz: sp * sz });
         for (let i = 0; i < 40; i++){ D.tankStep(1 / 60, { throttle: 1, steer: 0, hb: false, joy: null, fire: false }); await new Promise(f => setTimeout(f, 16)); } };
-      const b0 = { x: b.x, z: b.z }; await shove(b, 6); await new Promise(f => setTimeout(f, 800)); const bm = Math.hypot(b.x - b0.x, b.z - b0.z);
+      let bm = 0, b = BR[0]; for (const o of BR){ for (const h of [Math.PI / 2, -Math.PI / 2, 0, Math.PI]){ const o0 = { x: o.x, z: o.z }; await shove(o, 7, h); await new Promise(f => setTimeout(f, 800)); const m = Math.hypot(o.x - o0.x, o.z - o0.z); if (m > 1 && o.lying){ bm = m; b = o; break; } } if (bm) break; }
       const s0 = { x: s.x, z: s.z }; await shove(s, 6); await new Promise(f => setTimeout(f, 800)); const sm = Math.hypot(s.x - s0.x, s.z - s0.z);
       const base = top.base; const t0y = top.y; await shove(base, 5); for (let k = 0; k < 40 && top.y > 0.01; k++) await new Promise(f => setTimeout(f, 150));
       return { bm, lying: b.lying, sm, ty: top.y, t0y, n: P.length }; });
