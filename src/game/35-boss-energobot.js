@@ -59,6 +59,9 @@ function buildLion(e){ Object.assign(e,{hp:540,maxHp:540,r:1.7,hy:1.3,hr:1.6,mas
   const T=new THREE.Group(); T.position.set(0,1.8,-1.4); B.add(T); for(let k=0;k<4;k++) ep(e,EGEO.cyl,k%2?S2:D,T,0,k*0.2,-k*0.15,0.22-k*0.03,0.2,0.22-k*0.03).rotation.x=0.6; ep(e,EGEO.joint,Cy,T,0,0.85,-0.65,0.22); e.tail=T;
   e.pedY=0; }
 /* eye-laser beams: additive cylinder cores + soft glow shells (v27.2) */
+/* v30.10: the lions aim at the tank but not perfectly — the beam starts where the tank was a moment ago (lag) with an error that grows with speed,
+   then chases the tank at a limited speed with a slight wobble. Standing still = hit; driving fast or swerving = a real chance to dodge. */
+const LION_AIM={lag:0.3,err0:0.4,errV:0.18,track:5.5,wob:0.25,wobV:0.07,hitR:1.7};
 function lionBeams(e){ if(e.bm) return; e.bm=[]; for(let i=0;i<2;i++){ const mk=(rad,col,op)=>{ const m=new THREE.Mesh(new THREE.CylinderGeometry(rad,rad,1,10,1,true).rotateX(Math.PI/2),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide})); m.visible=false; m.frustumCulled=false; addExtra(m); return m; };
     e.bm.push({core:mk(0.07,0xfff1e0,1),mid:mk(0.16,0xff7a4a,0.7),glow:mk(0.34,0xff3a22,0.35)}); } }
 
@@ -88,13 +91,13 @@ function updLion(e,dt){ const dx=TK.x-e.x, dz=TK.z-e.z, d=Math.max(1e-3,Math.hyp
     for(const o of e.eyes){ o.getWorldPosition(_bw); for(let n=0;n<3;n++){ const a=rnd()*TAU, rr=(1-k)*1.5+0.1; spark(_bw.x+Math.cos(a)*rr,_bw.y+Math.sin(a)*rr,_bw.z+(rnd()-0.5)*rr,-Math.cos(a)*rr*3.5,-Math.sin(a)*rr*3.5,0,1,0.3+k*0.5,0.2+k*0.4,0.25); }
       if(k>0.5&&rnd()<dt*18) FIRE.spawn(_bw.x,_bw.y,_bw.z,0,0,0,0.3+k*0.5,0.6+k*0.7,0.12,1,0.45,0.3,0.5); LINES.push(_bw.x,_bw.y,_bw.z,TK.x,TK.y+1.2,TK.z,0.4*k,0.07*k,0.05*k,0.3); }
     e.lcS=(e.lcS||0)-dt; if(e.lcS<=0){ e.lcS=0.09; sO(300+k*1700,330+k*1700,0.1,0.04,'sine'); }
-    if(e.stT>1.3){ e.st='lfire'; e.stT=0; e.laim={x:TK.x,z:TK.z}; sO(2600,200,0.9,0.12,'sawtooth'); sO(120,50,0.9,0.14,'square'); sNz(0.9,'bandpass',3200,1.2,0.16); shake=Math.min(1,shake+0.2); flashEyes(e); } break; }
-  case 'lfire': { eBrake(e,dt,12); e.h=turnTo(e.h,want,dt*1.2); eyeK=1; const A=e.laim, ax=TK.x-A.x, az=TK.z-A.z, al=Math.hypot(ax,az)||1, st=Math.min(al,7*dt); A.x+=ax/al*st; A.z+=az/al*st; const gy=groundH(A.x,A.z)+0.3; const fk=1-Math.abs(e.stT/1.1*2-1)*0.2, pul=0.85+0.15*Math.sin(e.t*70);
+    if(e.stT>1.3){ e.st='lfire'; e.stT=0; const sp=Math.hypot(TK.vx,TK.vz), er=LION_AIM.err0+sp*LION_AIM.errV, a=rnd()*TAU; e.laim={x:TK.x-TK.vx*LION_AIM.lag+Math.cos(a)*er,z:TK.z-TK.vz*LION_AIM.lag+Math.sin(a)*er}; e.lwob=rnd()*TAU; sO(2600,200,0.9,0.12,'sawtooth'); sO(120,50,0.9,0.14,'square'); sNz(0.9,'bandpass',3200,1.2,0.16); shake=Math.min(1,shake+0.2); flashEyes(e); } break; }
+  case 'lfire': { eBrake(e,dt,12); e.h=turnTo(e.h,want,dt*1.2); eyeK=1; const A=e.laim, sp=Math.hypot(TK.vx,TK.vz), wb=LION_AIM.wob+sp*LION_AIM.wobV, ax=TK.x-TK.vx*LION_AIM.lag*0.7+Math.sin(e.t*3.1+e.lwob)*wb-A.x, az=TK.z-TK.vz*LION_AIM.lag*0.7+Math.cos(e.t*2.3+e.lwob)*wb-A.z, al=Math.hypot(ax,az)||1, st=Math.min(al,LION_AIM.track*dt); A.x+=ax/al*st; A.z+=az/al*st; const gy=groundH(A.x,A.z)+0.3; const fk=1-Math.abs(e.stT/1.1*2-1)*0.2, pul=0.85+0.15*Math.sin(e.t*70);
     e.g.updateMatrixWorld(true); lionBeams(e); let n=0; for(const o of e.eyes){ o.getWorldPosition(_bw); const B=e.bm[n++]; beamSet(B,_bw.x,_bw.y,_bw.z,A.x,gy,A.z,pul*fk); FIRE.spawn(_bw.x,_bw.y,_bw.z,0,0,0,0.5,0.9,0.1,1,0.5,0.35,0.6); }
     for(let q=0;q<3;q++) spark(A.x,gy+0.2,A.z,(rnd()-0.5)*10,2+rnd()*6,(rnd()-0.5)*10,1,0.65+rnd()*0.3,0.3,0.3+rnd()*0.2); if(rnd()<0.5) FIRE.spawn(A.x,gy+0.3,A.z,(rnd()-0.5),2,(rnd()-0.5),1.0,2.0,0.3,1,0.8,0.4,0.2); if(rnd()<0.25) SMOKE.spawn(A.x,gy+0.4,A.z,0,1.5,0,0.8,1.8,1.2,0.3,0.3,0.32,0.4);
     groundFlash(A.x,A.z,2.6,[1,0.5,0.3],0.12);
     e.lzS=(e.lzS||0)-dt; if(e.lzS<=0){ e.lzS=0.06; sO(1700+rnd()*500,1400,0.08,0.05,'sawtooth'); sNz(0.07,'bandpass',3000,2,0.08); sO(110,100,0.08,0.05,'square'); }
-    if(Math.hypot(TK.x-A.x,TK.z-A.z)<2.0&&losTank(_bw.x,_bw.y,_bw.z)) damageTank(26*dt,TK.x-e.x,TK.z-e.z,0);
+    if(Math.hypot(TK.x-A.x,TK.z-A.z)<LION_AIM.hitR&&losTank(_bw.x,_bw.y,_bw.z)) damageTank(26*dt,TK.x-e.x,TK.z-e.z,0);
     if(e.stT>1.1){ e.st='prowl'; e.stT=0; e.tiltX=0; lionBeamsOff(e); } break; }
   }
   if(mv){ e.gait+=dt*8; } const sw=mv?Math.sin(e.gait)*0.45:0; e.legsG.forEach((L,i)=>L.rotation.x=(i===0||i===3)?sw:-sw); e.tail.rotation.x=Math.sin(e.t*3)*0.3; e.head.rotation.y=clamp(wrapA(want-e.h),-0.6,0.6)*0.5;

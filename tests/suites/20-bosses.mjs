@@ -57,6 +57,21 @@ export const tests = [
     const moved = await c.js(p => { const e = __dbg.ENEMIES.find(x => x.boss); return Math.hypot(e.x - p[0], e.z - p[1]) > 0.5 || e.st !== 'roam'; }, p0);
     assert(moved, 'Krot stands still after being hit');
   } },
+  { name: 'lion lasers: hit a tank that stands still, mostly miss one driving fast around them (v30.10)', timeout: 120, async run(ctx) {
+    const c = await arena(ctx, BOSSES[3]);
+    assert(await c.until(() => __dbg.ENEMIES.filter(e => e.type === 'lion' && !e.dead && e.st === 'prowl').length === 2, null, { timeout: 30000 }), 'lions did not wake');
+    // one volley of eye lasers from 8 m; the tank either stands or circles the lion at 11 m/s (tangent to the beam)
+    const volley = (move) => c.js(async (move) => { const D = __dbg, L = D.ENEMIES.filter(e => e.type === 'lion' && !e.dead), e = L[0];
+      for (const l of L) { l.lcd = l.pcd = l.rcd = 99; } D.TK.hp = 99999;
+      let ang = 0; const R = 8, put = () => { D.TK.x = e.x + Math.sin(ang) * R; D.TK.z = e.z + Math.cos(ang) * R; const v = move ? 11 : 0; D.TK.vx = Math.cos(ang) * v; D.TK.vz = -Math.sin(ang) * v; D.TK.vF = v; };
+      put(); e.st = 'lcharge'; e.stT = 1.0; const hp0 = D.TK.hp; let last = performance.now();
+      await new Promise(done => { const tick = () => { const now = performance.now(), dt = (now - last) / 1000; last = now; if (move) ang += 11 / R * dt; put();
+        if (e.st === 'prowl' || e.dead) return done(); requestAnimationFrame(tick); }; tick(); });
+      return hp0 - D.TK.hp; }, move);
+    let still = 0, fast = 0; for (let i = 0; i < 3; i++) { still += await volley(false); fast += await volley(true); }
+    assert(still > 30, 'standing tank barely hit: ' + still.toFixed(1));
+    assert(fast < still * 0.4, 'fast tank hit as often as a standing one: still ' + still.toFixed(1) + ', fast ' + fast.toFixed(1));
+  } },
   { name: 'transformers are immune and not targetable before the Energobot appears', async run(ctx) {
     const c = await arena(ctx, BOSSES[3]);
     const r = await c.js(() => __dbg.ENEMIES.filter(e => e.xf).map(e => [e.inv, e.lockable]));
