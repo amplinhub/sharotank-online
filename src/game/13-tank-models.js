@@ -400,6 +400,13 @@ function makeTank(hi,up){
       add(B(0.62,ph,0.08),0x2a2e33,pod,0,0,-0.5); for(let k=0;k<rows*2;k++) add(zc(Cy(0.07,0.09,0.06,10)),0x111518,pod,(k%2-0.5)*0.26,(Math.floor(k/2)-(rows-1)/2)*0.24,-0.55); T.rkOpen=0; } }
   T.cn.visible=false;
   return T; }
+/* v30.11: the body's footprint (box of visible meshes in root space, turret/gun excluded) — used for the player's collision shape */
+const _fb=new THREE.Box3(), _fv=new THREE.Vector3();
+function tankFoot(T){ const R=T.root, p0=R.position.clone(), r0=R.rotation.y; R.position.set(0,0,0); R.rotation.y=0; R.updateMatrixWorld(true); _fb.makeEmpty();
+  R.traverse(o=>{ if(!o.isMesh||!o.geometry) return; for(let q=o;q;q=q.parent){ if(q===T.stab||q.visible===false) return; if(q===R) break; }
+    const g=o.geometry; if(!g.boundingBox) g.computeBoundingBox(); const b=g.boundingBox; for(let k=0;k<8;k++){ _fv.set(k&1?b.max.x:b.min.x,k&2?b.max.y:b.min.y,k&4?b.max.z:b.min.z).applyMatrix4(o.matrixWorld); if(_fv.y<3.2) _fb.expandByPoint(_fv); } });
+  R.position.copy(p0); R.rotation.y=r0; R.updateMatrixWorld(true);
+  return {cx:(_fb.min.x+_fb.max.x)/2,cz:(_fb.min.z+_fb.max.z)/2,W:(_fb.max.x-_fb.min.x)/2,L:(_fb.max.z-_fb.min.z)/2}; }
 function disposeTank(T){ T.root.traverse(o=>{ if(o.geometry&&o.geometry!==plateGeo) o.geometry.dispose(); }); for(const k in T.mats) T.mats[k].dispose(); }
 function tankDamageUniforms(T){ T.root.updateMatrixWorld(true); T.U.rootInv.value.copy(T.root.matrixWorld).invert(); const S=(T.hi&&GAR.open&&GAR.mode==='park')?[0,0,0,0,0]:TK.dmgS; T.U.dmg.value.set(S[0],S[1],S[2],S[3]); T.U.top.value=S[4]; }
 

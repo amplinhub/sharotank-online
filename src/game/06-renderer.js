@@ -26,10 +26,14 @@ function shadowMark(dt){ if(!REALSH) return; shMarkT-=dt; if(shMarkT>0) return; 
   if(hi){ if(chunks) for(const ch of chunks) if(ch.mesh) ch.mesh.castShadow=true; for(const im of VINST) im.castShadow=true; mark(CDK.g); } else if(CDK.shG) for(const g of CDK.shG) mark(g); } /* v30.8: camp trees and props cast shadows on «Сред» too */
 const worldMat=new THREE.MeshBasicMaterial({vertexColors:true});
 const XR={p:{value:new THREE.Vector2(-9999,-9999)},r:{value:0},z:{value:0},e:{value:[new THREE.Vector4(),new THREE.Vector4(),new THREE.Vector4(),new THREE.Vector4()]}};
-worldMat.onBeforeCompile=sh=>{ sh.uniforms.uTP=XR.p; sh.uniforms.uTR=XR.r; sh.uniforms.uTZ=XR.z; sh.uniforms.uXE=XR.e;
+function xrInject(sh){ sh.uniforms.uTP=XR.p; sh.uniforms.uTR=XR.r; sh.uniforms.uTZ=XR.z; sh.uniforms.uXE=XR.e;
   sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying float vVZ;varying vec3 vVP;').replace('#include <project_vertex>','#include <project_vertex>\nvVZ=-mvPosition.z;vVP=mvPosition.xyz;');
   sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying float vVZ;varying vec3 vVP;uniform vec2 uTP;uniform float uTR;uniform float uTZ;uniform vec4 uXE[4];')
-    .replace('void main() {','void main() {\n float xW=0.0; if(uTR>0.0||uXE[0].z>0.0||uXE[1].z>0.0||uXE[2].z>0.0||uXE[3].z>0.0){ vec3 xn=normalize(cross(dFdx(vVP),dFdy(vVP))); vec3 xu=normalize((viewMatrix*vec4(0.,1.,0.,0.)).xyz); xW=abs(dot(xn,xu))<0.6?1.0:0.0; }\n if(uTR>0.0&&vVZ<uTZ-1.3+xW*4.3){ float e=length(gl_FragCoord.xy-uTP)/uTR; if(e<1.0){ float th=smoothstep(0.62,1.0,e); float bay=mod(floor(gl_FragCoord.x)+floor(gl_FragCoord.y)*2.0,4.0)/4.0+0.125; if(bay>th) discard; } }\n for(int i=0;i<4;i++){ vec4 q=uXE[i]; if(q.z>0.0&&vVZ<q.w-1.0+xW*3.0){ float e=length(gl_FragCoord.xy-q.xy)/q.z; if(e<1.0){ float th=smoothstep(0.55,1.0,e); float bay=mod(floor(gl_FragCoord.x)+floor(gl_FragCoord.y)*2.0,4.0)/4.0+0.125; if(bay>th) discard; } } }'); };
+    .replace('void main() {','void main() {\n float xW=0.0; if(uTR>0.0||uXE[0].z>0.0||uXE[1].z>0.0||uXE[2].z>0.0||uXE[3].z>0.0){ vec3 xn=normalize(cross(dFdx(vVP),dFdy(vVP))); vec3 xu=normalize((viewMatrix*vec4(0.,1.,0.,0.)).xyz); xW=abs(dot(xn,xu))<0.6?1.0:0.0; }\n if(uTR>0.0&&vVZ<uTZ-1.3+xW*4.3){ float e=length(gl_FragCoord.xy-uTP)/uTR; if(e<1.0){ float th=smoothstep(0.62,1.0,e); float bay=mod(floor(gl_FragCoord.x)+floor(gl_FragCoord.y)*2.0,4.0)/4.0+0.125; if(bay>th) discard; } }\n for(int i=0;i<4;i++){ vec4 q=uXE[i]; if(q.z>0.0&&vVZ<q.w-1.0+xW*3.0){ float e=length(gl_FragCoord.xy-q.xy)/q.z; if(e<1.0){ float th=smoothstep(0.55,1.0,e); float bay=mod(floor(gl_FragCoord.x)+floor(gl_FragCoord.y)*2.0,4.0)/4.0+0.125; if(bay>th) discard; } } }'); }
+worldMat.onBeforeCompile=xrInject;
+/* v30.11: the shadow overlay on chunks (HIGH) is cut by the same see-through circles — before, its shadowed faces stacked up into a black disc over the tank behind tall buildings */
+const SHRC=new THREE.ShadowMaterial({opacity:0.4,side:THREE.DoubleSide,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2});
+SHRC.onBeforeCompile=sh=>{ SHR.onBeforeCompile(sh); xrInject(sh); };
 const litMat=new THREE.MeshLambertMaterial({vertexColors:true});
 function radialTex(inner){ const cv=document.createElement('canvas'); cv.width=cv.height=128; const g=cv.getContext('2d');
   const gr=g.createRadialGradient(64,64,0,64,64,64); gr.addColorStop(0,'rgba(255,255,255,1)'); gr.addColorStop(inner||0.25,'rgba(255,255,255,0.45)'); gr.addColorStop(1,'rgba(255,255,255,0)');
@@ -66,7 +70,7 @@ function buildChunk(ci){ const ch=chunks[ci]; const cy=Math.floor(ci/(CX*CZ)), r
   geo.setAttribute('color',new THREE.BufferAttribute(sC.slice(0,nf*12),3,true)); geo.setIndex(new THREE.BufferAttribute(idxFor(nf),1));
   geo.boundingSphere=ch.sphere;
   if(ch.mesh) ch.mesh.geometry=geo; else { ch.mesh=new THREE.Mesh(geo,worldMat); ch.mesh.matrixAutoUpdate=false; scene.add(ch.mesh); } if(REALSH&&Q==='high') ch.mesh.castShadow=true;
-  if(REALSH&&Q==='high'){ if(ch.smesh) ch.smesh.geometry=geo; else { ch.smesh=new THREE.Mesh(geo,SHR); ch.smesh.matrixAutoUpdate=false; ch.smesh.receiveShadow=true; ch.smesh.renderOrder=1; scene.add(ch.smesh); } } else if(ch.smesh){ scene.remove(ch.smesh); ch.smesh=null; } }
+  if(REALSH&&Q==='high'){ if(ch.smesh) ch.smesh.geometry=geo; else { ch.smesh=new THREE.Mesh(geo,SHRC); ch.smesh.matrixAutoUpdate=false; ch.smesh.receiveShadow=true; ch.smesh.renderOrder=1; scene.add(ch.smesh); } } else if(ch.smesh){ scene.remove(ch.smesh); ch.smesh=null; } }
 function meshLocal(lg,sx,sy,sz,mn){ let nf=0; const hx_=sx/2,hy=sy/2,hz=sz/2;
   for(let y=0;y<sy;y++)for(let z=0;z<sz;z++)for(let x=0;x<sx;x++){ const m=lg[x+sx*(z+sz*y)]; if(!m) continue; let cd=false;
     for(let f=0;f<6;f++){ const F=FACES[f], nx=x+F[0], ny=y+F[1], nz=z+F[2];

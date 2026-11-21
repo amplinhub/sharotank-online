@@ -3,12 +3,30 @@ const TK={joyRev:false,jyaw:0,load:0,x:40,z:44,h:Math.PI,vx:0,vz:0,vF:0,steer:0,
   y:0,yV:0,air:false,tPitch:0,tRoll:0,wet:false,hp:100,dmgS:[0,0,0,0,0],dead:false,deadT:0};
 let tank=null;
 const shadowM=new THREE.Mesh(new THREE.PlaneGeometry(3.6,4.0),new THREE.MeshBasicMaterial({map:TEX_SOFT,color:0x000000,transparent:true,opacity:0.55,depthWrite:false})); shadowM.rotation.x=-Math.PI/2; scene.add(shadowM);
-function buildGameTank(){ if(tank){ scene.remove(tank.root); disposeTank(tank); } tank=makeTank(false,UP); mergeStatic(tank.root); scene.add(tank.root); }
+function buildGameTank(){ if(tank){ scene.remove(tank.root); disposeTank(tank); } tank=makeTank(false,UP); footSet(tankFoot(tank)); mergeStatic(tank.root); scene.add(tank.root); }
 const TR=1.38;
-const SAMP=[]; for(let k=0;k<16;k++){ const a=k/16*TAU; SAMP.push([Math.sin(a),Math.cos(a),TR]); } for(let k=0;k<8;k++){ const a=k/8*TAU+0.2; SAMP.push([Math.sin(a),Math.cos(a),0.75]); }
+/* v30.11: the player's collision shape follows the body — a rounded rectangle (FOOT_K of the model's footprint) turned with the hull,
+   sampled every ~0.3 m so thin poles can't slip between samples. SAMP holds local [x,z,nx,nz] (point + outward normal). */
+const FOOT_K=0.85, FOOT={L:TR,W:TR,cx:0,cz:0}, SAMP=[];
+function footSet(f){ const L=Math.max(f.L*FOOT_K,Math.min(f.L,TR)), W=Math.max(f.W*FOOT_K,Math.min(f.W,TR)); /* never smaller than the old 1.38 m circle (capped by the model) */ Object.assign(FOOT,{L,W,cx:f.cx||0,cz:f.cz||0}); SAMP.length=0;
+  const rc=Math.min(W,L,0.7), hx=W-rc, hz=L-rc, per=4*(hx+hz)+TAU*rc, n=Math.max(24,Math.ceil(per/0.22));
+  for(let k=0;k<n;k++){ let t=k/n*per; const seg=[hz*2,TAU*rc/4,hx*2,TAU*rc/4,hz*2,TAU*rc/4,hx*2,TAU*rc/4]; let i=0; while(i<7&&t>seg[i]){ t-=seg[i]; i++; }
+    let x,z,nx,nz; const q=Math.floor(i/2), arc=i%2===1;
+    if(!arc){ const u=t-seg[i]/2; [x,z,nx,nz]=q===0?[hx+rc,-u,1,0]:q===1?[-u,-hz-rc,0,-1]:q===2?[-hx-rc,u,-1,0]:[u,hz+rc,0,1]; }
+    else { const a=[0,-Math.PI/2,Math.PI,Math.PI/2][q]-t/rc, ccx=[hx,-hx,-hx,hx][q], ccz=[-hz,-hz,hz,hz][q]; nx=Math.cos(a); nz=Math.sin(a); x=ccx+nx*rc; z=ccz+nz*rc; }
+    SAMP.push([x+FOOT.cx,z+FOOT.cz,nx,nz]); }
+  for(let k=0;k<8;k++){ const a=k/8*TAU+0.2; SAMP.push([Math.sin(a)*W*0.55+FOOT.cx,Math.cos(a)*L*0.55+FOOT.cz,Math.sin(a),Math.cos(a)]); } }
+footSet({L:TR,W:TR});
+/* a thin solid post (tree trunk) of radius r against the body's rounded rectangle: push the tank out, stop it, clank */
+function tankVsPost(px,pz,r){ const fx=Math.sin(TK.h), fz=Math.cos(TK.h), dx=px-TK.x, dz=pz-TK.z, lx=dx*fz-dz*fx-FOOT.cx, lz=dx*fx+dz*fz-FOOT.cz;
+  const rc=Math.min(FOOT.W,FOOT.L,0.7), qx=clamp(lx,-(FOOT.W-rc),FOOT.W-rc), qz=clamp(lz,-(FOOT.L-rc),FOOT.L-rc), ex=lx-qx, ez=lz-qz, e=Math.hypot(ex,ez), pen=rc+r-e;
+  if(pen<=0) return false; const ux=e>1e-4?ex/e:(Math.abs(lx)>Math.abs(lz)?Math.sign(lx):0), uz=e>1e-4?ez/e:(Math.abs(lx)>Math.abs(lz)?0:Math.sign(lz)||1);
+  const nx=ux*fz+uz*fx, nz=-ux*fx+uz*fz /* world direction from the hull towards the post */, tx=TK.x-nx*pen, tz=TK.z-nz*pen; if(!tankContacts(tx,tz,CT)){ TK.x=tx; TK.z=tz; }
+  const vn=TK.vx*nx+TK.vz*nz; if(vn>0){ TK.vx-=vn*nx*1.1; TK.vz-=vn*nz*1.1; if(vn>0.8){ sfxClank(Math.min(1,vn/8)); if(vn>3){ TK.pitchV+=vn*0.05; shake=Math.min(1,shake+vn*0.02); } } } return true; }
 const SH_Y=[0.35,1.0,1.7,2.4];
-function tankContacts(px,pz,out){ out.length=0; for(const s of SAMP){ const sx=px+s[0]*s[2], sz=pz+s[1]*s[2];
-    for(const hy of SH_Y){ const cx=Math.floor(sx/VS), cy=Math.floor(hy/VS), cz=Math.floor(sz/VS); const m=get(cx,cy,cz); if(m){ out.push(cx,cy,cz,m,s[0],s[1]); break; } } } return out.length/6; }
+function tankContacts(px,pz,out,h){ out.length=0; if(h===undefined) h=TK.h; const fx=Math.sin(h), fz=Math.cos(h); /* local x → world (fz,-fx), local z (forward) → (fx,fz) */
+  for(const s of SAMP){ const sx=px+s[0]*fz+s[1]*fx, sz=pz-s[0]*fx+s[1]*fz;
+    for(const hy of SH_Y){ const cx=Math.floor(sx/VS), cy=Math.floor(hy/VS), cz=Math.floor(sz/VS); const m=get(cx,cy,cz); if(m){ out.push(cx,cy,cz,m,s[2]*fz+s[3]*fx,-s[2]*fx+s[3]*fz); break; } } } return out.length/6; }
 const CT=[]; let ramCD=0, transit=false;
 const gate=v=>v>35.4&&v<44.6;
 function maxHP(){ return Math.round(ARM_HP[UP.armor]*chs().hp); }
@@ -29,7 +47,7 @@ function tankUpdate(dt,inp){
   if(joyYaw!==null){ TK.jyaw+=(joyYaw-TK.jyaw)*Math.min(1,dt*7); yaw=TK.jyaw*(CHc.truck?clamp(Math.abs(vF)/3.5,0.12,1):1); TK.steer+=(clamp(yaw*0.3*(vF<-0.3?-1:1),-0.55,0.55)-TK.steer)*Math.min(1,dt*8); }
   else { TK.jyaw*=Math.exp(-dt*10); TK.steer+=(inp.steer*maxS-TK.steer)*Math.min(1,dt*8); yaw=vF*Math.tan(TK.steer)/(CHc.truck?2.4:1.75)*(inp.hb?1.4:1)+TK.jyaw+(CHc.abil==='stealth'?inp.steer*1.9*(1-clamp(Math.abs(vF)/5,0,1)):0); }
   if(TK.air) yaw*=0.4;
-  yaw*=CHc.turn; TK.h+=yaw*dt; TK.yaw=yaw;
+  yaw*=CHc.turn; { const h0=TK.h, h1=h0+yaw*dt; if(Math.abs(yaw)>1e-4&&tankContacts(TK.x,TK.z,CT,h1)>tankContacts(TK.x,TK.z,CT,h0)){ yaw*=-0.05; TK.jyaw*=0.5; } TK.h+=yaw*dt; } TK.yaw=yaw;
   const nfx=Math.sin(TK.h), nfz=Math.cos(TK.h); TK.vx=nfx*vF+nfz*vL; TK.vz=nfz*vF-nfx*vL;
   let nx=TK.x+TK.vx*dt, nz=TK.z+TK.vz*dt;
   nx=clamp(nx,1.6,WX-1.6); nz=clamp(nz,1.6,WZ-1.6);

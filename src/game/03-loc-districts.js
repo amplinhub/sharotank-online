@@ -236,8 +236,10 @@ function hqBuilding(x0,z0){ const w=13, d=7, h=3.6; FLOORS.push([x0,z0,x0+w,z0+d
   box(x0+3,0,z0+2.4,x0+w-3,0.85,z0+3.4,M.FURN); box(x0+5,0.85,z0+2.6,x0+8,1.3,z0+3.2,M.NEON); }
 /* v20: parked fleet near the motor pool — five real tank models (meshes), voxel hulls only for collision */
 const FLEET=[['base',18,55,0],['ten',22.5,55,0],['pchela',27,55,0],['igla',16.5,71.5,Math.PI],['krep',22,71.5,Math.PI],['kovch',27.5,71.5,Math.PI],['rszo',12,54.5,0]];
-const FLEET_AT=FLEET.map(f=>[f[1],f[2],f[0]]);
-function fleetHull(x,z,id){ const L=id==='rszo'?2.7:1.3, W=id==='rszo'?1.0:0.8; box(x-W,0.3,z-L,x+W,1.15,z+L,M.DARK); }
+const FLEET_AT=FLEET.map(f=>[f[1],f[2],f[0],f[3]]);
+/* v30.11: the hidden collision box matches the parked model's footprint (measured with tankFoot: half-length, half-width, centre offset), 95% of it */
+const FLEET_FOOT={base:[1.5,1.33,0],ten:[1.86,1.7,0],pchela:[1.93,1.6,0],igla:[2.28,1.57,0.28],krep:[2.04,1.59,0.1],kovch:[2.65,1.57,0.1],rszo:[2.9,1.72,0.12]};
+function fleetHull(x,z,id,h){ const F=FLEET_FOOT[id]||[1.5,1.3,0], L=F[0]*0.95, W=F[1]*0.9, cz=z+F[2]*(h?-1:1); box(x-W,0.2,cz-L,x+W,1.6,cz+L,M.DARK); } /* 0.2–1.6 m: thick enough to hold voxels at the 0.35/1.0 m sample heights on every quality (the old 0.3–1.15 m box had none on LOW) */
 function genCamp(R){
   const wall=(x0,z0,x1,z1)=>{ box(x0,0,z0,x1,1.3,z1,M.MID); box(x0,1.3,z0,x1,1.6,z1,(x,y,z)=>((x+z)%3===0)?M.METAL:-1); };
   wall(0.2,0.2,34,1.0); wall(46,0.2,79.8,1.0); wall(0.2,79,34,79.8); wall(46,79,79.8,79.8);
@@ -250,7 +252,7 @@ function genCamp(R){
   for(const tx of [50,58,66]){ tent(tx,4,6,8); tent(tx,16,6,8); }
   hqBuilding(59,25);
   watchtower(75,5); watchtower(5,75); flagpole(47.5,30.5);
-  truck(6,54,false); for(const [x,z,id] of FLEET_AT) fleetHull(x,z,id);
+  truck(6,54,false); for(const [x,z,id,h] of FLEET_AT) fleetHull(x,z,id,h);
   truck(8,70,true);
   for(let k=0;k<8;k++){ const a=k/8*TAU; box(62+Math.cos(a)*6.4-0.15,0,62+Math.sin(a)*6.4-0.15,62+Math.cos(a)*6.4+0.15,0.25,62+Math.sin(a)*6.4+0.15,M.LAMP); }
   /* v30.3: no lamp posts in the camp — bendable trees (meshes, 29-camp) with the light kept in their crowns */
