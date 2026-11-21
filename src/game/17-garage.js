@@ -35,33 +35,82 @@ function garInit(){ const s=new THREE.Scene(); GAR.scene=s; GAR.cam=new THREE.Pe
   pb(1.0,1.0,4.5,-9.5,0.5,-6); pb(0.1,2.6,4.5,-12.4,2.4,-6); for(let k=0;k<5;k++) pb(0.12,0.5,0.12,-12.3,1.8+(k%2)*0.6,-7.8+k*0.9);
   pb(1.4,1.2,1.4,9.6,0.6,-8); pb(1.0,0.9,1.0,9.8,1.65,-8); pb(1.2,0.8,1.2,8.2,0.4,-10);
   for(let k=0;k<4;k++){ const t=new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.55,0.42,16),GAR.propMat2); t.position.set(10.5,0.21+k*0.44,-2.2); s.add(t); }
-  GAR.mech=makeMechanic(-7.8,-3.5,0.9,s); GAR.mech.armR.rotation.x=-0.9; GAR.mech2=makeMechanic(8.2,-4.6,-0.7,s); garDeco(s);
+  GAR.mech=makeMechanic(-7.8,-3.5,0.9,s); GAR.mech2=makeMechanic(8.2,-4.6,-0.7,s); garDeco(s);
   GAR.turn=new THREE.Group(); s.add(GAR.turn); GAR.lie=[makeLyingMech(GAR.turn,0),makeLyingMech(GAR.turn,Math.PI)];
   GAR.diskMat=new THREE.MeshToonMaterial({color:0x1e2832,gradientMap:gradTex}); const disk=new THREE.Mesh(new THREE.CylinderGeometry(3.4,3.5,0.16,64),GAR.diskMat); disk.position.y=0.08; GAR.turn.add(disk);
   GAR.ringMat=new THREE.MeshBasicMaterial({color:0xffc94a}); const ringG=new THREE.Mesh(new THREE.TorusGeometry(3.45,0.035,6,96),GAR.ringMat); ringG.rotation.x=Math.PI/2; ringG.position.y=0.15; GAR.turn.add(ringG);
   for(let k=0;k<24;k++){ const a=k/24*TAU; const tick=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.02,0.3),GAR.ringMat); tick.position.set(Math.sin(a)*3.1,0.165,Math.cos(a)*3.1); tick.rotation.y=a; GAR.turn.add(tick); }
   garPalette(); }
 /* garage mechanic-soldier: overalls, vest with pouches, helmet with goggles and headset, gloves, boots, slung rifle, wrench */
-function makeMechanic(x,z,ry,parent){ const g=new THREE.Group(); const T=c=>new THREE.MeshToonMaterial({color:c,gradientMap:gradTex});
-  const OV=T(0x3a5246), VS_=T(0x2b3a32), DK=T(0x15191d), SK=T(0x8a6a52), GL=T(0x5c4a36), MT=T(0x6b7480), OR=T(0xf0a030), GG=new THREE.MeshBasicMaterial({color:0x8fe8ff});
-  const m=(geo,mat,px,py,pz,par,ol)=>{ const o=new THREE.Mesh(geo,mat); o.position.set(px,py,pz); (par||g).add(o); if(ol){ const q=new THREE.Mesh(geo,outlineMat); q.scale.setScalar(1.06); o.add(q); } return o; };
-  const B=(w,h,d)=>new THREE.BoxGeometry(w,h,d), Sp=(r,a,b)=>new THREE.SphereGeometry(r,a||10,b||8);
-  const sL=makeLeg(g,0.11,0.86,OV,DK,0.44,0.4,0.16), sR=makeLeg(g,-0.11,0.86,OV,DK,0.44,0.4,0.16);
-  for(const lg of [sL,sR]){ m(B(0.17,0.12,0.06),DK,0,-0.44,0.09,lg.knee); m(B(0.2,0.12,0.28),DK,0,-0.36,0.05,lg.knee); }
-  const torso=new THREE.Group(); g.add(torso);
-  m(B(0.46,0.6,0.26),OV,0,1.17,0,torso,true); m(B(0.5,0.42,0.32),VS_,0,1.26,0,torso,true); m(B(0.48,0.07,0.3),DK,0,0.92,0,torso);
-  for(const px of [-0.15,0,0.15]) m(B(0.12,0.14,0.07),VS_,px,1.18,0.18,torso,true); m(B(0.1,0.16,0.08),DK,0.18,0.92,0.14,torso); m(B(0.08,0.12,0.06),OR,-0.16,0.94,0.15,torso);
-  m(B(0.08,0.05,0.01),OR,0.15,1.38,0.165,torso); m(B(0.1,0.1,0.02),OR,0.27,1.38,0,torso); m(B(0.03,0.05,0.04),GG,-0.14,1.4,0.17,torso);
-  m(B(0.36,0.44,0.18),VS_,0,1.22,-0.24,torso,true); m(B(0.3,0.08,0.2),DK,0,1.45,-0.25,torso);
-  const rf=new THREE.Group(); rf.position.set(0,1.2,-0.36); rf.rotation.z=0.8; g.add(rf); m(B(0.06,0.09,0.78),DK,0,0,0,rf); m(B(0.05,0.18,0.08),DK,0,-0.1,0.1,rf); m(B(0.03,0.03,0.3),MT,0,0.02,0.5,rf); rf.rotation.y=Math.PI/2;
-  m(B(0.12,0.08,0.12),SK,0,1.52,0); const head=new THREE.Group(); head.position.set(0,1.56,0); g.add(head); const H=(geo,mat,px,py,pz,ol)=>m(geo,mat,px,py-1.56,pz,head,ol); H(Sp(0.13),SK,0,1.64,0,true); H(B(0.025,0.025,0.01),DK,0.05,1.66,0.125); H(B(0.025,0.025,0.01),DK,-0.05,1.66,0.125);
-  H(new THREE.SphereGeometry(0.17,12,6,0,TAU,0,Math.PI/2),OV,0,1.67,0,true); H(B(0.36,0.03,0.38),OV,0,1.67,0.02);
-  H(B(0.26,0.07,0.06),DK,0,1.74,0.14); for(const s_ of [-1,1]) H(new THREE.CylinderGeometry(0.045,0.045,0.03,10).rotateX(Math.PI/2),GG,s_*0.065,1.74,0.17);
-  for(const s_ of [-1,1]) H(B(0.04,0.09,0.09),DK,s_*0.15,1.63,0); H(B(0.015,0.015,0.12),DK,-0.14,1.58,0.07);
-  const armL=new THREE.Group(); armL.position.set(0.3,1.44,0); g.add(armL); m(B(0.13,0.34,0.13),OV,0,-0.15,0,armL,true); m(B(0.12,0.3,0.12),OV,0,-0.42,0,armL); m(B(0.14,0.12,0.14),GL,0,-0.62,0,armL); m(B(0.14,0.06,0.14),OR,0,-0.06,0,armL); armL.rotation.x=-0.25; armL.rotation.z=0.1;
-  const armR=new THREE.Group(); armR.position.set(-0.3,1.44,0); g.add(armR); m(B(0.13,0.34,0.13),OV,0,-0.15,0,armR,true); m(B(0.12,0.3,0.12),OV,0,-0.42,0,armR); m(B(0.14,0.12,0.14),GL,0,-0.62,0,armR);
-  const wr=new THREE.Group(); wr.position.set(0,-0.66,0.04); armR.add(wr); m(B(0.04,0.04,0.5),MT,0,0,0.2,wr); m(B(0.12,0.04,0.08),MT,0,0,0.47,wr); m(B(0.05,0.045,0.04),DK,0,0,0.52,wr);
-  g.position.set(x,0,z); g.rotation.y=ry; parent.add(g); return {g,armR,armL,head,torso,base:ry,ph:rnd()*TAU,x,z,L:{hipL:sL.hip,hipR:sR.hip,kneeL:sL.knee,kneeR:sR.knee},amp:0,act:0,actT:2+rnd()*3,hy:0,hyT:0}; }
+/* v30.12: one jointed, detailed mechanic body for the motor pool (standing) and the garage (lying under the tank).
+   Every joint is a group with a ball cap at the pivot, so bent knees and elbows stay connected. Standing frame: y up, face +z. */
+function mechBody(g){ const T=c=>new THREE.MeshToonMaterial({color:c,gradientMap:gradTex});
+  const C={ov:T(0x3a5246),ov2:T(0x33483e),vs:T(0x2b3a32),dk:T(0x15191d),sk:T(0x8a6a52),sk2:T(0x7a5c46),gl:T(0x5c4a36),mt:T(0x6b7480),or:T(0xf0a030),wh:T(0xcfd3c8),gg:new THREE.MeshBasicMaterial({color:0x8fe8ff})};
+  const m=(geo,mat,px,py,pz,par,ol)=>{ const o=new THREE.Mesh(geo,mat); o.position.set(px,py,pz); par.add(o); if(ol){ const q=new THREE.Mesh(geo,outlineMat); q.scale.setScalar(1.06); o.add(q); } return o; };
+  const B=(w,h,d)=>new THREE.BoxGeometry(w,h,d), S=(r,a,b)=>new THREE.SphereGeometry(r,a||10,b||8), Cy=(r1,r2,h,n)=>new THREE.CylinderGeometry(r1,r2,h,n||8);
+  const J=(par,x,y,z)=>{ const j=new THREE.Group(); j.position.set(x,y,z); par.add(j); return j; };
+  /* pelvis (root of the body), torso pivots at the waist */
+  const pel=J(g,0,0.98,0); m(B(0.4,0.2,0.24),C.ov,0,0,0,pel,true); m(B(0.44,0.06,0.27),C.dk,0,0.07,0,pel); m(B(0.08,0.06,0.02),C.mt,0,0.07,0.14,pel);
+  for(const s of [-1,1]){ m(B(0.09,0.13,0.08),C.vs,s*0.2,-0.02,0.08,pel); m(B(0.03,0.08,0.03),C.mt,s*0.23,-0.08,0.13,pel); }
+  const legs=[]; for(const s of [-1,1]){ const hip=J(pel,s*0.11,-0.06,0); m(S(0.085),C.ov,0,0,0,hip); m(Cy(0.085,0.068,0.42),C.ov,0,-0.21,0,hip,true); m(B(0.1,0.12,0.04),C.vs,s*0.05,-0.2,0.06,hip);
+    const knee=J(hip,0,-0.43,0); m(S(0.07),C.ov2,0,0,0,knee); m(B(0.12,0.11,0.05),C.dk,0,0,0.06,knee); m(Cy(0.066,0.05,0.38),C.ov,0,-0.2,0,knee,true);
+    const ank=J(knee,0,-0.4,0); m(S(0.052),C.dk,0,0,0,ank); m(B(0.13,0.1,0.27),C.dk,0,-0.04,0.06,ank,true); m(B(0.135,0.03,0.28),C.mt,0,-0.09,0.06,ank); m(B(0.11,0.06,0.06),C.dk,0,0.04,-0.02,ank);
+    legs.push({hip,knee,ank}); }
+  const tor=J(pel,0,0.08,0);
+  m(Cy(0.19,0.21,0.3,10),C.ov,0,0.16,0,tor,true); m(B(0.46,0.36,0.27),C.ov,0,0.42,0,tor,true); m(B(0.5,0.3,0.31),C.vs,0,0.44,0,tor,true);
+  for(const px of [-0.14,0,0.14]) m(B(0.11,0.13,0.06),C.vs,px,0.36,0.17,tor,true); m(B(0.08,0.05,0.01),C.or,0.15,0.58,0.16,tor); m(B(0.06,0.09,0.04),C.dk,-0.15,0.56,0.17,tor); m(B(0.02,0.08,0.02),C.dk,-0.13,0.64,0.17,tor);
+  m(B(0.3,0.06,0.28),C.ov2,0,0.62,0,tor); m(B(0.34,0.4,0.16),C.vs,0,0.42,-0.22,tor,true); m(B(0.28,0.07,0.18),C.dk,0,0.64,-0.23,tor); m(B(0.1,0.1,0.02),C.or,0.27,0.52,0,tor);
+  const neck=J(tor,0,0.66,0); m(Cy(0.06,0.07,0.1),C.sk,0,0.04,0,neck); const head=J(neck,0,0.1,0);
+  m(S(0.13,12,10),C.sk,0,0.1,0,head,true); m(B(0.03,0.05,0.04),C.sk2,0,0.09,0.13,head); for(const s of [-1,1]){ m(B(0.026,0.022,0.01),C.dk,s*0.05,0.12,0.125,head); m(B(0.05,0.012,0.012),C.dk,s*0.05,0.155,0.12,head); m(S(0.03,6,6),C.sk2,s*0.13,0.1,0,head); }
+  m(B(0.07,0.012,0.01),C.dk,0,0.04,0.12,head); m(new THREE.SphereGeometry(0.165,14,8,0,TAU,0,Math.PI/2),C.ov,0,0.14,-0.005,head,true); m(B(0.34,0.025,0.36),C.ov,0,0.14,0.02,head);
+  m(B(0.26,0.06,0.06),C.dk,0,0.21,0.13,head); for(const s of [-1,1]){ m(Cy(0.042,0.042,0.03,10).rotateX(Math.PI/2),C.gg,s*0.065,0.21,0.16,head); m(B(0.04,0.09,0.09),C.dk,s*0.15,0.1,0,head); } m(B(0.012,0.012,0.13),C.dk,-0.14,0.04,0.07,head); m(S(0.018,6,6),C.dk,-0.13,0.04,0.135,head);
+  const lamp=m(B(0.06,0.05,0.05),C.dk,0.1,0.25,0.12,head); m(B(0.04,0.03,0.012),C.gg,0.1,0.25,0.148,head);
+  const arms=[]; for(const s of [-1,1]){ const sh=J(tor,s*0.29,0.56,0); m(S(0.085),C.ov,0,0,0,sh,true); m(B(0.13,0.08,0.14),C.vs,s*0.02,0.05,0,sh); m(Cy(0.07,0.06,0.3),C.ov,0,-0.16,0,sh,true); m(B(0.08,0.07,0.02),C.or,s*0.065,-0.08,0,sh);
+    const el=J(sh,0,-0.31,0); m(S(0.06),C.ov2,0,0,0,el); m(Cy(0.058,0.05,0.27),C.ov,0,-0.14,0,el,true); m(Cy(0.062,0.062,0.05),C.ov2,0,-0.25,0,el);
+    const wr=J(el,0,-0.29,0); m(B(0.1,0.1,0.07),C.gl,0,-0.05,0,wr,true); m(B(0.09,0.06,0.07),C.gl,0,-0.12,0.005,wr); m(B(0.03,0.06,0.03),C.gl,-s*0.055,-0.07,0.03,wr);
+    arms.push({sh,el,wr}); }
+  return {C,m,B,S,Cy,J,pel,tor,neck,head,legs,arms,lamp}; }
+function makeMechanic(x,z,ry,parent){ const g=new THREE.Group(), P=mechBody(g), {C,m,B}=P;
+  /* rifle across the back, wrench in the right hand */
+  const rf=new THREE.Group(); rf.position.set(0,0.42,-0.33); rf.rotation.set(0,0,0.8); P.tor.add(rf); m(B(0.06,0.09,0.78),C.dk,0,0,0,rf); m(B(0.05,0.18,0.08),C.dk,0,-0.1,0.1,rf); m(B(0.03,0.03,0.3),C.mt,0,0.02,0.5,rf); rf.rotation.y=Math.PI/2;
+  const tool=new THREE.Group(); tool.position.set(0,-0.12,0.04); P.arms[1].wr.add(tool); m(B(0.035,0.035,0.42),C.mt,0,0,0.16,tool); m(B(0.11,0.035,0.07),C.mt,0,0,0.38,tool); m(B(0.05,0.04,0.035),C.dk,0,0,0.42,tool);
+  const tab=new THREE.Group(); tab.position.set(0,-0.13,0.06); P.arms[0].wr.add(tab); m(B(0.2,0.012,0.28),C.dk,0,0,0.1,tab); m(B(0.17,0.014,0.2),C.gg,0,0.004,0.11,tab); tab.visible=false;
+  g.position.set(x,0,z); g.rotation.y=ry; parent.add(g);
+  return {g,P,head:P.head,torso:P.tor,armL:P.arms[0].sh,armR:P.arms[1].sh,tab,base:ry,ph:rnd()*TAU,x,z,act:0,actT:2+rnd()*3,hy:0,hyT:0,k:{}}; }
+/* standing idle: breathing, weight shift, looking around; acts — scratch the head, cross the arms, check the tablet, spin the wrench */
+function mechIdle(m,dt,t){ const P=m.P; m.actT-=dt; if(m.actT<=0){ const r=rnd(); m.act=r<0.22?1:r<0.44?2:r<0.66?3:r<0.82?4:0; m.actT=m.act===1?2.4:m.act===4?2.6:3+rnd()*3; m.hyT=(rnd()-0.5)*1.4; m.tab.visible=m.act===3; }
+  const K=m.k, ease=(key,v,sp)=>{ K[key]=(K[key]==null?v:K[key]+(v-K[key])*Math.min(1,dt*sp)); return K[key]; };
+  const br=Math.sin(t*1.7+m.ph); P.tor.scale.set(1,1+br*0.012,1+br*0.02); P.tor.rotation.x=0.03+br*0.01;
+  const sw=Math.sin(t*0.45+m.ph); /* weight on one leg: pelvis tilts and slides, the other knee relaxes */
+  P.pel.position.x=sw*0.035; P.pel.rotation.z=sw*0.05; P.tor.rotation.z=-sw*0.06; for(let i=0;i<2;i++){ const L=P.legs[i], s=i?1:-1, rel=Math.max(0,sw*s);
+    L.hip.rotation.z=-sw*0.05; L.hip.rotation.x=-rel*0.12; L.knee.rotation.x=rel*0.28+0.04; L.ank.rotation.x=-rel*0.16-0.04; L.ank.rotation.z=sw*0.05; }
+  m.hy+=(m.hyT-m.hy)*Math.min(1,dt*2.5); P.head.rotation.y=m.hy*0.7; P.neck.rotation.y=m.hy*0.3; P.head.rotation.x=Math.sin(t*0.7+m.ph)*0.05;
+  const a=m.act, fade=Math.min(1,m.actT*4), L=P.arms[0], R=P.arms[1];
+  /* defaults: arms hang loose with a slight elbow bend, swaying with the breath */
+  let lS=0.12+br*0.02, lSZ=0.12, lE=-0.25, lW=0, rS=-0.35, rSZ=-0.1, rE=-0.6, rW=0;
+  if(a===1){ lS=-2.6*fade; lSZ=0.55*fade; lE=-1.9*fade; lW=Math.sin(t*16)*0.35*fade; P.head.rotation.x=0.18*fade; P.head.rotation.z=-0.12*fade; }
+  else if(a===2){ lS=-0.75; lSZ=0.25; lE=-1.75; rS=-0.75; rSZ=-0.25; rE=-1.75; rW=0; }
+  else if(a===3){ lS=-0.9; lSZ=0.1; lE=-0.9; lW=-0.3; P.head.rotation.x=0.42; P.head.rotation.y=m.hy*0.2; rS=-0.6; rE=-1.2+Math.sin(t*3)*0.15; rSZ=-0.35; }
+  else if(a===4){ rS=-1.05; rE=-1.35; rW=Math.sin(t*7)*0.7; rSZ=-0.2; P.head.rotation.x=0.25; P.head.rotation.y=-0.25; }
+  L.sh.rotation.x=ease('lS',lS,6); L.sh.rotation.z=ease('lSZ',lSZ,6); L.el.rotation.x=ease('lE',lE,6); L.wr.rotation.z=ease('lW',lW,8);
+  R.sh.rotation.x=ease('rS',rS,6); R.sh.rotation.z=ease('rSZ',rSZ,6); R.el.rotation.x=ease('rE',rE,6); R.wr.rotation.y=ease('rW',rW,10); }
+/* lying on the back under the tank: knees up, feet flat on the floor, both hands working on the belly (ratchet in the right hand) */
+const LIE={hip:-0.5,knee:2.07,ank:0};
+function makeLyingMech(par,ry){ const root=new THREE.Group(), g=new THREE.Group(), P=mechBody(g), {C,m,B}=P;
+  g.rotation.x=-Math.PI/2; g.position.set(0,0.31,2.8); root.add(g); /* head toward the tank centre, face up */
+  m(B(0.6,0.03,1.4),T2(0x22282c),0,0.015,1.9,root); /* creeper board */ for(const sx of [-1,1]) for(const sz of [1.3,2.5]) m(new THREE.CylinderGeometry(0.04,0.04,0.04,8).rotateZ(Math.PI/2),C.dk,sx*0.26,0.02,sz,root);
+  const tool=new THREE.Group(); tool.position.set(0,-0.12,0.04); P.arms[1].wr.add(tool); m(B(0.03,0.03,0.3),C.mt,0,0,0.1,tool); m(B(0.08,0.05,0.05),C.mt,0,0,0.26,tool); m(B(0.025,0.08,0.025),C.mt,0,0.05,0.27,tool);
+  const tb=m(B(0.34,0.16,0.22),T2(0x7a383d),-0.5,0.08,1.95,root); m(B(0.36,0.03,0.24),C.dk,-0.5,0.17,1.95,root); m(B(0.05,0.03,0.3),C.mt,0.46,0.03,1.6,root); void tb;
+  root.rotation.y=ry; par.add(root); const L={g:root,P,ph:rnd()*TAU,k:{}}; lyingUpdate(L,0,0); return L; }
+function T2(c){ return new THREE.MeshToonMaterial({color:c,gradientMap:gradTex}); }
+function lyingUpdate(L,t){ const P=L.P, ph=L.ph, br=Math.sin(t*1.5+ph);
+  P.tor.scale.set(1,1,1+br*0.025); /* chest rises (local z is up when lying) */
+  for(let i=0;i<2;i++){ const lg=P.legs[i], s=i?1:-1, sway=Math.sin(t*0.35+ph+i*1.7)*0.12; /* one knee drifts sideways now and then */
+    lg.hip.rotation.x=LIE.hip; lg.hip.rotation.z=s*0.08+sway; lg.knee.rotation.x=LIE.knee; lg.ank.rotation.x=LIE.ank; lg.ank.rotation.z=-sway*0.6; }
+  const R=P.arms[1], Lf=P.arms[0], rat=Math.sin(t*6.2+ph); /* ratchet strokes with the right forearm, the left hand steadies the part */
+  R.sh.rotation.x=-1.55+Math.sin(t*0.6+ph)*0.08; R.sh.rotation.z=-0.25; R.el.rotation.x=-0.55+rat*0.35; R.wr.rotation.z=rat*0.5; R.wr.rotation.x=-0.3;
+  Lf.sh.rotation.x=-1.45+Math.sin(t*0.9+ph+1)*0.12; Lf.sh.rotation.z=0.3+Math.sin(t*0.5+ph)*0.1; Lf.el.rotation.x=-0.7+Math.sin(t*1.3+ph)*0.15; Lf.wr.rotation.x=-0.4;
+  P.head.rotation.y=Math.sin(t*0.4+ph)*0.25; P.head.rotation.x=-0.25; }
 /* detailed garage props (medium/high quality) */
 function garMk(par){ const b=(w,h,d,x,y,z,m,ry,rx,rz)=>{ const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m); o.position.set(x,y,z); if(ry) o.rotation.y=ry; if(rx) o.rotation.x=rx; if(rz) o.rotation.z=rz; par.add(o); return o; };
   const cy=(r1,r2,h,x,y,z,m,n,rx,rz)=>{ const o=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,n||16),m); o.position.set(x,y,z); if(rx) o.rotation.x=rx; if(rz) o.rotation.z=rz; par.add(o); return o; };
@@ -106,28 +155,6 @@ function garEngine(par,C,x,z){ const {b,cy,tor}=garMk(par);
   tor(0.18,0.025,x+0.5,1.25,z+0.3,C.bl,0,0,Math.PI); for(let k=0;k<3;k++) b(0.04,0.05,0.04,x-0.1+k*0.3,0.96,z+0.29,C.ye);
   /* drip tray */
   b(1.4,0.03,0.9,x+0.1,0.015,z,C.dk); }
-/* idle standing: look around, scratch the head, shift weight */
-function mechIdle(m,dt,t){ m.actT-=dt; if(m.actT<=0){ m.act=rnd()<0.4?1:rnd()<0.6?2:0; m.actT=m.act===1?2.2:3+rnd()*3; m.hyT=(rnd()-0.5)*1.4; }
-  m.hy+=(m.hyT-m.hy)*Math.min(1,dt*2.5); m.head.rotation.y=m.hy; m.head.rotation.x=Math.sin(t*0.7+m.ph)*0.06;
-  const sw=m.act===2?Math.sin(t*1.6+m.ph):Math.sin(t*0.5+m.ph)*0.3; m.g.position.x=m.x+Math.cos(m.base)*sw*0.04; m.g.rotation.z=sw*0.03; m.L.hipL.rotation.z=-sw*0.05; m.L.hipR.rotation.z=-sw*0.05; m.L.kneeL.rotation.x=Math.max(0,sw)*0.18; m.L.kneeR.rotation.x=Math.max(0,-sw)*0.18;
-  const sc=m.act===1?Math.min(1,(2.2-m.actT)*4,m.actT*4):0; m.armL.rotation.x=-0.25-sc*2.55; m.armL.rotation.z=0.1-sc*0.55+sc*Math.sin(t*14)*0.12; if(m.act===1) m.head.rotation.x=0.12*sc;
-  m.armR.rotation.x=-0.9+Math.sin(t*0.9+m.ph)*0.1; }
-/* lying on the back with the upper body under the tank, knees up, hands working on the belly */
-function makeLyingMech(par,ry){ const g=new THREE.Group(); const T=c=>new THREE.MeshToonMaterial({color:c,gradientMap:gradTex});
-  const OV=T(0x3a5246), DK=T(0x15191d), SK=T(0x8a6a52), GL=T(0x5c4a36), MT=T(0x6b7480), OR=T(0xf0a030), GG=new THREE.MeshBasicMaterial({color:0x8fe8ff});
-  const m=(geo,mat,px,py,pz,pr,ol)=>{ const o=new THREE.Mesh(geo,mat); o.position.set(px,py,pz); (pr||g).add(o); if(ol){ const q=new THREE.Mesh(geo,outlineMat); q.scale.setScalar(1.07); o.add(q); } return o; }, B=(w,h,d)=>new THREE.BoxGeometry(w,h,d);
-  /* torso along +z (head toward the tank centre at z=0) */
-  m(B(0.44,0.2,0.62),OV,0,0.27,1.5,g,true); m(B(0.48,0.06,0.5),DK,0,0.39,1.52); m(B(0.46,0.07,0.08),DK,0,0.27,1.83); m(B(0.1,0.05,0.12),OR,0.14,0.38,1.36);
-  m(new THREE.SphereGeometry(0.13,10,8),SK,0,0.3,1.08,g,true); const hm=m(new THREE.SphereGeometry(0.16,10,6,0,TAU,0,Math.PI/2),OV,0,0.3,1.04); hm.rotation.x=-Math.PI/2; m(B(0.24,0.05,0.04),DK,0,0.42,1.12); for(const s_ of [-1,1]) m(new THREE.CylinderGeometry(0.035,0.035,0.03,8),GG,s_*0.06,0.44,1.12);
-  const lamp=m(B(0.06,0.05,0.05),DK,0.1,0.4,1.0); m(B(0.04,0.03,0.01),GG,0.1,0.43,1.0);
-  /* legs: thighs up from the hips, shins down to the feet (knees bent) */
-  for(const s_ of [-1,1]){ const th=m(B(0.15,0.48,0.16),OV,s_*0.12,0.42,2.0,g,true); th.rotation.x=0.75; const sh=m(B(0.14,0.46,0.14),OV,s_*0.13,0.36,2.42,g,true); sh.rotation.x=-0.55; m(B(0.16,0.12,0.28),DK,s_*0.13,0.08,2.6); m(B(0.17,0.12,0.06),DK,s_*0.12,0.62,2.2); }
-  /* arms reach up to the belly and work */
-  const arms=[]; for(const s_ of [-1,1]){ const sh=new THREE.Group(); sh.position.set(s_*0.28,0.3,1.3); g.add(sh); m(B(0.12,0.4,0.12),OV,0,0.18,0,sh,true); m(B(0.13,0.12,0.13),GL,0,0.42,0,sh); arms.push(sh); }
-  const wr=new THREE.Group(); wr.position.set(0,0.46,0); arms[0].add(wr); m(B(0.04,0.04,0.42),MT,0,0,0.12,wr); m(B(0.11,0.04,0.07),MT,0,0,0.34,wr);
-  const tb=m(B(0.34,0.16,0.22),T(0x7a383d),-0.42,0.08,1.9); m(B(0.36,0.03,0.24),DK,-0.42,0.17,1.9); m(B(0.05,0.03,0.3),MT,0.4,0.03,1.7);
-  g.rotation.y=ry; par.add(g); return {g,arms,ph:rnd()*TAU}; }
-function lyingUpdate(L,t){ const a=L.arms; a[0].rotation.x=-0.25+Math.sin(t*5.2+L.ph)*0.35; a[0].rotation.z=0.2+Math.sin(t*2.7+L.ph)*0.15; a[1].rotation.x=-0.4+Math.sin(t*3.1+L.ph+1)*0.25; a[1].rotation.z=-0.25+Math.cos(t*2.2+L.ph)*0.2; }
 /* garage / motor-pool interior details: common hall dressing + a set per mode */
 function garDeco(s){ const T=c=>new THREE.MeshToonMaterial({color:c,gradientMap:gradTex});
   const C={st:T(0x2b3a46),dk:T(0x161c22),mt:T(0x5a6470),rd:T(0x7a383d),ye:T(0xf0b030),gr:T(0x3a5246),ol:T(0x6e6a4c),tr:T(0x232628),cn:T(0xff7a1a),wh:T(0xd8d4c8),bl:T(0x2f5d7a)};

@@ -1,4 +1,4 @@
-/* v30.11: the player's hull collides with its real (85%) footprint; parked tanks and camp tree trunks are solid;
+/* v30.11: the player's hull collides with its real (85%) footprint; parked tanks are solid (camp trees bend, v30.12);
    the see-through circle also cuts the chunk shadow overlay on HIGH, so the tank is visible behind tall buildings. */
 import { client } from '../harness.mjs';
 const assert = (c, m) => { if (!c) throw new Error(m); };
@@ -23,15 +23,15 @@ export const tests = [
     assert(nose <= face + 0.12 && nose > face - 0.8, `nose did not stop at the parked tank: nose ${nose.toFixed(2)}, face ${face.toFixed(2)}`);
     assert(look - (55 - FF[0]) < 0.75, 'model still drives deep into the parked tank: ' + (look - (55 - FF[0])).toFixed(2));
   } },
-  { name: 'camp tree trunks are solid', timeout: 60, async run(ctx) {
+  { name: 'camp trees bend away and let the tank roll over them, holding it back a little (v30.12)', timeout: 60, async run(ctx) {
     const c = await client({ name: 'trunk' }); ctx.clients.push(c); await c.wait(1200);
-    const r = await c.js(() => { const D = __dbg; const trees = D.CDK.bend.filter(b => b.sh > 2);
-      // pick a tree with free space to its south
-      for (const b of trees) { D.TK.h = 0; if (D.tankContacts(b.x, b.z - 5, []) || D.tankContacts(b.x, b.z - 2.5, [])) continue;
-        Object.assign(D.TK, { x: b.x, z: b.z - 5, h: 0, tYaw: 0, vx: 0, vz: 0, vF: 0 }); for (let i = 0; i < 150; i++) { D.tankStep(1 / 60, { throttle: 1, steer: 0, hb: false, joy: null, fire: false }); D.tankVsPost(b.x, b.z, 0.32); }
-        return { d: Math.hypot(D.TK.x - b.x, D.TK.z - b.z), z: D.TK.z, bz: b.z, n: trees.length }; } return null; });
+    const r = await c.js(async () => { const D = __dbg; const trees = D.CDK.bend.filter(b => b.sh > 2);
+      for (const b of trees) { if (D.tankContacts(b.x, b.z - 5, [], 0) || D.tankContacts(b.x, b.z - 2.5, [], 0) || D.tankContacts(b.x, b.z + 2.5, [], 0)) continue;
+        Object.assign(D.TK, { x: b.x, z: b.z - 3, h: 0, tYaw: 0, vx: 0, vz: 9, vF: 9 }); let bend = 0;
+        const t0 = performance.now(); while (performance.now() - t0 < 1600) { await new Promise(f => requestAnimationFrame(f)); bend = Math.max(bend, Math.hypot(b.ax, b.az)); }
+        return { z: D.TK.z, bz: b.z, bend }; } return null; });
     assert(r, 'no free tree found');
-    assert(r.z < r.bz && r.d > 1.3, 'drove through a tree trunk: ' + JSON.stringify(r));
+    assert(r.z > r.bz + 0.5 && r.bend > 0.3, 'tank did not roll over the tree: ' + JSON.stringify(r));
   } },
   { name: 'HIGH: the tank behind a tall building is not darkened by the shadow overlay', timeout: 90, async run(ctx) {
     const c = await client({ name: 'xray', quality: 'high' }); ctx.clients.push(c);

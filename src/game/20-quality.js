@@ -55,6 +55,11 @@ function abilPress(){ const a=chs().abil; if(a==='gdrone') gdLaunch(); else if(a
 $('#kAbil').addEventListener('click',e=>{ e.stopPropagation(); sInit(); abilPress(); });
 $('#bShield').addEventListener('pointerdown',e=>{ e.preventDefault(); sInit(); if(helpOpen) closeHelp(); abilPress(); });
 let menuOpen=false; $('#bMenu').addEventListener('click',e=>{ e.stopPropagation(); menuOpen=!menuOpen; $('#trMenu').hidden=!menuOpen; document.body.classList.toggle('menu',menuOpen); $('#bMenu').setAttribute('aria-expanded',String(menuOpen)); sfxClick(); });
+/* v30.12: the ☰ menu folds itself away as soon as the player touches anything else (stick, fire, the world) or presses a game key;
+   the touch is not swallowed — it goes on into the game */
+function menuAutoClose(){ if(menuOpen) $('#bMenu').click(); }
+document.addEventListener('pointerdown',e=>{ if(!menuOpen) return; const t=e.target; if(t.closest&&(t.closest('#trMenu')||t.closest('#bMenu'))) return; menuAutoClose(); },true);
+addEventListener('keydown',e=>{ if(!menuOpen||e.repeat) return; const tg=e.target; if(tg&&(tg.tagName==='INPUT'||tg.tagName==='TEXTAREA')) return; if(/^(Key[WASDQEFGRT]|Digit[1-4]|Space|Arrow)/.test(e.code)) menuAutoClose(); },true);
 $('#bGo').addEventListener('click',e=>{ e.stopPropagation(); closeHelp(); });
 /* v30.7: «Начать заново» lives in the menu now, behind an in-page confirmation */
 $('#bReset').addEventListener('click',e=>{ e.stopPropagation(); $('#rConf').hidden=false; $('#bReset').hidden=true; });

@@ -56,9 +56,9 @@ function buildChunk(ci){ const ch=chunks[ci]; const cy=Math.floor(ci/(CX*CZ)), r
   const x0=cx*CS,y0=cy*CS,z0=cz*CS,x1=Math.min(NX,x0+CS),y1=Math.min(NY,y0+CS),z1=Math.min(NZ,z0+CS); let nf=0;
   for(let y=y0;y<y1;y++){ const ao=0.62+0.38*Math.min(1,(y*VS)/7);
     for(let z=z0;z<z1;z++){ let i=gi(x0,y,z);
-      for(let x=x0;x<x1;x++,i++){ const m=grid[i]; if(!m) continue; const md=MD[m]; let cd=false;
+      for(let x=x0;x<x1;x++,i++){ const m=grid[i]; if(!m) continue; const md=MD[m]; if(md.inv) continue; let cd=false;
         for(let f=0;f<6;f++){ const F=FACES[f], nx=x+F[0], ny=y+F[1], nz=z+F[2]; if(ny<0) continue;
-          if(nx>=0&&nx<NX&&ny<NY&&nz>=0&&nz<NZ&&grid[nx+NX*(nz+NZ*ny)]) continue;
+          if(nx>=0&&nx<NX&&ny<NY&&nz>=0&&nz<NZ){ const g2=grid[nx+NX*(nz+NZ*ny)]; if(g2&&!MD[g2].inv) continue; }
           if(!cd){ matRGB(m,x,y,z,col); cd=true; }
           const s=md.glow?GSH[f]:SH[f]*ao; const r=Math.min(255,col[0]*s*255)|0, g=Math.min(255,col[1]*s*255)|0, b=Math.min(255,col[2]*s*255)|0;
           if((nf+1)*12>sP.length) ensure(nf+1); const v=F[3], o=nf*12;

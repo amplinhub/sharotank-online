@@ -16,7 +16,7 @@ const QUALITY = {
   high:{label:'ВЫСОКО',vs:0.25,  debris:2200, sparks:1800, puffs:700, dpr:2,   cap:14000},
 };
 const M = {DARK:1,MID:2,WIN:3,WINOFF:4,NEON:5,METAL:6,LAMP:7,LEAF:8,TRUNK:9,SHOP:10,FURN:11,BILL:12,PANEL:13,ROOF:14,AWN:15,RUST:16,TAXI:17,TIRE:18,
-  ARMY:19,CANV:20,WALL:21,WOOD:22,TILE:23,HAY:24,BLOS:25,LANT:26,CBLUE:27,CORNG:28,CGRN:29,CGRY:30,CRED:31};
+  ARMY:19,CANV:20,WALL:21,WOOD:22,TILE:23,HAY:24,BLOS:25,LANT:26,CBLUE:27,CORNG:28,CGRN:29,CGRY:30,CRED:31,INVIS:32};
 const MD = [null,
  {k:'dark',hard:3.4},{k:'mid',hard:2.8},{k:'glow',k2:'glow2',glow:1,hard:0.7,glass:1},{k:'winoff',hard:0.7,glass:1},
  {k:'neon',k2:'neon2',glow:1,hard:0.8,glass:1},{k:'metal',hard:2.2,metal:1},{k:'lamp',glow:1,hard:0.6,glass:1},
@@ -25,7 +25,8 @@ const MD = [null,
  {k:'accent',hard:0.6},{k:'rust',hard:2.6,metal:1},{k:'taxi',hard:1.6,metal:1},{k:'tire',hard:1.8},
  {k:'army',hard:2.2,metal:1},{k:'canvas',hard:0.5},{k:'wall',hard:2.6},{k:'wood',hard:1.0},{k:'tile',hard:1.6},
  {k:'hay',hard:0.25},{k:'blossom',hard:0.3},{k:'neon',k2:'glow2',glow:1,hard:0.5,glass:1},
- {k:'cblue',hard:2.4,metal:1},{k:'corng',hard:2.4,metal:1},{k:'cgrn',hard:2.4,metal:1},{k:'cgry',hard:2.6,metal:1},{k:'cred',hard:2.0,metal:1}];
+ {k:'cblue',hard:2.4,metal:1},{k:'corng',hard:2.4,metal:1},{k:'cgrn',hard:2.4,metal:1},{k:'cgry',hard:2.6,metal:1},{k:'cred',hard:2.0,metal:1},
+ {k:'dark',hard:99,inv:1} /* v30.12 INVIS: collision-only, never meshed (parked tanks' hulls) */];
 
 let P = {}, PAL = 0;
 const hx = h => [(h>>16&255)/255,(h>>8&255)/255,(h&255)/255];

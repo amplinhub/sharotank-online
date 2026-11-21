@@ -32,6 +32,7 @@ const gate=v=>v>35.4&&v<44.6;
 function maxHP(){ return Math.round(ARM_HP[UP.armor]*chs().hp); }
 const WH4=[0,0,0,0];
 function tankUpdate(dt,inp){
+  if(SHD.on){ const k=Math.exp(-dt*14); TK.vx*=k; TK.vz*=k; } /* v30.12: shield up = handbrake on, the cannon's recoil barely moves the Krepost */
   const fx=Math.sin(TK.h), fz=Math.cos(TK.h); let vF=TK.vx*fx+TK.vz*fz, vL=TK.vx*fz-TK.vz*fx; let th=inp.throttle, joyYaw=null;
   if(inp.joy){ const tgt=Math.atan2(inp.joy.x,inp.joy.y), dF=wrapA(tgt-TK.h), dB=wrapA(tgt-TK.h-Math.PI);
     let rev=TK.joyRev; const hy=0.35+Math.min(0.5,Math.abs(vF)*0.06);

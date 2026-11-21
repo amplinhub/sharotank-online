@@ -75,7 +75,11 @@ let TMAT=null; function tutMats(){ if(TMAT) return TMAT; const T=c=>new THREE.Me
   TMAT={wood:T(0x8a6a48),white:T(0xf1ead8),red:T(0xd8473a),metal:T(0x5b6470),dark:T(0x2f353d),yel:T(0xffc94a),
     glow:new THREE.MeshBasicMaterial({color:MCOL,transparent:true,opacity:0.85,depthWrite:false,side:THREE.DoubleSide}),
     beam:new THREE.MeshBasicMaterial({color:MCOL,transparent:true,opacity:0.22,depthWrite:false,blending:THREE.AdditiveBlending})}; return TMAT; }
-function tutBeacon(on){ if(TUT.beacon){ scene.remove(TUT.beacon); TUT.beacon=null; } if(!on) return; const M=tutMats(), g=new THREE.Group();
+function tutBeacon(on){ if(TUT.beacon){ scene.remove(TUT.beacon); TUT.beacon=null; } if(!on) return; { /* v30.12: the first mark is 10 m straight ahead of the tank (a bit shorter or turned aside if something stands there) */
+    const fx=Math.sin(TK.h), fz=Math.cos(TK.h), CTx=[]; let best=null;
+    seek: for(const da of [0,0.25,-0.25,0.5,-0.5]) for(const L of [10,9,8,11,7]){ const x=TK.x+Math.sin(TK.h+da)*L, z=TK.z+Math.cos(TK.h+da)*L; if(x<4||z<4||x>WX-4||z>WZ-4) continue; if(!tankContacts(x,z,CTx,TK.h)){ best={x,z}; break seek; } }
+    if(!best) best={x:TK.x+fx*10,z:TK.z+fz*10}; TUT_W1.x=best.x; TUT_W1.z=best.z; }
+  const M=tutMats(), g=new THREE.Group();
   const ring=new THREE.Mesh(new THREE.RingGeometry(2.1,2.5,48),M.glow); ring.rotation.x=-Math.PI/2; ring.position.y=0.07; g.add(ring);
   const in2=new THREE.Mesh(new THREE.RingGeometry(1.2,1.35,40),M.glow); in2.rotation.x=-Math.PI/2; in2.position.y=0.08; g.add(in2);
   const beam=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.6,9,12,1,true),M.beam); beam.position.y=4.5; g.add(beam);

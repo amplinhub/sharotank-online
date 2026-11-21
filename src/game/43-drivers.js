@@ -189,7 +189,7 @@ function drvCardRender(){ const who=DRVUI.who, r=drvCardData(who), H=$('#drvCH')
   const sm=MEDALS.find(m=>m[0]===DRVUI.med), pg=sm&&me&&!med.has(sm[0])?medProg(sm[0]):null;
   h+=`<div class="dmedTx">${sm?`<b>${drvEsc(sm[1])}</b>${med.has(sm[0])?' <i class="ok">получена</i>':''}<span>${drvEsc(sm[2])}</span>${pg?`<span class="dprog"><i style="width:${Math.min(100,Math.round(100*pg[0]/pg[1]))}%"></i><small>${Math.min(pg[0],pg[1])} / ${pg[1]}</small></span>`:''}`:'<span>Нажми на медаль, чтобы узнать, как её получить.</span>'}</div>`;
   if(me) h+='<div class="dsec">Аватарка</div><div class="davs">'+AVATARS.map((a,i)=>`<button class="dav${i===DRV.av?' on':''}" data-av="${i}" aria-label="${a[0]}" title="${a[0]}">${avSvg(i)}</button>`).join('')+'</div>';
-  C.innerHTML=h; drvActions(r,me,fr); }
+  { const o=C.querySelector('.dmed'), sl=o?o.scrollLeft:0; C.innerHTML=h; const n=C.querySelector('.dmed'); if(n&&sl) n.scrollLeft=sl; } /* keep the medal row where it was scrolled */ drvActions(r,me,fr); }
 
 /* actions under the card: built once per (pilot, friendship, pane) so typing is never interrupted */
 const SEND_SVG='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l16-8-6 16-2.5-6.5z"/></svg>';

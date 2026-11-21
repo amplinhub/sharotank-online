@@ -17,7 +17,7 @@ const sv=new THREE.Vector3();
 function toScreen(x,y,z){ sv.set(x,y,z).project(camera); return [(sv.x*0.5+0.5)*innerWidth,(-sv.y*0.5+0.5)*innerHeight,sv.z<1]; }
 const WIDS=['mg','cn','rk'];
 function ammoTxt(id){ return ST.ammo[id]>0?String(Math.floor(ST.ammo[id])):'пусто'; }
-function updateWeaponUI(){ WEAP=buildWeapons(); const a=wAllowed(); if(!a.includes(wcur)) wcur=a[0]; const mains=a.filter(i=>i<2); if(!mains.includes(lastMain)) lastMain=mains.length?mains[0]:0;
+function updateWeaponUI(){ WEAP=buildWeapons(); const a=wAllowed(); $('#bSwap').classList.toggle('one',a.length<2) /* v30.12: one weapon — no СМЕНА button */; if(!a.includes(wcur)) wcur=a[0]; const mains=a.filter(i=>i<2); if(!mains.includes(lastMain)) lastMain=mains.length?mains[0]:0;
   const nm=[WEAP[0].name,chs().abil==='rail'?'Рельсотрон':UP.tank==='krep'?'Трёхствольная пушка':'Пушка','Ракеты'];
   $('#wdIn').innerHTML=a.map((wi,p)=>`<div class="w" data-w="${wi}"><span class="k">0${p+1}</span><span>${nm[wi]}</span><span class="am" id="wam${wi}">${ammoTxt(WIDS[wi])}</span></div>`).join('');
   $('#wchm').innerHTML=a.map(()=>'<i></i>').join(''); drumTo(false); }

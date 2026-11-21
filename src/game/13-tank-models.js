@@ -26,7 +26,7 @@ const CHASSIS={
 const CH_ORDER=['base','ten','krep','igla','pchela','kovch','rszo'];
 function chs(){ return CHASSIS[UP.tank]||CHASSIS.base; }
 const ABL={ten:{t:'Маскировка',cur:l=>`включается через ${[2,1.5,1][l]} с · видят с ${[15,12,9][l]} м`,info:'Быстрее уходит в тень, враги замечают её с меньшего расстояния.'},
- krep:{t:'Генератор щита',cur:l=>`щит ${[260,340,420][l]} ед.`,info:'Купол выдерживает больше попаданий, прежде чем погаснет.'},
+ krep:{t:'Генератор щита',cur:l=>`щит ${SHD_MAX[l]} ед.`,info:'Купол выдерживает больше попаданий, прежде чем погаснет.'},
  igla:{t:'Накопитель рельсотрона',cur:l=>`урон луча ×${[1,1.2,1.4][l]}`,info:'Луч рельсотрона бьёт сильнее.'},
  kovch:{t:'Огневая мощь дрона',cur:l=>`урон ×${GD_DMGK[l]} · ${GD_RATE[l]} выстр/с`,info:'Пулемёты дрона бьют сильнее и чаще.'},
  rszo:{t:'Пакет РСЗО',cur:l=>`${RSZ_N[l]} ракет в залпе`,info:'Больше труб в пакете — больше ракет в каждом залпе.'},
@@ -46,7 +46,7 @@ const RSZ_CD=5, RSZ_MIN=9, RSZ_MAX=75, RSZ_SPREAD=2.3, RSZ_PWR=2.1, RSZ_RAD=1.7,
 const RSZ_ICON='<svg viewBox="0 0 24 24"><path d="M4 20l3-3M8 21l2-4M3 16l4-2" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M7 15l9-9 3-1-1 3-9 9zM14 6l4 4" fill="currentColor"/></svg>';
 let rszoPM=null; function rszoPlateMat(){ if(rszoPM) return rszoPM; const pc=document.createElement('canvas'); pc.width=200; pc.height=56; const g=pc.getContext('2d'); g.fillStyle='#1c1e21'; g.fillRect(0,0,200,56); g.fillStyle='#f2c21b'; g.font='bold 36px Arial, sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('537',100,30); rszoPM=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(pc)}); return rszoPM; }
 const GD_DMGK=[1,1.3,1.6], GD_RATE=[8,10,12];
-const STL_DELAY=[2,1.5,1], STL_R=[15,12,9], SHD_MAX=[260,340,420], RAIL_K=[1,1.2,1.4];
+const STL_DELAY=[2,1.5,1], STL_R=[15,12,9], SHD_MAX=[180,240,295] /* v30.12: −30% */, RAIL_K=[1,1.2,1.4];
 function chWheel(T,o,x,y0,z,r,w,tc,hc,opt){ const g=new THREE.Group(); g.position.set(x,y0,z); T.root.add(g); const sp=new THREE.Group(); g.add(sp); const sd=Math.sign(x)||1;
   o.add(o.xc(o.Cy(r,r,w,16*o.S)),tc,sp,0,0,0,o.hi?1.04:1.06); o.add(o.xc(o.Cy(r*0.58,r*0.58,w+0.02,12*o.S)),hc,sp,0,0,0);
   if(opt.rim){ o.add(o.xc(o.Cy(r*0.44,r*0.44,0.05,14)),opt.rim,sp,sd*(w/2+0.015),0,0); o.add(o.xc(o.Cy(r*0.16,r*0.2,0.12,10)),0x2a2e33,sp,sd*(w/2+0.05),0,0); }
@@ -352,7 +352,7 @@ function makeTank(hi,up){
   add(new THREE.SphereGeometry(1.0,28*S,20*S),C_BODY,Tu,0,0.95,0,hi?1.025:1.035);
   const n=new THREE.Vector3(0.74,0.14,0.62).normalize(), ctr=new THREE.Vector3(0,0.95,0), qq=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,1),n);
   const ring=add(new THREE.TorusGeometry(0.27,0.075,8*S,22*S),C_MET,Tu,0,0,0); ring.position.copy(ctr).addScaledVector(n,0.97); ring.quaternion.copy(qq);
-  const glassM=new THREE.Mesh(new THREE.CircleGeometry(0.24,20*S),glowMat(0xdfeef2)); glassM.position.copy(ctr).addScaledVector(n,0.99); glassM.quaternion.copy(qq); Tu.add(glassM);
+  const glassM=new THREE.Mesh(new THREE.CircleGeometry(0.24,20*S),glowMat(0xdfeef2)); glassM.position.copy(ctr).addScaledVector(n,1.016) /* v30.12: was 0.99 — the sphere's bulge poked through the middle of the glass */; glassM.quaternion.copy(qq); Tu.add(glassM);
   const hl=new THREE.Mesh(new THREE.CircleGeometry(0.08,10),glowMat(0xffffff)); hl.position.copy(glassM.position).addScaledVector(n,0.005).add(new THREE.Vector3(-0.05,0.07,0)); hl.quaternion.copy(qq); Tu.add(hl);
   if(hi){ for(let k=0;k<10;k++){ const a=k/10*TAU; add(new THREE.SphereGeometry(0.025,6,4),C_MET,ring,Math.cos(a)*0.27,Math.sin(a)*0.27,0.07); }
     const seam=add(new THREE.TorusGeometry(1.002,0.01,4,64),0x4a6b58,Tu,0,0.95,0); seam.rotation.x=Math.PI/2;

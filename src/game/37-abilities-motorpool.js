@@ -38,11 +38,11 @@ function fireworks(){ const cols=[[1,0.8,0.25],[0.24,1,0.71],[1,1,1],[1,0.45,0.3
 let winT=0;
 function showWin(m,up,final){ const w=$('#win'); $('#winK').textContent=final?'胜利':'任务完成'; $('#winH').textContent=final?'«Нефрит» отключён':'Задание выполнено'; $('#winT').textContent=m.title?`«${m.title}»`:missionText(m);
   $('#winRank').hidden=!up; if(up){ $('#winRankIco').innerHTML=rankSVG(MS.rank); $('#winRankN').textContent=RANKS[MS.rank]; }
-  $('#winNext').textContent=final?'Кампания пройдена · штаб продолжит выдавать задания':'Новое задание ждёт в штабе'; w.hidden=false; w.classList.remove('on','out'); void w.offsetWidth; w.classList.add('on'); winT=5.2;
-  const R=$('#winR'), t0=performance.now(), dur=1200; const tick=()=>{ const k=Math.min(1,(performance.now()-t0-450)/dur); if(k>0){ R.textContent='+'+Math.round(m.r*k*(2-k)); if(SND.ctx&&Math.random()<0.35&&k<1) sO(900+k*900,1200+k*900,0.03,0.03,'square'); } if(k<1&&!w.hidden) requestAnimationFrame(tick); else R.textContent='+'+m.r; }; R.textContent='+0'; requestAnimationFrame(tick);
-  fireworks(); sfxWin(); if(up) later(1.6,sfxRankUp); hitStop=Math.max(hitStop,0.12); camPunch=Math.max(camPunch,0.8); }
-function winOut(){ const w=$('#win'); if(w.hidden||w.classList.contains('out')) return; winT=0; w.classList.add('out'); sO(700,1500,0.12,0.05,'square'); setTimeout(()=>{ w.hidden=true; w.classList.remove('out'); },300); }
-function winUpdate(dt){ if(winT>0){ winT-=dt; if(winT<=0) winOut(); } }
+  $('#winNext').textContent=final?'Кампания пройдена · штаб продолжит выдавать задания':'Новое задание ждёт в штабе'; w.hidden=false; w.classList.remove('on','out'); void w.offsetWidth; w.classList.add('on'); winT=2.5; winEnd=performance.now()+2500; clearTimeout(winTO); winTO=setTimeout(winOut,2500) /* v30.12: 2.5 s of real time (was 5.2 s of game time) */;
+  const R=$('#winR'), t0=performance.now(), dur=900; const tick=()=>{ const k=Math.min(1,(performance.now()-t0-450)/dur); if(k>0){ R.textContent='+'+Math.round(m.r*k*(2-k)); if(SND.ctx&&Math.random()<0.35&&k<1) sO(900+k*900,1200+k*900,0.03,0.03,'square'); } if(k<1&&!w.hidden) requestAnimationFrame(tick); else R.textContent='+'+m.r; }; R.textContent='+0'; requestAnimationFrame(tick);
+  fireworks(); sfxWin(); if(up) later(1.1,sfxRankUp); hitStop=Math.max(hitStop,0.12); camPunch=Math.max(camPunch,0.8); }
+function winOut(){ const w=$('#win'); if(w.hidden||w.classList.contains('out')) return; winT=0; w.classList.add('out'); sO(700,1500,0.12,0.05,'square'); setTimeout(()=>{ w.hidden=true; w.classList.remove('out'); },270); }
+let winEnd=0, winTO=0; function winUpdate(dt){ if(winT>0){ winT-=dt; if(performance.now()>=winEnd){ winT=0; winOut(); } } }
 for(const ev of ['pointerdown','touchstart','click']) $('#win').addEventListener(ev,e=>{ if(!e.target.closest('.wbx')) return; e.stopPropagation(); if(ev==='click'||ev==='pointerdown') winOut(); },{passive:true});
 /* ---- defeat: sad jingle, desaturated screen, the general on the radio ---- */
 function onTankLost(){ SHD.on=false; { const b=BOSS.e; if(b&&!b.dead&&b.type==='hornet'){ MS.ease=MS.ease||{}; MS.ease.hornet=1; save(); } } sfxLose(); canvas.classList.add('lost'); setTimeout(()=>radioSay(['Водитель, ты подбит! Тягач уже выехал, эвакуируем тебя в лагерь.','Машина горит! Держись, водитель, вытащим тебя в лагерь.','Подбит, но жив — это главное. Механики в лагере тебя подлатают.'][(rnd()*3)|0]),900); }
@@ -54,7 +54,7 @@ const STL={t:0,on:false,bonus:0};
 function stealthShot(){ if(chs().abil!=='stealth') return; if(STL.on) STL.bonus=0.7; STL.t=0; setStealth(false); }
 function stealthMul(){ return STL.bonus>0?2:1; }
 /* ---- «Крепость»: deployable shield dome ---- */
-const SHD={on:false,hp:260,max:260,cd:0,g:null,rip:0,grow:0,R:4.3};
+const SHD={on:false,hp:180,max:180,cd:0,g:null,rip:0,grow:0,R:4.3};
 function shieldMake(){ const g=new THREE.Group(); g.add(new THREE.Mesh(domeGeo,new THREE.MeshBasicMaterial({color:0xffd27a,transparent:true,opacity:0.08,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending})));
   g.add(new THREE.LineSegments(domeEdges,new THREE.LineBasicMaterial({color:0xffd27a,transparent:true,opacity:0.4,depthWrite:false,blending:THREE.AdditiveBlending}))); g.renderOrder=6; g.visible=false; scene.add(g); SHD.g=g; }
 function shieldToggle(){ if(chs().abil!=='shield'||TK.dead||transit) return; if(LOC.safe){ toast('В лагере щит не нужен'); return; }
