@@ -109,7 +109,7 @@ function ram(cx,cy,cz,pow){ const rr=Math.max(1,Math.round(0.55/VS)); const rem=
   const GL=P.glass; for(let k=0;k<glass*2;k++) spark((cx+0.5)*VS,(cy+0.5)*VS,(cz+0.5)*VS,(rnd()-0.5)*6+TK.vx*0.5,rnd()*5,(rnd()-0.5)*6+TK.vz*0.5,GL[0],GL[1],GL[2],0.5+0.5*rnd());
   if(glass) sfxGlass(0.5); else if(ramCD<=0){ sfxThud(0.6); ramCD=0.12; }
   structural(rem); return hs; }
-function damageTank(amount,dx,dz,top){ if(LOC.safe||transit||TK.dead||amount<=0.05) return; if(SHD.on){ shieldHit(amount*0.9); return; }
+function damageTank(amount,dx,dz,top){ if(DECOY.on){ protHit(DECOY.obj,amount*DECOY.mul,true); return; } if(LOC.safe||transit||TK.dead||amount<=0.05) return; if(SHD.on){ shieldHit(amount*0.9); return; }
   const ch=Math.cos(TK.h), sh=Math.sin(TK.h), l=Math.hypot(dx,dz)||1, lx=(dx*ch-dz*sh)/l, lz=(dx*sh+dz*ch)/l; if(chs().frontK&&lz>0.55&&!top) amount*=chs().frontK;
   TK.hp-=amount; armHit(amount,dx,dz,top); const a=amount/maxHP()*2.6, S=TK.dmgS;
   S[0]=Math.min(1,S[0]+Math.max(0,lz)*a); S[1]=Math.min(1,S[1]+Math.max(0,-lz)*a); S[2]=Math.min(1,S[2]+Math.max(0,lx)*a); S[3]=Math.min(1,S[3]+Math.max(0,-lx)*a); S[4]=Math.min(1,S[4]+(top||0)*a);

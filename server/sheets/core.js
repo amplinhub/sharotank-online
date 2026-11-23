@@ -8,15 +8,16 @@
      db.flagGet/flagSet(k,v), db.cacheGet(k,now)/cachePut(k,v,secs,now) — быстрый кэш (CacheService в Apps Script), без чтения листов
    Все ответы — {ok:true,...} или {ok:false,err:'код'}.
    Вход: позывной + PIN из 4 цифр (на сервере только SHA-256 от id+PIN); 5 неверных PIN подряд → блок на 10 мин. */
-var SH_VER = 5;
+var SH_VER = 6;
 var SH_COLS = {
-  Pilots:   ['id', 'nick', 'pinHash', 'created', 'lastSeen', 'av', 'score', 'kills', 'kbt', 'deaths', 'med', 'tank', 'tlv', 'rank', 'missions', 'friends', 'fails', 'lockT', 'muteT'],
+  Pilots:   ['id', 'nick', 'pinHash', 'created', 'lastSeen', 'av', 'score', 'kills', 'kbt', 'deaths', 'med', 'tank', 'tlv', 'rank', 'missions', 'friends', 'fails', 'lockT', 'muteT', 'save', 'saveT'],
+  /* v31.0: save = the whole game progress (JSON, up to SH_LIM.save chars), saveT = when the device changed it (ms) */
   /* v30.9: read = when the addressee saw it, del = the sender deleted it (gone for both), hid = the addressee hid it (gone for him only) */
   Messages: ['mid', 'time', 'fromId', 'fromNick', 'toId', 'toNick', 'kind', 'text', 'amount', 'got', 'read', 'del', 'hid'],
   /* v30.6: news feed — rows are added by hand (or by Claude through the Sheets API): id, time (ms), title, text; votes = {pilotId: 1|-1} */
   News:     ['id', 'time', 'title', 'text', 'up', 'down', 'votes']
 };
-var SH_LIM = { msgLen: 50, msgPerDay: 100, msgPerMin: 10, muteH: 24, seenMin: 4, topSecs: 60, scrapPerDay: 5, scrapMin: 10, scrapMax: 1000, keepDays: 7, fails: 5, lockMin: 10, friends: 50, medal: 50, top: 300, log: 30, news: 50, newsSecs: 60, idleDays: 90, idleLowDays: 30, idleLowScore: 100 };
+var SH_LIM = { msgLen: 50, msgPerDay: 100, msgPerMin: 10, muteH: 24, seenMin: 4, topSecs: 60, scrapPerDay: 5, scrapMin: 10, scrapMax: 1000, keepDays: 7, fails: 5, lockMin: 10, friends: 50, medal: 50, top: 300, log: 30, news: 50, newsSecs: 60, idleDays: 90, idleLowDays: 30, idleLowScore: 100, save: 45000 };
 /* v30.9: the creator is always in the rating */
 var SH_KEEP = ['amplin'];
 
@@ -77,7 +78,7 @@ function shHandle(db, p, now, hash) {
     db.append('Pilots', pl); return { ok: true, me: shMe(db, pl) };
   }
 
-  if (a === 'login') { var L = shAuth(db, p, now, hash); if (typeof L === 'string') return shErr(L); L.lastSeen = now; db.update('Pilots', L); return { ok: true, me: shMe(db, L) }; }
+  if (a === 'login') { var L = shAuth(db, p, now, hash); if (typeof L === 'string') return shErr(L); L.lastSeen = now; db.update('Pilots', L); var lr = { ok: true, me: shMe(db, L) }; if (L.save) { lr.save = String(L.save); lr.saveT = shNum(L.saveT); } return lr; }
 
   /* cheap inbox check: without a "new mail" flag in the cache there is nothing to read — no sheet access at all */
   if (a === 'poll' && db.flagGet && !db.flagGet(shFlagKey(p.nick))) return { ok: true, inbox: [] };
@@ -112,7 +113,9 @@ function shHandle(db, p, now, hash) {
   if (a === 'poll') { var ib = shInbox(db, me2, now); return { ok: true, inbox: ib }; }
 
   if (a === 'sync') {
-    me2._sig = [me2.kbt, me2.med, me2.kills, me2.deaths, me2.tank, me2.tlv, me2.av, me2.rank, me2.missions].join('|');
+    me2._sig = [me2.kbt, me2.med, me2.kills, me2.deaths, me2.tank, me2.tlv, me2.av, me2.rank, me2.missions, me2.saveT].join('|');
+    /* v31.0: cloud save — the newer one wins (sf=1: the player chose this device's progress); the client merges so nothing goes backwards */
+    if (p.save && String(p.save).length <= SH_LIM.save && (shNum(p.saveT) > shNum(me2.saveT) || p.sf === '1')) { me2.save = String(p.save); me2.saveT = Math.floor(shNum(p.saveT)); }
     /* counters only grow (several devices: each sends its own max after login merged the server values) */
     var kb = shJ(me2.kbt, {}), nk = shJ(p.kbt, {}); Object.keys(nk).forEach(function (k) { if (/^[a-z0-9]{2,12}$/.test(k)) kb[k] = Math.max(shNum(kb[k]), Math.floor(shNum(nk[k]))); });
     var md = shJ(me2.med, []); shJ(p.med, []).forEach(function (m) { if (/^[a-z0-9]{2,12}$/.test(m) && md.indexOf(m) < 0 && md.length < SH_LIM.medal) md.push(m); });
@@ -123,11 +126,13 @@ function shHandle(db, p, now, hash) {
     me2.rank = Math.max(shNum(me2.rank), shNum(p.rank)); me2.missions = Math.max(shNum(me2.missions), shNum(p.missions));
     me2.score = shScore(me2);
     /* write the row only when something changed (or «last seen» is getting old) — fewer sheet writes */
-    var sig = [me2.kbt, me2.med, me2.kills, me2.deaths, me2.tank, me2.tlv, me2.av, me2.rank, me2.missions].join('|');
+    var sig = [me2.kbt, me2.med, me2.kills, me2.deaths, me2.tank, me2.tlv, me2.av, me2.rank, me2.missions, me2.saveT].join('|');
     if (sig !== me2._sig || now - shNum(me2.lastSeen) > SH_LIM.seenMin * 60000) { me2.lastSeen = now; db.update('Pilots', me2); }
     var inbox = shInbox(db, me2, now);
     shPrune(db, now);
-    return { ok: true, inbox: inbox, me: shMe(db, me2) };
+    var sr = { ok: true, inbox: inbox, me: shMe(db, me2), saveT: shNum(me2.saveT) };
+    if (me2.save && shNum(me2.saveT) > shNum(p.sb) && String(me2.save) !== String(p.save || '')) sr.save = String(me2.save);
+    return sr;
   }
 
   if (a === 'friend') {

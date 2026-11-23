@@ -41,6 +41,7 @@ function missionTargets(){ MTGT.ok=false; MTGT.gate=null; MTGT.list.length=0; if
   if(m.k==='clear'){ let bd=1e9; for(const e of ENEMIES){ if(e.dead||e.xf||e.state==='fly') continue; MTGT.list.push(e); const d=Math.hypot(e.x-TK.x,e.z-TK.z); if(d<bd){ bd=d; MTGT.x=e.x; MTGT.z=e.z; MTGT.ok=true; } } return; }
   if(m.k==='evac'){ if(CIV.phase===0){ let bd=1e9; for(const e of ENEMIES){ if(e.dead||e.state==='fly') continue; MTGT.list.push(e); const d=Math.hypot(e.x-TK.x,e.z-TK.z); if(d<bd){ bd=d; MTGT.x=e.x; MTGT.z=e.z; MTGT.ok=true; } } } else if(CIV.gate){ MTGT.x=CIV.gate[0]; MTGT.z=CIV.gate[1]; MTGT.ok=true; } return; }
   if(m.k==='hold'){ MTGT.x=m.x; MTGT.z=m.z; MTGT.ok=Math.hypot(TK.x-m.x,TK.z-m.z)>m.rad; return; }
+  if(storyTarget(m)) return;
   let bd=1e9; for(const e of ENEMIES){ if(e.dead||e.type!==m.k||e.state==='fly') continue; MTGT.list.push(e); const d=Math.hypot(e.x-TK.x,e.z-TK.z); if(d<bd){ bd=d; MTGT.x=e.x; MTGT.z=e.z; MTGT.ok=true; } } }
 const TRINGS=[]; const tringGeo=new THREE.RingGeometry(0.86,1,48); tringGeo.rotateX(-Math.PI/2);
 function tringsUpdate(t){ const L=MTGT.list; while(TRINGS.length<L.length){ const m=new THREE.Mesh(tringGeo,new THREE.MeshBasicMaterial({color:MCOL,transparent:true,opacity:0.85,depthWrite:false})); m.renderOrder=4; scene.add(m); TRINGS.push(m); }

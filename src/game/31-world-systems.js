@@ -149,7 +149,7 @@ function flagBuild(){ if(FLG.g){ scene.remove(FLG.g); FLG.g=null; } if(!MS.activ
   if(!FLG.guarded[MS.i]){ FLG.guarded[MS.i]=true; const n=3+Math.min(2,MS.i>>3); for(let k=0;k<n;k++){ const a=k/n*TAU+rnd()*0.5, q=pickNear(p[0]+Math.cos(a)*7,p[1]+Math.sin(a)*7,1); if(!q) continue; const t=k===0&&MS.i>3?'bull':'jian'; const e=spawnEnemy(t,q[0],q[1],t==='bull'?{mod:'ac'}:null); e.home={x:p[0],z:p[1]}; } } }
 function flagUpdate(dt,t){ const m=MS.active?missionAt(MS.i):null; const on=m&&m.k==='flag';
   if(FLG.g){ if(!on||MS.flag){ scene.remove(FLG.g); FLG.g=null; } else { flagWave(FLG.cloth,t,1); FLG.g.children[3].material.opacity=0.55+0.4*Math.sin(t*5);
-      if(!TK.dead&&Math.hypot(TK.x-FLG.x,TK.z-FLG.z)<2.6){ MS.flag=true; scene.remove(FLG.g); FLG.g=null; sfxPickup(1); if(missionAt(MS.i).title==='Карта путей') flagAmbush(); toast('Флаг у тебя · доставь его в штаб'); popText(TK.x,TK.y+2.6,TK.z,'флаг захвачен','ammo'); objUI(); save(); } } }
+      if(!TK.dead&&Math.hypot(TK.x-FLG.x,TK.z-FLG.z)<2.6){ MS.flag=true; scene.remove(FLG.g); FLG.g=null; sfxPickup(1); if(missionAt(MS.i).title==='Карта путей') flagAmbush(); storyPick(missionAt(MS.i)); toast('Флаг у тебя · доставь его в штаб'); popText(TK.x,TK.y+2.6,TK.z,'флаг захвачен','ammo'); objUI(); save(); } } }
   const carry=on&&MS.flag&&!transit; if(carry&&!FLG.carry){ const f=flagMesh(0.62); FLG.carry=f; } if(!carry&&FLG.carry){ scene.remove(FLG.carry.g); FLG.carry=null; }
   if(FLG.carry){ const g=FLG.carry.g; rdLocal(-0.55,1.25,-1.3,_rt); g.position.copy(_rt); g.rotation.set(0,TK.h+Math.PI/2,0); flagWave(FLG.carry.cloth,t,1+Math.min(1.5,Math.hypot(TK.vx,TK.vz)*0.15));
     if(TK.dead){ MS.flag=false; toast('Флаг потерян · он вернулся на место'); objUI(); save(); }
@@ -178,21 +178,20 @@ function evacStart(m){ CIV.gate=evacGate(); if(!CIV.gate) return; CIV.phase=1; C
   for(let k=0;k<m.n;k++) CIV.spawnQ.push({t:0.6+k*0.45,x:sx+(rnd()-0.5)*0.8,z:sz+(rnd()-0.5)*0.8,k});
   toast('Район зачищен · гражданские выбегают — не задень их'); sfxBuy(); objUI(); }
 function civFree(x,z){ const cx=Math.floor(x/VS), cz=Math.floor(z/VS); return x>0.5&&z>0.5&&x<WX-0.5&&z<WZ-0.5&&!get(cx,Math.floor(0.5/VS),cz)&&!get(cx,Math.floor(1.3/VS),cz); }
-function civDie(c,ux,uz,force){ if(c.st==='dead'||c.st==='saved') return; c.st='dead'; CIV.dead++;
-  const parts=[c.legs,c.torso,c.head]; parts.forEach((p,k)=>{ scene.attach(p); EXTRAS.push(p); GIBS.push(gibOf(p,ux*(3+force)+(rnd()-0.5)*4,2.5+k*1.6+rnd()*2+force*0.4,uz*(3+force)+(rnd()-0.5)*4,10+k*4)); });
-  scene.remove(c.g); const gy=groundH(c.x,c.z);
-  for(let k=0;k<14;k++){ const a=rnd()*TAU, r=Math.pow(rnd(),0.7)*1.3; addMark({x:c.x+Math.cos(a)*r+ux*r*0.6,z:c.z+Math.sin(a)*r+uz*r*0.6,t:2,s:0.18+rnd()*0.55,c:[0.42+rnd()*0.12,0.02,0.03]}); }
-  for(let k=0;k<6;k++) SMOKE.spawn(c.x,gy+0.9,c.z,ux*2+(rnd()-0.5)*3,1+rnd()*2,uz*2+(rnd()-0.5)*3,0.35,1.2,0.5,0.6,0.55,0.04,0.05);
+function civDie(c,ux,uz,force,o){ if(c.st==='dead'||c.st==='saved') return; CIV.dead++; if(c.ford) FORD.dead++;
+  pplKill(c,ux,uz,force,o); const gy=groundH(c.x,c.z); c.rg&&(c.rg.up=null);
+  for(let k=0;k<5;k++) SMOKE.spawn(c.x,gy+0.6,c.z,ux*1.5+(rnd()-0.5)*2,0.6+rnd()*1.2,uz*1.5+(rnd()-0.5)*2,0.3,1.0,0.6,0.45,0.45,0.42,0.38);
   ST.scrap=Math.max(0,ST.scrap-100); popText(c.x,gy+1.8,c.z,'−100 лома','kill'); sfxThud(0.6); toast('Погиб гражданский · −100 лома'); objUI(); }
-function civHitTest(ox,oy,oz,ux,uy,uz,len){ let best=null, bt=Infinity; for(const c of CIV.list){ if(c.st==='dead'||c.st==='saved') continue; const t=segSphere(ox,oy,oz,ux,uy,uz,len,c.x,c.y+groundH(c.x,c.z)+0.95,c.z,0.5); if(t>=0&&t<bt){ bt=t; best=c; } } return best?[best,bt]:null; }
-function civBlast(px,py,pz,radius){ for(const c of CIV.list){ if(c.st==='dead'||c.st==='saved') continue; const dx=c.x-px, dz=c.z-pz, d=Math.hypot(dx,dz); if(d<radius*1.6+0.6&&Math.abs(py-groundH(c.x,c.z))<radius*2+1) civDie(c,dx/(d||1),dz/(d||1),3); } }
+function civHitTest(ox,oy,oz,ux,uy,uz,len){ let best=null, bt=Infinity; for(const c of civAll()){ if(c.st==='dead'||c.st==='saved') continue; const t=segSphere(ox,oy,oz,ux,uy,uz,len,c.x,c.y+groundH(c.x,c.z)+0.95,c.z,0.5); if(t>=0&&t<bt){ bt=t; best=c; } } return best?[best,bt]:null; }
+function civAll(){ return FORD.list.length?CIV.list.concat(FORD.list):CIV.list; }
+function civBlast(px,py,pz,radius){ for(const c of civAll()){ if(c.st==='dead'||c.st==='saved') continue; const dx=c.x-px, dz=c.z-pz, d=Math.hypot(dx,dz); if(d<radius*1.6+0.6&&Math.abs(py-groundH(c.x,c.z))<radius*2+1) civDie(c,dx/(d||1),dz/(d||1),3); } }
 function civUpdate(dt,t){ const m=evacOn(); if(!m){ if(CIV.list.length||CIV.phase) evacReset(); return; }
   if(CIV.phase===0){ CIV.ot=(CIV.ot||0)-dt; if(CIV.ot<=0){ CIV.ot=0.5; objUI(); } if(!LOC.safe&&!transit&&enemiesLeft()===0) evacStart(m); return; }
   for(let i=CIV.spawnQ.length-1;i>=0;i--){ const q=CIV.spawnQ[i]; q.t-=dt; if(q.t<=0){ CIV.spawnQ.splice(i,1); CIV.list.push(civMake(q.x,q.z,q.k)); } }
   const g=CIV.gate, sp=Math.hypot(TK.vx,TK.vz);
   for(const c of CIV.list){ if(c.st==='dead'||c.st==='saved') continue;
-    if(c.st==='down'){ c.downT-=dt; c.vy-=18*dt; c.y=Math.max(0,c.y+c.vy*dt); c.x+=c.vx*dt; c.z+=c.vz*dt; c.vx*=Math.pow(0.1,dt); c.vz*=Math.pow(0.1,dt); if(!civFree(c.x,c.z)){ c.x-=c.vx*dt; c.z-=c.vz*dt; c.vx=c.vz=0; }
-      c.g.rotation.x+=((c.downT>0.5?-Math.PI/2:0)-c.g.rotation.x)*Math.min(1,dt*(c.downT>0.5?9:4)); if(c.downT<=0){ c.st='run'; c.g.rotation.x=0; } }
+    c.hitT=Math.max(0,(c.hitT||0)-dt); c.sayT=Math.max(0,(c.sayT||0)-dt);
+    if(c.st==='rag'){ ragUpdate(c,dt); continue; }
     else { const dx=c.x-TK.x, dz=c.z-TK.z, d=Math.hypot(dx,dz); let mx=0, mz=0;
       const tt=Math.max(0,(dx*TK.vx+dz*TK.vz)/(sp*sp+1e-3)), px=TK.x+TK.vx*Math.min(tt,1.3), pz=TK.z+TK.vz*Math.min(tt,1.3), pd=Math.hypot(c.x-px,c.z-pz);
       if(c.dodge<=0&&sp>1.8&&d<11&&pd<3.2){ let ax=-TK.vz, az=TK.vx; if(ax*(c.x-px)+az*(c.z-pz)<0){ ax=-ax; az=-az; } const l=Math.hypot(ax,az)||1; c.dx=ax/l; c.dz=az/l; c.dodge=0.55+rnd()*0.3; if(rnd()<0.5) c.vy=0; }
@@ -204,10 +203,10 @@ function civUpdate(dt,t){ const m=evacOn(); if(!m){ if(CIV.list.length||CIV.phas
       const nx=c.x+mx*dt, nz=c.z+mz*dt; if(civFree(nx,nz)){ c.x=nx; c.z=nz; } else if(civFree(nx,c.z)) c.x=nx; else if(civFree(c.x,nz)) c.z=nz; else c.pathT=0;
       if(mx||mz){ c.h=turnTo(c.h,Math.atan2(mx,mz),dt*12); c.ph+=dt*Math.hypot(mx,mz)*2.6; }
       c.bob=gaitPose({hipL:c.lL,hipR:c.lR,kneeL:c.kL,kneeR:c.kR,armL:c.aL,armR:c.aR,elbL:c.eL,elbR:c.eR,torso:c.torso},c.ph,1.35); c.torso.rotation.x=0.22; c.g.rotation.x=0;
-      if(d<2.0&&!TK.dead){ const l=d||1; if(sp>4.2) civDie(c,TK.vx/sp,TK.vz/sp,sp*0.5); else if(sp>0.6){ c.st='down'; c.downT=1.6; c.vx=dx/l*5+TK.vx; c.vz=dz/l*5+TK.vz; c.vy=3.5; sfxThud(0.3); } else { c.x+=dx/l*dt*3; c.z+=dz/l*dt*3; } }
+      if(d<4.5&&pplTank(c,true)) continue;
       if(c.st==='run'&&Math.hypot(c.x-g[0],c.z-g[1])<3){ c.st='saved'; CIV.saved++; drvStat('civ'); scene.remove(c.g); popText(c.x,1.8,c.z,'спасён','heal'); sO(660,990,0.12,0.06,'triangle'); objUI(); } }
     if(c.st!=='dead'&&c.st!=='saved'){ c.g.position.set(c.x,groundH(c.x,c.z)+c.y+(c.st==='run'?(c.bob||0)*1.4:0),c.z); c.g.rotation.y=c.h; shadowAdd(c.x,c.z,0.8,c.y,0.4); } }
-  if(!CIV.spawnQ.length&&CIV.saved+CIV.dead>=CIV.n){ if(CIV.saved>0){ const sv=CIV.saved, n=CIV.n; evacReset(); completeMission(); toast(`Эвакуация завершена · спасено ${sv} из ${n}`); }
+  if(!CIV.spawnQ.length&&CIV.saved+CIV.dead>=CIV.n){ if(CIV.saved>0){ const sv=CIV.saved, n=CIV.n; if(MS.i<STORY.length){ MS.camp=MS.camp||{}; const ck=LOC_ID==='se'?'tea':LOC_ID==='east'?'canal':null; if(ck) MS.camp[ck]=Math.max(MS.camp[ck]|0,sv); } evacReset(); completeMission(); toast(`Эвакуация завершена · спасено ${sv} из ${n}`); }
     else { CIV.failT+=dt; if(CIV.failT>3){ toast('Никто не выжил · попробуй ещё раз'); sfxLose(); radioSay('Мы потеряли всех гражданских... Соберись, водитель. Попробуем ещё раз.'); evacReset(); } } } }
 
 /* ---- background ambience: helicopters, distant firefights, sirens, jets ---- */
@@ -255,7 +254,7 @@ function ambUpdate(dt){ enemySounds(dt); ambExtra(dt); if(AMB.heli){ const h=AMB
 
 /* ---- per-location build + per-frame hub ---- */
 function v9Build(){ artClear(); evacReset(); flagBuild(); }
-function v9Update(dt,t){ tlUpdate(t); rdUpdate(dt,t); artUpdate(dt); flagUpdate(dt,t); civUpdate(dt,t); ambUpdate(dt); }
+function v9Update(dt,t){ tlUpdate(t); rdUpdate(dt,t); artUpdate(dt); flagUpdate(dt,t); civUpdate(dt,t); pplTick(dt,t); storyMissionsTick(dt,t); ambUpdate(dt); }
 
 /* ---- radio: General Zhao, walkie-talkie avatar, 8-bit floppy voice ---- */
 const VOICE={timer:null,el:null,text:'',i:0,av:null,done:null};
@@ -270,13 +269,13 @@ function flagAmbush(){ const c=WX/2, ex=ENTRY.x, ez=ENTRY.z, nx=c-ex, nz=c-ez, l
     if(!p) continue; const e=spawnEnemy('bull',p[0],p[1],{mod:s>0?'ac':'mg'}); e.home={x:p[0],z:p[1]}; e.h=Math.atan2(-ux,-uz); e.guard=true; dustAt(p[0],p[1],1); }
   later(1.5,()=>radioSay('Водитель, у выезда, которым ты въехал, два «Бизона». Выход перекрыт — пробивайся или ищи обход.')); }
 function radioStop(fin){ if(VOICE.timer){ clearInterval(VOICE.timer); VOICE.timer=null; } if(VOICE.el&&fin) VOICE.el.textContent=VOICE.text; if(VOICE.av) VOICE.av.classList.remove('talk'); const d=VOICE.done; VOICE.done=null; if(fin&&d) d(); }
-function radioType(el,text,av,done){ radioStop(false); Object.assign(VOICE,{el,text,i:0,av,done}); el.textContent=''; av.classList.add('talk'); vKey(); let pause=0; const base=150+rnd()*30;
-  VOICE.timer=setInterval(()=>{ if(pause>0){ pause--; return; } const ch=text[VOICE.i++]; if(ch==null){ vKey(); radioStop(true); return; } el.textContent=text.slice(0,VOICE.i); if(el.id==='mcBrief'){ const c=el.closest('#mcard'); if(c&&c.scrollHeight>c.clientHeight+2){ const r=el.getBoundingClientRect(), cr=c.getBoundingClientRect(); if(r.bottom>cr.bottom-4) c.scrollTop+=r.bottom-cr.bottom+8; } }
+function radioType(el,text,av,done){ radioStop(false); const vw=el.dataset.vw||(el.id==='radioTx'?VOX_W:'zhao'), vx=VOX[vw]||VOX.zhao; Object.assign(VOICE,{el,text,i:0,av,done}); el.textContent=''; av.classList.add('talk'); if(vw==='nef') vStatic(); else vKey(); let pause=0; const base=(150+rnd()*30)*vx.f;
+  VOICE.timer=setInterval(()=>{ if(pause>0){ pause--; return; } const ch=text[VOICE.i++]; if(ch==null){ vKey(); radioStop(true); return; } el.textContent=vw==='nef'?text.slice(0,VOICE.i)+nefGlitch(text,VOICE.i):text.slice(0,VOICE.i); if(el.id==='mcBrief'){ const c=el.closest('#mcard'); if(c&&c.scrollHeight>c.clientHeight+2){ const r=el.getBoundingClientRect(), cr=c.getBoundingClientRect(); if(r.bottom>cr.bottom-4) c.scrollTop+=r.bottom-cr.bottom+8; } }
     if(/[.!?…—]/.test(ch)){ pause=7; vSeek(); } else if(ch===','){ pause=3; } else if(ch===' '){ if(rnd()<0.5) vSeek(); } else if(VOICE.i%2===0){ vBlip(/[аеёиоуыэюяАЕЁИОУЫЭЮЯ]/.test(ch)?base*1.25:base); } },28); }
 const RQ=[]; let radioT=0, radioBusy=false;
-function radioSay(text){ if(RQ.length<3) RQ.push(text); }
+function radioSay(text,who){ if(RQ.length<6) RQ.push({t:text,w:who||'zhao'}); }
 function radioUpdate(dt){ const box=$('#radio'); if(radioBusy){ if(VOICE.done===null&&!VOICE.timer){ radioT-=dt; if(radioT<=0){ radioBusy=false; box.hidden=true; } } return; }
-  if(!RQ.length||mcOpen||GAR.open||transit) return; const t=RQ.shift(); radioBusy=true; box.hidden=false; radioType($('#radioTx'),t,$('#radioAv'),()=>{ radioT=2.6; }); }
+  if(!RQ.length||mcOpen||GAR.open||transit) return; const q=RQ.shift(), t=q.t; radioBusy=true; radioWho(q.w); box.hidden=false; radioType($('#radioTx'),t,$('#radioAv'),()=>{ radioT=2.6; }); }
 function sightUpdate(){ for(const e of ENEMIES){ if(e.dead||!e.sees||SEEN[e.type]) continue; SEEN[e.type]=1; save(); if(ENEMY_INTRO[e.type]) radioSay(ENEMY_INTRO[e.type]); } }
 
 /* ---- «Каток»: heavy roller tank, directional armour, telegraphed big cannon, black exhaust ---- */

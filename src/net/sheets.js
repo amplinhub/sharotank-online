@@ -15,7 +15,10 @@ export async function sheetsCall(a, params = {}, timeout = 20000) {
   u.searchParams.set('a', a);
   for (const [k, v] of Object.entries(params)) if (v != null) u.searchParams.set(k, String(v));
   const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), timeout);
-  try { const r = await fetch(u.toString(), { signal: ctl.signal, redirect: 'follow' }); const j = await r.json(); return j && typeof j === 'object' ? j : { ok: false, err: 'bad' }; }
+  /* v31.0: a long request (cloud save) goes as POST with a form body — still a «simple» CORS request, Apps Script reads it in doPost(e.parameter) */
+  let init = { signal: ctl.signal, redirect: 'follow' };
+  if (u.toString().length > 1800) { const b = new URLSearchParams(u.search); u.search = ''; init = Object.assign(init, { method: 'POST', body: b }); }
+  try { const r = await fetch(u.toString(), init); const j = await r.json(); return j && typeof j === 'object' ? j : { ok: false, err: 'bad' }; }
   catch (_) { return { ok: false, err: 'net' }; }
   finally { clearTimeout(t); }
 }

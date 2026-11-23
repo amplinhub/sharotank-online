@@ -170,7 +170,7 @@ function eRender(e,dt){ const gy=groundH(e.x,e.z);
   if(e.wc&&!e.spear&&dt>0) walkUpdate(e,dt); legRender(e); }
 function eyeColor(e,red,blink){ const c=red?EYE_RED:P.glow; const k=blink?((performance.now()%260)<130?1:0.25):1; if(e.eyeM) e.eyeM.color.setRGB(c[0]*k,c[1]*k,c[2]*k); }
 function enemiesUpdate(dt){ const live=!LOC.safe&&!transit&&!TK.dead&&!helpOpen&&!mcOpen;
-  for(const e of ENEMIES){ if(e.dead) continue; const px=e.x, pz=e.z, ph=e.h; e.ramCD=Math.max(0,(e.ramCD||0)-dt); e.hurtT=Math.max(0,(e.hurtT||0)-dt); e.aimImm=Math.max(0,(e.aimImm||0)-dt); if(live){ const ps=sndAt(e.x,e.z); try{ ETYPE[e.type].update(e,dt); } catch(err){ enemyCrash(e,err); } finally{ sndOff(ps); } } else { eBrake(e,dt); if(e.wc&&e.state!=='onTank'&&!e.yOv) e.yOv=null; } if(!(isFinite(e.x)&&isFinite(e.z))){ e.x=px; e.z=pz; e.vx=e.vz=e.kx=e.kz=0; } if(!isFinite(e.h)) e.h=isFinite(ph)?ph:0; if(!isFinite(e.vx+e.vz)) e.vx=e.vz=0; if(!e.dead) eRender(e,dt); }
+  for(const e of ENEMIES){ if(e.dead) continue; const px=e.x, pz=e.z, ph=e.h; e.ramCD=Math.max(0,(e.ramCD||0)-dt); e.hurtT=Math.max(0,(e.hurtT||0)-dt); e.aimImm=Math.max(0,(e.aimImm||0)-dt); if(live){ const ps=sndAt(e.x,e.z); try{ if(e.goal) decoyOn(e); ETYPE[e.type].update(e,dt); } catch(err){ enemyCrash(e,err); } finally{ decoyOff(); sndOff(ps); } } else { eBrake(e,dt); if(e.wc&&e.state!=='onTank'&&!e.yOv) e.yOv=null; } if(!(isFinite(e.x)&&isFinite(e.z))){ e.x=px; e.z=pz; e.vx=e.vz=e.kx=e.kz=0; } if(!isFinite(e.h)) e.h=isFinite(ph)?ph:0; if(!isFinite(e.vx+e.vz)) e.vx=e.vz=0; if(!e.dead) eRender(e,dt); }
   eSeparate(); for(let i=ENEMIES.length-1;i>=0;i--) if(ENEMIES[i].dead) ENEMIES.splice(i,1); }
 
 /* ================= 1. JIAN — melee jumper ================= */
@@ -417,7 +417,7 @@ function buildLamp(e){ Object.assign(e,{hp:70,maxHp:70,r:1.1,hy:0,hr:0.75,mass:1
 function saveLocState(){ if(!grid||LOC.safe) return; for(const e of ENEMIES) if(e.boss||e.bossPart||e.xf||['dseg','lion'].includes(e.type)) e.__skip=true; LOC_STATE[LOC_ID]={Q,grid,HM:HM.slice(),marks:marks.slice(),lamps:LAMPS.map(l=>l.alive),cars:CARS.map(c=>c.dead),
   enemies:ENEMIES.filter(e=>!e.dead&&e.state!=='fly'&&!e.__skip).map(e=>({type:e.type,x:e.x,z:e.z,h:e.h,hp:e.hp,mod:e.mod,parts:e.parts?{...e.parts}:null,ns:!!e.noScrap,wave:!!e.wave})),
   pickups:PICKUPS.filter(p=>!p.claimed).map(p=>({kind:p.kind,x:p.x,z:p.z,value:p.value,part:p.part}))}; }
-function spawnLocEnemies(st){ if(st){ for(const s of st.enemies){ const e=spawnEnemy(s.type,s.x,s.z,{mod:s.mod,h:s.h}); e.hp=s.hp; if(s.parts) e.parts=s.parts; e.noScrap=s.ns; e.wave=s.wave; }
+function spawnLocEnemies(st){ if(st&&protLoc()) st=null; if(st){ for(const s of st.enemies){ const e=spawnEnemy(s.type,s.x,s.z,{mod:s.mod,h:s.h}); e.hp=s.hp; if(s.parts) e.parts=s.parts; e.noScrap=s.ns; e.wave=s.wave; }
     for(const p of st.pickups) makePickup(p.kind,p.x,p.z,p.value,p.part); return; }
   const taken=[]; for(const [t,x,z,o] of locEnemyList()){ const r=ER[t], p=pickSpawn(t,r,taken)||[x,z]; taken.push([p[0],p[1],r]); spawnEnemy(t,p[0],p[1],o); } }
 

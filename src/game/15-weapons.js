@@ -60,11 +60,11 @@ function projUpdate(dt){ for(let i=proj.length-1;i>=0;i--){ const p=proj[i]; p.l
     for(let j=rigids.length-1;j>=0;j--){ const r=rigids[j], rr=r.radius*0.7, cx=r.pos.x-ox, cy=r.pos.y-oy, cz=r.pos.z-oz, tc=cx*ux+cy*uy+cz*uz; if(tc<0||tc>len) continue;
       const q=cx*cx+cy*cy+cz*cz-tc*tc; if(q<rr*rr&&tc<hitT){ hitT=tc; hk={hit:3,ri:j,nx:-ux,ny:-uy,nz:-uz}; } }
     let eh=null, eT=Infinity, leg=-1;
-    if(p.enemy){ if(!TK.dead&&!transit){ const t=segSphere(ox,oy,oz,ux,uy,uz,len,TK.x,TK.y+1.25,TK.z,1.45); if(t>=0){ eT=t; eh=TK; } } for(const d of RDR.list.concat(BEE.list)){ const t=segSphere(ox,oy,oz,ux,uy,uz,len,d.p.x,d.p.y,d.p.z,0.6); if(t>=0&&t<eT){ eT=t; eh=d; } } if(GD.d&&!GD.d.dead&&GD.d.st!=='rise'&&p.dodge!==GD.d){ const t=segSphere(ox,oy,oz,ux,uy,uz,len,GD.d.p.x,GD.d.p.y,GD.d.p.z,0.75); if(t>=0&&t<eT){ eT=t; eh=GD.d; } } { const t=shieldProj(ox,oy,oz,ux,uy,uz,len); if(t>=0&&t<eT){ eT=t; eh=SHD_HIT; } } }
+    if(p.enemy){ if(!TK.dead&&!transit){ const t=segSphere(ox,oy,oz,ux,uy,uz,len,TK.x,TK.y+1.25,TK.z,1.45); if(t>=0){ eT=t; eh=TK; } } if(PROT.on){ const pt=protTest(ox,oy,oz,ux,uy,uz,len,true); if(pt&&pt[1]<eT){ eT=pt[1]; eh=pt[0]; } } if(FORD.list.length){ const ch=civHitTest(ox,oy,oz,ux,uy,uz,len); if(ch&&ch[1]<eT){ eT=ch[1]; eh=ch[0]; } } for(const d of RDR.list.concat(BEE.list)){ const t=segSphere(ox,oy,oz,ux,uy,uz,len,d.p.x,d.p.y,d.p.z,0.6); if(t>=0&&t<eT){ eT=t; eh=d; } } if(GD.d&&!GD.d.dead&&GD.d.st!=='rise'&&p.dodge!==GD.d){ const t=segSphere(ox,oy,oz,ux,uy,uz,len,GD.d.p.x,GD.d.p.y,GD.d.p.z,0.75); if(t>=0&&t<eT){ eT=t; eh=GD.d; } } { const t=shieldProj(ox,oy,oz,ux,uy,uz,len); if(t>=0&&t<eT){ eT=t; eh=SHD_HIT; } } }
     else { for(const e of ENEMIES){ if(e.dead||e.state==='fly') continue; const t=segSphere(ox,oy,oz,ux,uy,uz,len,e.x,e.y+e.hy,e.z,e.shOn?e.shieldR:e.hr); if(t>=0&&t<eT){ eT=t; eh=e; leg=-1; }
         if(e.type==='lamp') for(let li=0;li<e.legs.length;li++){ const L=e.legs[li]; if(!L.alive||!L.knee) continue; for(const f of [0,0.5]){
           const t2=segSphere(ox,oy,oz,ux,uy,uz,len,L.knee.x+(L.foot.x-L.knee.x)*f,L.knee.y+(L.foot.y-L.knee.y)*f,L.knee.z+(L.foot.z-L.knee.z)*f,0.42); if(t2>=0&&t2<eT){ eT=t2; eh=e; leg=li; } } } }
-      for(const d of DRONES){ if(d.dead) continue; const t=segSphere(ox,oy,oz,ux,uy,uz,len,d.x,d.y,d.z,0.55); if(t>=0&&t<eT){ eT=t; eh=d; leg=-1; } } if(CIV.list.length){ const ch=civHitTest(ox,oy,oz,ux,uy,uz,len); if(ch&&ch[1]<eT){ eT=ch[1]; eh=ch[0]; leg=-1; } } }
+      for(const d of DRONES){ if(d.dead) continue; const t=segSphere(ox,oy,oz,ux,uy,uz,len,d.x,d.y,d.z,0.55); if(t>=0&&t<eT){ eT=t; eh=d; leg=-1; } } if(CIV.list.length||FORD.list.length){ const ch=civHitTest(ox,oy,oz,ux,uy,uz,len); if(ch&&ch[1]<eT){ eT=ch[1]; eh=ch[0]; leg=-1; } } if(PROT.on){ const pt=protTest(ox,oy,oz,ux,uy,uz,len,false); if(pt&&pt[1]<eT){ eT=pt[1]; eh=pt[0]; leg=-1; } } }
     if(!p.enemy){ const zp=zontProj(ox,oy,oz,ux,uy,uz,len); if(zp&&zp[1]<=hitT&&zp[1]<=eT){ const t=zp[1], hx=ox+ux*t, hy=oy+uy*t, hz=oz+uz*t; zontAbsorb(zp[0],w.id==='mg'?MG_DMG[UP.mg]:(w.id==='cn'?45*w.power:30),hx,hy,hz);
       if(w.id!=='mg'){ FIRE.spawn(hx,hy,hz,0,0,0,2.4,3,0.14,1,0.6,0.95,1); sfxCannonE(); } freeProj(p); proj.splice(i,1); continue; } }
     if(!p.enemy&&TUT.tg.length){ const t=tutProj(ox,oy,oz,ux,uy,uz,len); if(t>=0&&t<=hitT&&t<=eT){ tutHit(w,ox+ux*t,oy+uy*t,oz+uz*t,ux,uz); freeProj(p); proj.splice(i,1); continue; } }
@@ -74,6 +74,7 @@ function projUpdate(dt){ for(let i=proj.length-1;i>=0;i--){ const p=proj[i]; p.l
       else if(eh.shd){ shieldHit(w.dmg*0.9,hx,hy,hz); }
       else if(eh.bee){ beeDie(eh,ux,uz); }
       else if(eh.rd){ rdDie(eh,ux,uz); if(w.kind==='shell') explode(hx,hy,hz,w.radius*0.6,w.power*0.5,ux,uy,uz,'shell',null,0,null,0); }
+      else if(eh.prot){ protShot(eh,p,w,hx,hy,hz,ux,uy,uz); }
       else if(eh.civ){ civDie(eh,ux,uz,w.id==='mg'?1:4); if(w.id!=='mg') explode(hx,hy,hz,w.radius,w.power,ux,uy,uz,'shell',null,0,null,1); }
       else if(eh===TK){ damageTank(w.dmg,-ux,-uz,uy<-0.45?0.7:0); TK.vx+=ux*w.power*1.4; TK.vz+=uz*w.power*1.4; TK.pitchV+=(rnd()-0.5)*w.power*0.5; TK.rollV+=(rnd()-0.5)*w.power*0.5;
         if(w.kind==='shell') explode(hx,hy,hz,w.radius,w.power,ux,uy,uz,'shell',null,0,null,0); else { hitSpark(hx,hy,hz,ux,uz,3); sfxClang(); } }

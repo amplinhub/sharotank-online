@@ -9,7 +9,9 @@ const MGS={gau:{name:'Миниган',code:'GAU-6M',speed:95,g:0,spread:0.011,ra
   kpv:{name:'Крупняк',code:'КПВ-14.5',speed:115,g:0,spread:0.005,rate:6.5,radius:0.62,power:0.8,spin:false,heat:0.08,cost:600,info:'1 тяжёлый ствол, грызёт стены'}};
 const AMMO_CAP={mg:[600,900,1300,1800],cn:[30,45,65,90],rk:[24,36,48,64],sv:[9,11,13,15]}; /* v30.3: +2 salvos per «Боеукладка» level */
 const ST={scrap:1000,ammo:{mg:600,cn:30,rk:24,sv:3},kits:{rep:0,ammo:0,art:0}}; const UP={engine:0,armor:0,cal:0,load:0,stab:0,rk:0,ammo:0,mg:'gau',own:{gau:1},rdr:0,tank:'base',tanks:{base:1},per:{},abl:0};
-const MS={i:0,active:false,prog:0,rank:0,v:25,ease:{}};
+const MS={i:0,active:false,prog:0,rank:0,v:25,ease:{},camp:{}};
+/* v31.0: cloud save state (logic in 47-cloud.js); lock = a server copy is being applied, nothing may overwrite localStorage before the reload */
+const CLOUD={t:0,last:'',up:'',sb:0,ready:false,chk:2,lock:false,force:false,pend:null};
 /* v29.3: «Водители» — состояние живёт здесь (раннний файл: его читают хуки боя и HUD), логика в 43-drivers.js */
 /* offline edition (build --mode offline): no online lobby, no «Водители», no debug menu */
 const OFFLINE=document.documentElement.classList.contains('offline');
@@ -21,12 +23,12 @@ const DRV={nick:'',pin:'',av:0,kills:0,kbt:{},deaths:0,medals:{},streak:0,st:{ra
 function ammoCap(id){ return AMMO_CAP[id][UP.ammo]; }
 function refillAmmo(){ for(const id of ['mg','cn','rk','sv']) ST.ammo[id]=ammoCap(id); }
 const SAVE_KEY='sharotank-5tl-v3';
-function save(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify({scrap:Math.floor(ST.scrap),hp:TK.hp,dmg:TK.dmgS,up:UP,ammo:ST.ammo,ms:MS,kits:ST.kits,seen:SEEN})); }catch(e){} }
-function loadSave(){ try{ const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); if(!d) return false; ST.scrap=d.scrap|0;
+function save(){ if(CLOUD.lock) return; try{ localStorage.setItem(SAVE_KEY,JSON.stringify({scrap:Math.floor(ST.scrap),hp:TK.hp,dmg:TK.dmgS,up:UP,ammo:ST.ammo,ms:MS,kits:ST.kits,seen:SEEN})); }catch(e){} }
+function loadSave(src){ try{ const d=src||JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); if(!d) return false; ST.scrap=d.scrap|0;
   const u=d.up||{}; for(const k of ['engine','armor','cal','load','stab','rk','ammo','rdr','abl']) if(typeof u[k]==='number') UP[k]=u[k]; if(MGS[u.mg]) UP.mg=u.mg; UP.own=Object.assign({gau:1},u.own||{}); UP.tanks=Object.assign({base:1},u.tanks||{}); UP.tank=(CHASSIS[u.tank]&&UP.tanks[u.tank])?u.tank:'base'; UP.per=u.per||{}; perFix();
   TK.hp=clamp(+d.hp||maxHP(),1,maxHP()); if(Array.isArray(d.dmg)) for(let i=0;i<5;i++) TK.dmgS[i]=clamp(+d.dmg[i]||0,0,1);
   refillAmmo(); if(d.ammo) for(const id of ['mg','cn','rk','sv']) if(typeof d.ammo[id]==='number') ST.ammo[id]=clamp(d.ammo[id],0,ammoCap(id));
   if(d.kits){ ST.kits.rep=clamp(d.kits.rep|0,0,2); ST.kits.ammo=clamp(d.kits.ammo|0,0,2); ST.kits.art=clamp(d.kits.art|0,0,2); }
-  if(d.ms){ MS.i=Math.max(0,d.ms.i|0); if(!d.ms.v){ MS.i+=Math.min(4,Math.floor(MS.i/4)); } MS.v=25; MS.active=!!d.ms.active; MS.prog=+d.ms.prog||0; MS.rank=rankFor(MS.i); MS.flag=!!d.ms.flag; if(d.seen) Object.assign(SEEN,d.seen); MS.fp=d.ms.fp==null?null:d.ms.fp|0; MS.ease=d.ms.ease&&typeof d.ms.ease==='object'?d.ms.ease:{}; } return true; }catch(e){ return false; } }
+  if(d.ms){ MS.i=Math.max(0,d.ms.i|0); if(!d.ms.v){ MS.i+=Math.min(4,Math.floor(MS.i/4)); } MS.v=25; MS.active=!!d.ms.active; MS.prog=+d.ms.prog||0; MS.rank=rankFor(MS.i); MS.flag=!!d.ms.flag; if(d.seen) Object.assign(SEEN,d.seen); MS.fp=d.ms.fp==null?null:d.ms.fp|0; MS.ease=d.ms.ease&&typeof d.ms.ease==='object'?d.ms.ease:{}; MS.camp=d.ms.camp&&typeof d.ms.camp==='object'?d.ms.camp:{}; MS.mei=d.ms.mei&&typeof d.ms.mei==='object'?d.ms.mei:{}; } return true; }catch(e){ return false; } }
 let gainAcc=0, gainT=0;
 

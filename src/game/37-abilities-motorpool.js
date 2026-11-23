@@ -36,7 +36,7 @@ function fireworks(){ const cols=[[1,0.8,0.25],[0.24,1,0.71],[1,1,1],[1,0.45,0.3
     sfxPop(1); groundFlash(x,z,8,c,0.3); });
   shockwave(TK.x,TK.z,10,[1,0.8,0.3]); later(0.2,()=>shockwave(TK.x,TK.z,14,[0.24,1,0.71])); }
 let winT=0;
-function showWin(m,up,final){ const w=$('#win'); $('#winK').textContent=final?'胜利':'任务完成'; $('#winH').textContent=final?'«Нефрит» отключён':'Задание выполнено'; $('#winT').textContent=m.title?`«${m.title}»`:missionText(m);
+function showWin(m,up,final){ const w=$('#win'); $('#winK').textContent=final?'胜利':'任务完成'; $('#winH').textContent=final?'Город свободен':'Задание выполнено'; $('#winT').textContent=m.title?`«${m.title}»`:missionText(m);
   $('#winRank').hidden=!up; if(up){ $('#winRankIco').innerHTML=rankSVG(MS.rank); $('#winRankN').textContent=RANKS[MS.rank]; }
   $('#winNext').textContent=final?'Кампания пройдена · штаб продолжит выдавать задания':'Новое задание ждёт в штабе'; w.hidden=false; w.classList.remove('on','out'); void w.offsetWidth; w.classList.add('on'); winT=2.5; winEnd=performance.now()+2500; clearTimeout(winTO); winTO=setTimeout(winOut,2500) /* v30.12: 2.5 s of real time (was 5.2 s of game time) */;
   const R=$('#winR'), t0=performance.now(), dur=900; const tick=()=>{ const k=Math.min(1,(performance.now()-t0-450)/dur); if(k>0){ R.textContent='+'+Math.round(m.r*k*(2-k)); if(SND.ctx&&Math.random()<0.35&&k<1) sO(900+k*900,1200+k*900,0.03,0.03,'square'); } if(k<1&&!w.hidden) requestAnimationFrame(tick); else R.textContent='+'+m.r; }; R.textContent='+0'; requestAnimationFrame(tick);
@@ -45,7 +45,7 @@ function winOut(){ const w=$('#win'); if(w.hidden||w.classList.contains('out')) 
 let winEnd=0, winTO=0; function winUpdate(dt){ if(winT>0){ winT-=dt; if(performance.now()>=winEnd){ winT=0; winOut(); } } }
 for(const ev of ['pointerdown','touchstart','click']) $('#win').addEventListener(ev,e=>{ if(!e.target.closest('.wbx')) return; e.stopPropagation(); if(ev==='click'||ev==='pointerdown') winOut(); },{passive:true});
 /* ---- defeat: sad jingle, desaturated screen, the general on the radio ---- */
-function onTankLost(){ SHD.on=false; { const b=BOSS.e; if(b&&!b.dead&&b.type==='hornet'){ MS.ease=MS.ease||{}; MS.ease.hornet=1; save(); } } sfxLose(); canvas.classList.add('lost'); setTimeout(()=>radioSay(['Водитель, ты подбит! Тягач уже выехал, эвакуируем тебя в лагерь.','Машина горит! Держись, водитель, вытащим тебя в лагерь.','Подбит, но жив — это главное. Механики в лагере тебя подлатают.'][(rnd()*3)|0]),900); }
+function onTankLost(){ SHD.on=false; meiTankLost(); { const b=BOSS.e; if(b&&!b.dead&&b.type==='hornet'){ MS.ease=MS.ease||{}; MS.ease.hornet=1; save(); } } sfxLose(); canvas.classList.add('lost'); setTimeout(()=>radioSay(['Водитель, ты подбит! Тягач уже выехал, эвакуируем тебя в лагерь.','Машина горит! Держись, водитель, вытащим тебя в лагерь.','Подбит, но жив — это главное. Механики в лагере тебя подлатают.'][(rnd()*3)|0]),900); }
 function v11Update(dt){ mgMotorUpdate(); winUpdate(dt); if(!TK.dead&&canvas.classList.contains('lost')) canvas.classList.remove('lost'); }
 
 /* ================= v12: tank abilities · motor pool (автопарк) ================= */
@@ -85,9 +85,9 @@ function railShot(w){ if(tank&&tank.coilM) tank.coilT=0; for(let i=0;i<6;i++) se
 function railsUpdate(dt){ for(let i=RAILS.length-1;i>=0;i--){ const r=RAILS[i]; r.t+=dt; const k=1-r.t/0.35; if(k<=0){ RAILS.splice(i,1); continue; } LINES.push(r.a[0],r.a[1],r.a[2],r.b[0],r.b[1],r.b[2],0.55*k+0.3,0.9*k+0.1,1*k,0); } }
 /* ---- motor pool: buy and switch tanks ---- */
 $('#gpanel').addEventListener('click',e=>{ if(GAR.mode!=='park') return; const b=e.target.closest('button');
-  if(b&&!b.disabled&&b.dataset.tkbuy){ const id=b.dataset.tkbuy, c=CHASSIS[id]; if(ST.scrap<c.cost) return; ST.scrap-=c.cost; UP.tanks[id]=1; selectTank(id); GAR.pick=id; sfxBuy(); later(0.3,sfxAccept); toast(`${c.name} теперь твой`); garRebuildModel(); renderPark(); return; }
+  if(b&&!b.disabled&&b.dataset.tkbuy){ const id=b.dataset.tkbuy, c=CHASSIS[id]; if(ST.scrap<c.cost) return; ST.scrap-=c.cost; UP.tanks[id]=1; selectTank(id); GAR.pick=id; sfxBuy(); meiSay('Пригнали новенькую! '+(MEI_TANK[id]||'')); later(0.3,sfxAccept); toast(`${c.name} теперь твой`); garRebuildModel(); renderPark(); return; }
   if(b&&!b.disabled&&b.dataset.tk){ selectTank(b.dataset.tk); GAR.pick=b.dataset.tk; sfxRev(b.dataset.tk); closeGarage(); return; } /* v30.8: «Выехать на нём» drives straight out */
-  const s=e.target.closest('[data-pick]'); if(s&&!b&&GAR.pick!==s.dataset.pick){ GAR.pick=s.dataset.pick; sfxClick(); garRebuildModel(); renderPark(); } });
+  const s=e.target.closest('[data-pick]'); if(s&&!b&&GAR.pick!==s.dataset.pick){ GAR.pick=s.dataset.pick; sfxClick(); garRebuildModel(); renderPark(); meiPark(GAR.pick); } });
 /* ---- «Пчела»: kamikaze drone swarm launched from the hull hatch ---- */
 const BEE={list:[],cd:0,hatch:0};
 const kmGeo={body:new THREE.BoxGeometry(0.3,0.14,0.44),nose:new THREE.SphereGeometry(0.11,10,8),rot:new THREE.CylinderGeometry(0.17,0.17,0.02,12),arm:new THREE.BoxGeometry(0.66,0.04,0.05),fin:new THREE.BoxGeometry(0.02,0.14,0.12)};

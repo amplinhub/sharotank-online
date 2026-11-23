@@ -23,14 +23,14 @@ function drvAgo(seen,now){ if(!seen) return ''; const m=Math.max(0,Math.round(((
   if(d<30){ const w=Math.round(d/7); return w===1?'был неделю назад':`был ${w} ${ruN(w,'неделю','недели','недель')} назад`; } const mo=Math.round(d/30); return mo===1?'был месяц назад':mo<12?`был ${mo} ${ruN(mo,'месяц','месяца','месяцев')} назад`:'давно не заходил'; }
 function drvLoad(){ try{ const d=JSON.parse(localStorage.getItem(DRV_KEY)||'null'); if(d) for(const k of DRV_SAVE) if(d[k]!=null) DRV[k]=d[k]; }catch(_){ /* приватный режим */ }
   DRV.st=Object.assign({ram:0,civ:0,flag:0,msg:0,gift:0},DRV.st); DRV.cache=Object.assign({top:null,topT:0,cards:{},news:null,newsT:0,nv:{},gone:{},delQ:[]},DRV.cache); const old=Date.now()-8*864e5; for(const k of Object.keys(DRV.cache.gone)) if(DRV.cache.gone[k]<old) delete DRV.cache.gone[k]; }
-function drvSave(){ DRV.ls=false; try{ const o={}; for(const k of DRV_SAVE) o[k]=DRV[k]; localStorage.setItem(DRV_KEY,JSON.stringify(o)); }catch(_){ /* приватный режим */ } }
+function drvSave(){ DRV.ls=false; if(CLOUD.lock) return; try{ const o={}; for(const k of DRV_SAVE) o[k]=DRV[k]; localStorage.setItem(DRV_KEY,JSON.stringify(o)); }catch(_){ /* приватный режим */ } }
 function drvApi(){ return window.SHT_SHEETS||null; }
 const drvOn=()=>!OFFLINE&&!!(drvApi()&&drvApi().url());
 async function drvCall(a,p,auth){ const S=OFFLINE?null:drvApi(); if(!S) return {ok:false,err:'nourl'}; const q=Object.assign({},p||{}); if(auth){ if(!DRV.nick) return {ok:false,err:'auth'}; q.nick=DRV.nick; q.pin=DRV.pin; } return S.call(a,q); }
 
 /* ---- counters (work without an account too) ---- */
 function drvKill(type,src,e){ if(e&&(e.bossPart||e.xf)) return; if(type==='dseg'||type==='xfmr') return;
-  DRV.kills++; DRV.kbt[type]=(DRV.kbt[type]|0)+1; if(src==='ram') DRV.st.ram++; DRV.dirty=true; DRV.ls=true; medalsCheck(); }
+  DRV.kills++; chatKill(); DRV.kbt[type]=(DRV.kbt[type]|0)+1; if(src==='ram') DRV.st.ram++; DRV.dirty=true; DRV.ls=true; medalsCheck(); }
 function drvDeath(){ DRV.deaths++; DRV.streak=0; DRV.dirty=true; drvSave(); }
 function drvMission(){ if(!DRV.dbg) DRV.streak++; DRV.dirty=true; medalsCheck(); drvSave(); }
 function drvStat(k){ DRV.st[k]=(DRV.st[k]|0)+1; DRV.dirty=true; medalsCheck(); drvSave(); }
@@ -46,7 +46,7 @@ function medalsCheck(){ const k=DRV.kbt, s=DRV.st, give=(c,id)=>{ if(c&&!DRV.med
   if(!DRV.medals.tuned){ const all=[[UP.tank,UP]].concat(Object.entries(UP.per||{})); if(all.some(([id,u])=>u&&(u.engine|0)>=3&&(u.armor|0)>=3&&((u.abl|0)>=2||!ABL[id]))) medalGive('tuned'); } }
 
 /* ---- boss fights: timer and hits taken (medals «Молния», «Без царапины») ---- */
-function drvTick(dt){ const e=BOSS.e;
+function drvTick(dt){ cloudTick(dt); chatTick(dt); const e=BOSS.e;
   if(e&&!e.dead&&!transit&&!LOC.safe){ const f=DRV.fight&&DRV.fight.e===e?DRV.fight:(DRV.fight={e,t:0,hp:TK.hp,lost:0,max:maxHP()}); f.t+=dt; if(TK.hp<f.hp) f.lost+=f.hp-TK.hp; f.hp=TK.hp; }
   if(LOC.safe&&DRV.dbg) DRV.dbg=false;
   if(DRV.ls&&(DRV.lsT=(DRV.lsT||0)-dt)<=0){ DRV.lsT=5; drvSave(); }
@@ -75,8 +75,9 @@ function drvMerge(me){ if(!me) return; DRV.kills=Math.max(DRV.kills,me.kills|0);
   if(Array.isArray(me.friends)) DRV.friends=me.friends; }
 async function drvSync(){ if(DRV.busy) return; DRV.busy=true;
   try{ const p={kills:DRV.kills,kbt:JSON.stringify(DRV.kbt),deaths:DRV.deaths,med:JSON.stringify(Object.keys(DRV.medals)),tank:UP.tank,tlv:JSON.stringify(drvTlv()),av:DRV.av,rank:MS.rank,missions:MS.i};
+    const sent=cloudParams(p); /* v31.0: the whole progress rides along when it changed */
     DRV.dirty=false; /* changes made while the request is in flight set it again */
-    const r=await drvCall('sync',p,true); if(!r.ok){ DRV.dirty=true; return; } drvMerge(r.me); drvSave();
+    const r=await drvCall('sync',p,true); if(!r.ok){ DRV.dirty=true; return; } drvMerge(r.me); drvSave(); cloudReply(r,sent);
     for(const m of r.inbox||[]) drvInbox(m); if(!$('#drivers').hidden) drvRender(true); }
   finally{ DRV.busy=false; } }
 function drvInbox(m){ const c=DRV.cache.cards[m.from]; if(c){ c.log=c.log||[]; c.log.push({mid:m.mid,out:false,kind:m.kind,text:m.text,amount:m.amount,time:m.time}); }
@@ -116,7 +117,7 @@ async function drvAuth(kind){ const nick=$('#drvNick').value.trim(), pin=$('#drv
   const b=$('#drvRegGo'); b.disabled=true; drvMsg(kind==='reg'?'Регистрирую…':'Вхожу…');
   const r=await drvCall(kind,{nick,pin,av:DRV.av}); b.disabled=false;
   if(!r.ok) return drvMsg(DRV_ERR[r.err]||'Не получилось',true);
-  DRV.nick=r.me.nick; DRV.pin=pin; if(kind==='login') DRV.av=r.me.av|0; drvMerge(r.me); DRV.cache.cards={}; DRV.dirty=true; DRV.syncT=0.3; DRV.topT=0; drvSave();
+  DRV.nick=r.me.nick; DRV.pin=pin; if(kind==='login') DRV.av=r.me.av|0; drvMerge(r.me); if(kind==='login') cloudLogin(r); else { CLOUD.ready=true; CLOUD.force=true; CLOUD.up=''; cloudKeep(); } DRV.cache.cards={}; DRV.dirty=true; DRV.syncT=0.3; DRV.topT=0; drvSave();
   drvMsg(kind==='reg'?`Пилот «${DRV.nick}» создан. Запомни PIN — с ним можно войти с другого устройства.`:`С возвращением, ${DRV.nick}!`); drvOpen(); }
 
 /* lists */

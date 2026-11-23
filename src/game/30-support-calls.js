@@ -2,7 +2,7 @@
 const KIT_COST={rep:120,ammo:90,art:180}, KIT_MAX=1;
 const SFX_L=[]; const plusTex=(()=>{ const cv=document.createElement('canvas'); cv.width=cv.height=64; const c=cv.getContext('2d'); c.shadowColor='#4dff8a'; c.shadowBlur=10; c.fillStyle='#7dffa6'; c.fillRect(26,10,12,44); c.fillRect(10,26,44,12); return new THREE.CanvasTexture(cv); })();
 const healRingGeo=new THREE.RingGeometry(0.85,1,56); healRingGeo.rotateX(-Math.PI/2);
-function kitAvail(k){ if(!ST.kits||ST.kits[k]<=0||LOC.safe||TK.dead||transit||GAR.open) return false;
+function kitAvail(k){ if(!ST.kits||ST.kits[k]<=0||LOC.safe||TK.dead||transit||GAR.open||JAM.t>0) return false;
   if(k==='art') return !ART.active;
   if(k==='rep') return TK.hp<maxHP()-0.5||TK.dmgS.some(v=>v>0.02); return !CRATES.some(c=>c.state!=='spent'&&c.state!=='boom')&&['mg','cn','rk','sv'].some(id=>(id!=='rk'||UP.rk)&&(id!=='sv'||chs().abil==='mlrs')&&ST.ammo[id]<ammoCap(id)); }
 function useRepair(){ if(!kitAvail('rep')) return; ST.kits.rep--; const add=Math.round(maxHP()-TK.hp); TK.hp=maxHP(); TK.dmgS.fill(0); save();

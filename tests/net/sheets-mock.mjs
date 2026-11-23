@@ -21,9 +21,12 @@ export const sha = s => crypto.createHash('sha256').update(s, 'utf8').digest('he
 export async function startSheets() {
   const core = loadCore(), db = memDb(core.SH_COLS); let calls = 0, delay = 0, shift = 0;
   const srv = http.createServer((req, res) => {
-    const u = new URL(req.url, 'http://x'), p = Object.fromEntries(u.searchParams); calls++;
-    const out = JSON.stringify(core.shHandle(db, p, Date.now() + shift, sha));
-    setTimeout(() => { res.writeHead(200, { 'content-type': 'application/json', 'access-control-allow-origin': '*' }); res.end(out); }, delay);
+    /* v31.0: big requests (cloud save) come as POST with a form body, like Apps Script doPost(e.parameter) */
+    let body = ''; req.on('data', c => { body += c; }); req.on('end', () => {
+      const u = new URL(req.url, 'http://x'), p = Object.assign(Object.fromEntries(u.searchParams), Object.fromEntries(new URLSearchParams(body))); calls++;
+      const out = JSON.stringify(core.shHandle(db, p, Date.now() + shift, sha));
+      setTimeout(() => { res.writeHead(200, { 'content-type': 'application/json', 'access-control-allow-origin': '*' }); res.end(out); }, delay);
+    });
   });
   await new Promise(r => srv.listen(0, '127.0.0.1', r));
   const url = `http://127.0.0.1:${srv.address().port}/exec`;

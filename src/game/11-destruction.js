@@ -3,7 +3,7 @@ let destroyed=0, shake=0;
 const rigids=[]; const MAXR=28;
 function voxelColor(m,x,y,z,o){ matRGB(m,x,y,z,o); if(!MD[m].glow){ const k=0.85; o[0]*=k;o[1]*=k;o[2]*=k; } return o; }
 function explode(...a){ const ps=sndAt(a[0],a[2]); try{ return explode0(...a); } finally{ sndOff(ps); } }
-function explode0(px,py,pz,radius,power,dx,dy,dz,kind,hit,carK,skipE,tankK){ if(tankK==null) tankK=1; if(CIV.list.length) civBlast(px,py,pz,radius); if(ARENA.panes.length) arenaBlast(px,py,pz,radius);
+function explode0(px,py,pz,radius,power,dx,dy,dz,kind,hit,carK,skipE,tankK){ if(tankK==null) tankK=1; if(CIV.list.length||FORD.list.length) civBlast(px,py,pz,radius); if(PROT.on) protBlast(px,py,pz,radius,power); if(ARENA.panes.length) arenaBlast(px,py,pz,radius);
   const wet=py<0.6&&inWater(px,pz);
   const reach=radius*2.2, cr=Math.ceil(reach/VS)+1, ccx=Math.floor(px/VS), ccy=Math.floor(py/VS), ccz=Math.floor(pz/VS); const rem=[];
   for(let y=Math.max(0,ccy-cr);y<=Math.min(NY-1,ccy+cr);y++) for(let z=Math.max(0,ccz-cr);z<=Math.min(NZ-1,ccz+cr);z++) for(let x=Math.max(0,ccx-cr);x<=Math.min(NX-1,ccx+cr);x++){
