@@ -70,9 +70,11 @@ tests.push(
     const a = await client({ name: 'st-voices' }); ctx.clients.push(a);
     const r = await a.js(() => { const D = __dbg, S = D.STORY; return { n: S.length, k: S.map(m => m.k).join(','), bell: S[18].title, bellBrief: S[18].brief.startsWith('Это предпоследний рубеж'), posts: S.filter(m => m.post).length }; });
     assert(r.n === 20 && r.k.includes('train') && r.k.includes('ford') && r.k.includes('tower') && r.bell === 'Колокол тишины' && r.bellBrief && r.posts >= 14, 'story: ' + JSON.stringify(r));
-    await a.js(() => { __dbg.radioSay('ПРОВЕРКА СВЯЗИ.', 'nef'); });
-    const v = await a.until(() => { const b = document.querySelector('#radio'); return !b.hidden && b.dataset.w === 'nef' && { who: b.querySelector('.who').textContent, eye: !!b.querySelector('#radioAv svg path[d^="M3 23"]') }; }, null, { timeout: 6000 });
-    assert(v && v.who === '«НЕФРИТ»' && v.eye, 'nefrit plate: ' + JSON.stringify(v));
+    await a.js(() => { __dbg.radioSay('ПРОВЕРКА СВЯЗИ.', 'liu'); });
+    const v = await a.until(() => { const b = document.querySelector('#radio'); return !b.hidden && b.dataset.w === 'liu' && b.querySelector('.who').textContent; }, null, { timeout: 6000 });
+    assert(v && /Лю/.test(v), 'Liu plate: ' + v);
+    // v31.1: «Нефрит» is silent: no voice, no lines in the source
+    assert(await a.js(() => !document.querySelector('#radio[data-w="nef"]') && !__dbg.NEF_BOSS), 'Nefrit lines still present');
     // the first mission done → Mei speaks after it
     await a.js(() => { const D = __dbg; D.MS.i = 0; D.MS.active = true; D.forceWin(); });
     assert(await a.until(() => document.querySelector('#radio').dataset.w === 'mei', null, { timeout: 15000 }), 'Mei did not speak after mission 1');
@@ -172,7 +174,7 @@ tests.push(
     assert(f.a1 === 'rag' && f.up > 1 && f.b === 'dead', 'fast/very fast: ' + JSON.stringify(f));
     await a.js(() => { __dbg.TK.vx = 0; __dbg.TK.x = 60; __dbg.TK.z = 60; });
   } },
-  { name: 'radio in a fight: «Нефрит» sends reinforcements from the far gate, jamming blocks support calls', timeout: 90, async run(ctx) {
+  { name: 'radio in a fight: reinforcements arrive from the far gate, jamming blocks support calls', timeout: 90, async run(ctx) {
     const a = await client({ name: 'st-chat' }); ctx.clients.push(a);
     await go(a, 6, 'ne', 'W'); assert(await arrived(a, 'ne'), 'no port');
     const n0 = await a.js(() => __dbg.ENEMIES.filter(e => !e.dead).length);

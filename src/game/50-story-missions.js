@@ -211,7 +211,7 @@ function towerTick(dt,t,m){ if(!TOWER.on||!TOWER.legs.length||!TOWER.legs[0].g.p
     if(TOWER.t>4.2) towerFall(); }
   else if(TOWER.phase===2){ TOWER.w+=1.5*Math.sin(TOWER.th)*dt*1.2+dt*0.05; TOWER.th+=TOWER.w*dt; TOWER.rep.rotation.z=-Math.min(Math.PI/2,TOWER.th); if(TOWER.strip) TOWER.strip.material.opacity=0.5;
     if(TOWER.th>=Math.PI/2-0.03){ TOWER.phase=3; TOWER.t=0; towerImpact(); } }
-  else if(TOWER.phase===3&&TOWER.t>2.2&&!TOWER.done){ TOWER.done=true; radioSay('КАНАЛ ГЕНЕРАЛА — ЗАКРЫТ. ТЕПЕРЬ Я СЛЫШУ ТОЛЬКО ТЕБЯ.','nef'); completeMission(); }
+  else if(TOWER.phase===3&&TOWER.t>2.2&&!TOWER.done){ TOWER.done=true; completeMission(); }
   if((TOWER.hudT=(TOWER.hudT||0)-dt)<=0){ TOWER.hudT=0.4; objUI(); } }
 function towerImpact(){ const cx=TOWER.cx, cz=TOWER.cz; shake=1; camPunch=Math.max(camPunch,1); sfxThud(1); if(TOWER.strip){ scene.remove(TOWER.strip); TOWER.strip=null; }
   for(let k=0;k<9;k++){ const x=cx+2+k*3.1; later(k*0.06,()=>{ explode(x,1,cz,2.6,1.6,0,-1,0,'shell',null,0,null,1); for(let n=0;n<6;n++) SMOKE.spawn(x+(rnd()-0.5)*3,1,cz+(rnd()-0.5)*3,(rnd()-0.5)*3,2+rnd()*3,(rnd()-0.5)*3,2,2.4,2.5,0.7,0.6,0.56,0.52); }); }

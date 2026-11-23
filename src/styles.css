@@ -748,11 +748,7 @@ body.tut .bc{display:none}
 /* v31.0: who is on the radio — colour per voice; «Нефрит» comes in green with a flicker */
 #radio[data-w="mei"]{border-color:#ff9b1a}#radio[data-w="mei"] .rav,#radio[data-w="mei"] .who{color:#ffb24a}
 #radio[data-w="liu"]{border-color:#6ab8ff}#radio[data-w="liu"] .rav,#radio[data-w="liu"] .who{color:#8cc8ff}
-#radio[data-w="nef"]{border-color:#3fe0a0;background:rgba(4,22,16,.92);box-shadow:0 0 24px rgba(63,224,160,.25);animation:nefIn .35s steps(3) 1}
-#radio[data-w="nef"] .rav,#radio[data-w="nef"] .who{color:#5df0b0}#radio[data-w="nef"] #radioTx{font-family:ui-monospace,Menlo,Consolas,monospace;letter-spacing:.04em;color:#c8ffe6}
 #radio[data-w="rec"]{border-style:dashed}#radio[data-w="rec"] #radioTx{font-style:italic}
-@keyframes nefIn{0%{opacity:.2;transform:translateX(-50%) skewX(-8deg)}50%{opacity:.9;transform:translateX(-49%) skewX(6deg)}100%{opacity:1;transform:translateX(-50%)}}
-@media (max-width:600px){ @keyframes nefIn{0%{opacity:.2}50%{opacity:.9}100%{opacity:1}} }
 /* Mei in the garage panel */
 .gmei{display:flex;gap:10px;align-items:flex-start;border:1px solid #ff9b1a;background:rgba(40,22,6,.55);padding:8px 10px}
 .gmei .rav{width:42px;height:42px;color:#ffb24a}.gmei .rav svg{width:34px;height:34px}

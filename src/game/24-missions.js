@@ -48,7 +48,7 @@ function unlocked(t){ return MS.i>=(UNLOCK[t]||0); }
 const LOC_EXTRA={north:[['katok',52,60],['zont',30,52]],west:[['zont',40,28]],south:[['zont',44,40]],east:[['katok',30,30]],nw:[['katok',52,40],['zont',42,52]],ne:[['zont',40,52]],sw:[['katok',50,52]],se:[['katok',42,60],['zont',40,52]],cem:[['katok',30,80],['katok',130,80],['zont',80,100]],junk:[['katok',40,80],['katok',120,80],['zont',80,110]],auto:[['katok',40,66],['katok',40,94],['zont',120,80]],park:[['katok',40,60],['katok',120,60],['zont',80,110]]};
 function locEnemyList(){ let base=(LOC.enemies||[]).concat(LOC_EXTRA[LOC_ID]||[]); if(MS.active){ const m=missionAt(MS.i); if(m.boss&&m.loc===LOC_ID) base=base.filter((en,i)=>i%3===0&&en[0]!=='factory'&&en[0]!=='katok'); if(protLoc()) base=[]; } return base.map((en,i)=>unlocked(en[0])?en:[i%3===2?'bomb':'jian',en[1],en[2],null]); }
 const SEEN={}; const MXTRA={};
-function missionExtras(){ if(!MS.active) return; const m=missionAt(MS.i); if(m.boss&&m.loc===LOC_ID){ if(!ENEMIES.some(e=>!e.dead&&e.type===m.k)){ spawnBoss(m.k); nefBossPre(m.k); } return; } if(!m.extra||m.loc!==LOC_ID||MXTRA[MS.i]) return; MXTRA[MS.i]=true;
+function missionExtras(){ if(!MS.active) return; const m=missionAt(MS.i); if(m.boss&&m.loc===LOC_ID){ if(!ENEMIES.some(e=>!e.dead&&e.type===m.k)){ spawnBoss(m.k); } return; } if(!m.extra||m.loc!==LOC_ID||MXTRA[MS.i]) return; MXTRA[MS.i]=true;
   for(const [t,x,z] of m.extra){ const p=pickNear(x,z,ER[t])||[x,z]; const e=spawnEnemy(t,p[0],p[1],t==='bull'?{mod:'ac'}:null); e.home={x,z}; } }
 const ENEMY_INTRO={hive:'Новый противник — «Улей». Ставит мины и выпускает дроны «Сорока». Держись подальше от мин и бей по корпусу.',
   lamp:'Новый противник — «Маяк». Прикидывается фонарём. Если фонарь смотрит на тебя — стреляй по ногам.',

@@ -1,31 +1,19 @@
-/* ================= v31.0: voices of the story — General Zhao, mechanic Mei, engineer Liu, the «Нефрит» network =================
-   The radio plate (31) now says who speaks: avatar, name, colour and pitch per voice. «Нефрит» cuts in with static and
-   letters that jump before they settle. Mei lives in the garage (comments, upgrade advice). In a fight the radio is alive:
-   intercepts, reinforcements, jamming — rules: ≤ 1 line per 20 s (mission lines skip the queue), «Нефрит» ≤ 3 per mission,
-   nothing during boss phases except the lines at the boss's arrival and death. */
-const VOX={zhao:{n:'Генерал Джао',f:1},mei:{n:'Мэй · механик',f:1.38},liu:{n:'Лю · инженер',f:0.86},nef:{n:'«НЕФРИТ»',f:0.62},rec:{n:'Запись · ночь аварии',f:0.95}};
+/* ================= voices of the story — General Zhao, mechanic Mei, engineer Liu, the night recording =================
+   The radio plate (31) says who speaks: avatar, name, colour and pitch per voice. Mei lives in the garage (comments, upgrade advice).
+   In a fight the radio is alive: reinforcements and jamming (v31.1: «Нефрит» no longer speaks at all) — at most one line per 20 s;
+   mission lines skip the queue. */
+const VOX={zhao:{n:'Генерал Джао',f:1},mei:{n:'Мэй · механик',f:1.38},liu:{n:'Лю · инженер',f:0.86},rec:{n:'Запись · ночь аварии',f:0.95}};
 let VOX_W='zhao';
 const RAV={zhao:$('#radioAv').innerHTML,
   mei:'<svg viewBox="0 0 48 48" aria-hidden="true"><path class="wv w1" d="M35 17a8 8 0 0 1 0 12"/><path class="wv w2" d="M39 13a13 13 0 0 1 0 20"/><path class="wv w3" d="M43 9a18 18 0 0 1 0 28"/><path d="M10 40 L24 26" stroke-width="5.5" stroke-linecap="round"/><path d="M24 26 a8 8 0 1 1 8 -13 l-5.5 5.5 1 4.2 4.2 1 5.5 -5.5 a8 8 0 0 1 -13.2 7.8" stroke-width="2.2" stroke-linejoin="round"/><circle class="led" cx="10" cy="40" r="1.6"/></svg>',
-  liu:'<svg viewBox="0 0 48 48" aria-hidden="true"><path class="wv w1" d="M35 17a8 8 0 0 1 0 12"/><path class="wv w2" d="M39 13a13 13 0 0 1 0 20"/><path class="wv w3" d="M43 9a18 18 0 0 1 0 28"/><circle cx="19" cy="22" r="13"/><circle cx="13.5" cy="21" r="4.2"/><circle cx="24.5" cy="21" r="4.2"/><path d="M17.7 21h2.6M9.3 20 L6.5 18.5M28.7 20 L31.5 18.5"/><path d="M14 29.5q5 3 10 0" stroke-linecap="round"/><circle class="led" cx="19" cy="42" r="1.6"/></svg>',
-  nef:'<svg viewBox="0 0 48 48" aria-hidden="true"><path class="wv w1" d="M38 17a8 8 0 0 1 0 12"/><path class="wv w2" d="M42 13a13 13 0 0 1 0 20"/><path class="wv w3" d="M46 9a18 18 0 0 1 0 28"/><path d="M3 23 Q18 7 33 23 Q18 39 3 23 Z" stroke-width="2"/><circle cx="18" cy="23" r="6.5"/><circle class="led" cx="18" cy="23" r="3"/><path d="M18 9v-5M18 37v5M7 12l-3-3M29 12l3-3" stroke-width="1.4"/></svg>'};
+  liu:'<svg viewBox="0 0 48 48" aria-hidden="true"><path class="wv w1" d="M35 17a8 8 0 0 1 0 12"/><path class="wv w2" d="M39 13a13 13 0 0 1 0 20"/><path class="wv w3" d="M43 9a18 18 0 0 1 0 28"/><circle cx="19" cy="22" r="13"/><circle cx="13.5" cy="21" r="4.2"/><circle cx="24.5" cy="21" r="4.2"/><path d="M17.7 21h2.6M9.3 20 L6.5 18.5M28.7 20 L31.5 18.5"/><path d="M14 29.5q5 3 10 0" stroke-linecap="round"/><circle class="led" cx="19" cy="42" r="1.6"/></svg>'};
 RAV.rec=RAV.zhao;
 function radioWho(w){ VOX_W=VOX[w]?w:'zhao'; const box=$('#radio'); box.dataset.w=VOX_W; box.querySelector('.who').textContent=VOX[VOX_W].n; $('#radioAv').innerHTML=RAV[VOX_W]; }
-const NEF_GL='▓▒░#%@ЖФЩ01Ξ';
-function nefGlitch(text,i){ let s=''; for(let k=0;k<3&&i+k<text.length;k++) s+=text[i+k]===' '?' ':NEF_GL[(Math.random()*NEF_GL.length)|0]; return s; }
 function vStatic(){ sNz(0.32,'bandpass',2400,0.5,0.14); sNz(0.18,'highpass',5000,0.7,0.08,0.12); sO(90,60,0.25,0.07,'sawtooth'); }
 
 /* ---- story lines: after a mission, on picking up a mission item, around the bosses ---- */
-const NEF_BOSS={krot:['ОБЪЕКТ: ТАНК. ТЫ ЛОМАЕШЬ ТО, ЧТО СТРОИТ ГОРОД. ЗАЧЕМ?','БУР ОСТАНОВЛЕН. ВОПРОС: КТО ТЕБЯ ПОСЛАЛ?'],
-  hornet:['С ВЫСОТЫ ВИДНО ВСЁ. ВИЖУ ТВОЙ ЛАГЕРЬ. ВИЖУ ПЕРЕДАТЧИК НА ШТАБЕ.','ПОДСТАНЦИЮ ВЫКЛЮЧИЛА НЕ Я. ИЩИ ЧАСТОТУ «Л-1».'],
-  dragon:['ПРАЗДНИК ОТМЕНЁН. ПРИКАЗ ПРИШЁЛ НЕ ОТ МЕНЯ.','ТЕПЕРЬ ТЫ ЗНАЕШЬ. СПРОСИ СВОЕГО ГЕНЕРАЛА ПРО ТУ НОЧЬ.'],
-  crypt:['ПОСЛЕДНЕЕ ТЕЛО. ТЫ ЗНАЕШЬ ПРАВДУ, ВОДИТЕЛЬ. РЕШАЙ САМ, НЕ ПО ПРИКАЗУ.','ЯДРО… ПЕРЕДАЮ КЛЮЧИ ЛЮ. ПРОСТИ ЗА ГОРОД.']};
-const NEF_ECHO=['Я СОБРАЛ СЕБЯ СНОВА. ЗАЧЕМ?','ОПЯТЬ ТЫ. ОПЯТЬ ЭТО ТЕЛО.','ОСКОЛОК ПРОШИВКИ ГЕНЕРАЛА ЕЩЁ ЖИВ ВО МНЕ. ОСТАНОВИ ЕГО.'];
-const STORYV={pre:{}};
-function nefBossPre(t){ if(STORYV.pre[MS.i]) return; STORYV.pre[MS.i]=1; const echo=MS.i>=STORY.length;
-  later(1.6,()=>radioSay(echo?NEF_ECHO[(MS.i/6|0)%NEF_ECHO.length]:(NEF_BOSS[t]||[''])[0],'nef')); }
 function storyPost(m){ const story=MS.i-1<STORY.length&&MS.dbgRet==null; let n=0;
-  if(m.boss&&story&&NEF_BOSS[m.k]){ if(m.k==='dragon') radioSay('«…отключайте подстанцию. Когда сеть перезагрузится, ключ будет у нас. Город переживёт».','rec'); radioSay(NEF_BOSS[m.k][1],'nef'); n++; }
+  if(m.boss&&story&&m.k==='dragon'){ radioSay('«…отключайте подстанцию. Когда сеть перезагрузится, ключ будет у нас. Город переживёт».','rec'); n++; }
   if(story&&m.post) for(const [w,t] of m.post){ radioSay(t,w); n++; }
   return n; }
 function storyPick(m){ if(m.pick) for(const [w,t] of m.pick) radioSay(t,w); }
@@ -112,28 +100,21 @@ function meiTick(dt){ if(!GAR.open||$('#gMei').hidden) return; MEI.idle-=dt; if(
 function meiTankLost(){ MS.mei=MS.mei||{}; MS.mei.d=(MS.mei.d|0)+1; }
 
 /* ================= the radio in a fight ================= */
-const CHAT={t:0,nef:0,key:'',kills:[],idle:0,half:false,shield:false,greet:'',reinf:0,reinfT:0,jam:0,jamT:0,hpT:0};
+const CHAT={t:0,key:'',idle:0,half:false,reinf:0,reinfT:0,jam:0,jamT:0,hpT:0};
 const JAM={t:0};
-const NEF_GREET=[['ВХОД ЗАФИКСИРОВАН.','ОБЪЕКТ «ТАНК» СНОВА В РАЙОНЕ.'],['ОПЯТЬ ТЫ. Я НАЧИНАЮ УЗНАВАТЬ ТВОЙ МОТОР.','ЗАЧЕМ ТЫ СЛУШАЕШЬ ГЕНЕРАЛА?'],['ТЫ ЖЕ ВИДЕЛ СХЕМУ ПУТЕЙ. КУДА ШЛИ ДЕТАЛИ?','КОМАНДЫ ИДУТ С ЧАСТОТЫ «Л-1». ПРОВЕРЬ.'],['ЕЩЁ НЕМНОГО — И ТЫ ВСЁ ПОЙМЁШЬ.','Я НЕ ВРАГ ГОРОДУ. Я НЕ ЗНАЮ, КТО ВРАГ.']];
-const NEF_KILL=['ТРИ ЕДИНИЦЫ ПОТЕРЯНЫ.','ПОТЕРИ ВЫШЕ РАСЧЁТНЫХ.','ОНИ СТРОИЛИ ДОРОГИ. ТЕПЕРЬ — ЛОМ.'];
-const NEF_HIDE=['НЕ ВИЖУ ТЕБЯ. НЕЧЕСТНО.','ЩИТ? ТЫ ТОЖЕ БОИШЬСЯ.'];
 function chatAct(){ return MS.i<5?0:MS.i<10?1:MS.i<15?2:3; }
 function chatBusy(){ return !MS.active||LOC.safe||transit||GAR.open||helpOpen||(BOSS.e&&!BOSS.e.dead)||(TUT&&TUT.on); }
-function chatSay(t,w,force){ if(!force&&CHAT.t>0) return false; if(w==='nef'){ if(CHAT.nef>=3) return false; CHAT.nef++; } CHAT.t=20; radioSay(t,w); return true; }
-function chatKill(){ if(chatBusy()) return; const now=performance.now()/1000; CHAT.kills.push(now); while(CHAT.kills.length&&now-CHAT.kills[0]>5) CHAT.kills.shift();
-  if(CHAT.kills.length>=3&&MS.i>=5){ CHAT.kills.length=0; chatSay(meiPick(NEF_KILL),'nef'); } }
+function chatSay(t,w,force){ if(!force&&CHAT.t>0) return false; CHAT.t=20; radioSay(t,w); return true; }
 function chatHalf(){ if(chatBusy()||CHAT.half) return; CHAT.half=true; chatSay(meiPick(['Половина есть. Не расслабляйся.','Хорошо идёшь, водитель. Ещё столько же.']),MS.i%2?'mei':'zhao'); }
 function chatTick(dt){ CHAT.t=Math.max(0,CHAT.t-dt); CHAT.hpT=Math.max(0,CHAT.hpT-dt);
   if(JAM.t>0){ JAM.t-=dt; if(JAM.t<=0){ document.body.classList.remove('jam'); radioSay('…приём! Приём! Водитель, ты живой? Связь вернулась.','mei'); } }
-  const key=MS.active?MS.i+'@'+LOC_ID:''; if(key!==CHAT.key){ CHAT.key=key; Object.assign(CHAT,{nef:0,half:false,shield:false,idle:0,reinf:0,reinfT:25+Math.random()*25,jam:0,jamT:30+Math.random()*40}); if(JAM.t>0){ JAM.t=0; document.body.classList.remove('jam'); }
-    if(key&&!LOC.safe&&MS.i>=5&&!(missionAt(MS.i).boss)) later(2.5,()=>{ if(!chatBusy()) chatSay(meiPick(NEF_GREET[chatAct()]),'nef',true); }); }
+  const key=MS.active?MS.i+'@'+LOC_ID:''; if(key!==CHAT.key){ CHAT.key=key; Object.assign(CHAT,{half:false,idle:0,reinf:0,reinfT:25+Math.random()*25,jam:0,jamT:30+Math.random()*40}); if(JAM.t>0){ JAM.t=0; document.body.classList.remove('jam'); } }
   if(chatBusy()) return;
   if(TK.hp<maxHP()*0.3&&!TK.dead&&CHAT.hpT<=0){ CHAT.hpT=60; chatSay(meiPick(['Корпус трещит! Отъедь, отдышись!','У тебя дыра на дыре! Аптечку, водитель!','Ещё пара попаданий — и я буду собирать тебя по частям.']),'mei',true); }
-  if((SHD.on||STL.on)&&!CHAT.shield&&MS.i>=5){ CHAT.shield=true; chatSay(meiPick(NEF_HIDE),'nef'); }
   const sp=Math.hypot(TK.vx,TK.vz); CHAT.idle=sp<0.5&&enemiesLeft()>0?CHAT.idle+dt:0; if(CHAT.idle>40){ CHAT.idle=-80; chatSay('Водитель, ты там уснул? Роботы сами себя не разберут.','zhao'); }
   const m=missionAt(MS.i), plain=!m.boss&&!['train','ford','tower','clear','evac','flag','scrap'].includes(m.k)&&m.loc===LOC_ID;
   /* reinforcements: act II+, once per visit */
-  if(plain&&MS.i>=5&&!CHAT.reinf){ CHAT.reinfT-=dt; const half=m.n?MS.prog>=m.n*0.5:true; if(CHAT.reinfT<=0&&half){ CHAT.reinf=1; chatSay('ВЫСЫЛАЮ ПОДКРЕПЛЕНИЕ.','nef',true); later(4,chatReinf); } }
+  if(plain&&MS.i>=5&&!CHAT.reinf){ CHAT.reinfT-=dt; const half=m.n?MS.prog>=m.n*0.5:true; if(CHAT.reinfT<=0&&half){ CHAT.reinf=1; later(4,chatReinf); } }
   /* jamming: act III+, once per visit, not in the escort missions */
   if(plain&&MS.i>=10&&!CHAT.jam){ CHAT.jamT-=dt; if(CHAT.jamT<=0){ CHAT.jam=1; JAM.t=6; document.body.classList.add('jam'); vStatic(); toast('Помехи в эфире · вызовы недоступны'); } } }
 function chatReinf(){ if(chatBusy()||!GATES.length) return; let best=null, bd=-1; for(const g of GATES){ const gx=(g.r[0]+g.r[2])/2, gz=(g.r[1]+g.r[3])/2, d=Math.hypot(gx-TK.x,gz-TK.z); if(d>bd){ bd=d; best=[gx,gz,g.side]; } } if(!best) return;
