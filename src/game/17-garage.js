@@ -35,7 +35,7 @@ function garInit(){ const s=new THREE.Scene(); GAR.scene=s; GAR.cam=new THREE.Pe
   pb(1.0,1.0,4.5,-9.5,0.5,-6); pb(0.1,2.6,4.5,-12.4,2.4,-6); for(let k=0;k<5;k++) pb(0.12,0.5,0.12,-12.3,1.8+(k%2)*0.6,-7.8+k*0.9);
   pb(1.4,1.2,1.4,9.6,0.6,-8); pb(1.0,0.9,1.0,9.8,1.65,-8); pb(1.2,0.8,1.2,8.2,0.4,-10);
   for(let k=0;k<4;k++){ const t=new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.55,0.42,16),GAR.propMat2); t.position.set(10.5,0.21+k*0.44,-2.2); s.add(t); }
-  GAR.mech=makeMechanic(-7.8,-3.5,0.9,s); GAR.mech2=makeMechanic(8.2,-4.6,-0.7,s); GAR.mei=makeMechanic(-2.9,1.3,1.98,s,{mei:true}); GAR.mei.g.scale.setScalar(0.94); garDeco(s);
+  GAR.mech=makeMechanic(-7.8,-3.5,0.9,s); GAR.mech2=makeMechanic(8.2,-4.6,-0.7,s); garDeco(s);
   GAR.turn=new THREE.Group(); s.add(GAR.turn); GAR.lie=[makeLyingMech(GAR.turn,0),makeLyingMech(GAR.turn,Math.PI)];
   GAR.diskMat=new THREE.MeshToonMaterial({color:0x1e2832,gradientMap:gradTex}); const disk=new THREE.Mesh(new THREE.CylinderGeometry(3.4,3.5,0.16,64),GAR.diskMat); disk.position.y=0.08; GAR.turn.add(disk);
   GAR.ringMat=new THREE.MeshBasicMaterial({color:0xffc94a}); const ringG=new THREE.Mesh(new THREE.TorusGeometry(3.45,0.035,6,96),GAR.ringMat); ringG.rotation.x=Math.PI/2; ringG.position.y=0.15; GAR.turn.add(ringG);
@@ -44,8 +44,8 @@ function garInit(){ const s=new THREE.Scene(); GAR.scene=s; GAR.cam=new THREE.Pe
 /* garage mechanic-soldier: overalls, vest with pouches, helmet with goggles and headset, gloves, boots, slung rifle, wrench */
 /* v30.12: one jointed, detailed mechanic body for the motor pool (standing) and the garage (lying under the tank).
    Every joint is a group with a ball cap at the pivot, so bent knees and elbows stay connected. Standing frame: y up, face +z. */
-function mechBody(g,o){ const T=c=>new THREE.MeshToonMaterial({color:c,gradientMap:gradTex}), mei=!!(o&&o.mei);
-  const C={ov:T(mei?0x2f5f9a:0x3a5246),ov2:T(mei?0x284f80:0x33483e),vs:T(mei?0x1f3550:0x2b3a32),hr:T(0x1a120e),bd:T(0xd23a2a),dk:T(0x15191d),sk:T(0x8a6a52),sk2:T(0x7a5c46),gl:T(0x5c4a36),mt:T(0x6b7480),or:T(0xf0a030),wh:T(0xcfd3c8),gg:new THREE.MeshBasicMaterial({color:0x8fe8ff})};
+function mechBody(g){ const T=c=>new THREE.MeshToonMaterial({color:c,gradientMap:gradTex});
+  const C={ov:T(0x3a5246),ov2:T(0x33483e),vs:T(0x2b3a32),hr:T(0x1a120e),bd:T(0xd23a2a),dk:T(0x15191d),sk:T(0x8a6a52),sk2:T(0x7a5c46),gl:T(0x5c4a36),mt:T(0x6b7480),or:T(0xf0a030),wh:T(0xcfd3c8),gg:new THREE.MeshBasicMaterial({color:0x8fe8ff})};
   const m=(geo,mat,px,py,pz,par,ol)=>{ const o=new THREE.Mesh(geo,mat); o.position.set(px,py,pz); par.add(o); if(ol){ const q=new THREE.Mesh(geo,outlineMat); q.scale.setScalar(1.06); o.add(q); } return o; };
   const B=(w,h,d)=>new THREE.BoxGeometry(w,h,d), S=(r,a,b)=>new THREE.SphereGeometry(r,a||10,b||8), Cy=(r1,r2,h,n)=>new THREE.CylinderGeometry(r1,r2,h,n||8);
   const J=(par,x,y,z)=>{ const j=new THREE.Group(); j.position.set(x,y,z); par.add(j); return j; };
@@ -63,21 +63,17 @@ function mechBody(g,o){ const T=c=>new THREE.MeshToonMaterial({color:c,gradientM
   const neck=J(tor,0,0.66,0); m(Cy(0.06,0.07,0.1),C.sk,0,0.04,0,neck); const head=J(neck,0,0.1,0);
   m(S(0.13,12,10),C.sk,0,0.1,0,head,true); m(B(0.03,0.05,0.04),C.sk2,0,0.09,0.13,head); for(const s of [-1,1]){ m(B(0.026,0.022,0.01),C.dk,s*0.05,0.12,0.125,head); m(B(0.05,0.012,0.012),C.dk,s*0.05,0.155,0.12,head); m(S(0.03,6,6),C.sk2,s*0.13,0.1,0,head); }
   m(B(0.07,0.012,0.01),C.dk,0,0.04,0.12,head); let lamp=null;
-  if(mei){ /* v31.0: Mei — hair under a red bandana, a ponytail, no helmet */
-    m(new THREE.SphereGeometry(0.142,14,8,0,TAU,0,Math.PI*0.55),C.hr,0,0.115,-0.01,head,true); m(new THREE.SphereGeometry(0.147,14,6,0,TAU,0,Math.PI*0.3),C.bd,0,0.12,-0.005,head); m(B(0.05,0.05,0.06),C.bd,0.02,0.2,-0.15,head);
-    const pt=J(head,0,0.16,-0.14); pt.rotation.x=0.5; m(Cy(0.04,0.022,0.24,6),C.hr,0,-0.12,0,pt,true); m(S(0.045,8,6),C.hr,0,0,0,pt); for(const s of [-1,1]) m(B(0.03,0.14,0.05),C.hr,s*0.125,0.06,0.03,head); }
-  else {
   m(new THREE.SphereGeometry(0.165,14,8,0,TAU,0,Math.PI/2),C.ov,0,0.14,-0.005,head,true); m(B(0.34,0.025,0.36),C.ov,0,0.14,0.02,head);
   m(B(0.26,0.06,0.06),C.dk,0,0.21,0.13,head); for(const s of [-1,1]){ m(Cy(0.042,0.042,0.03,10).rotateX(Math.PI/2),C.gg,s*0.065,0.21,0.16,head); m(B(0.04,0.09,0.09),C.dk,s*0.15,0.1,0,head); } m(B(0.012,0.012,0.13),C.dk,-0.14,0.04,0.07,head); m(S(0.018,6,6),C.dk,-0.13,0.04,0.135,head);
-  lamp=m(B(0.06,0.05,0.05),C.dk,0.1,0.25,0.12,head); m(B(0.04,0.03,0.012),C.gg,0.1,0.25,0.148,head); }
+  lamp=m(B(0.06,0.05,0.05),C.dk,0.1,0.25,0.12,head); m(B(0.04,0.03,0.012),C.gg,0.1,0.25,0.148,head);
   const arms=[]; for(const s of [-1,1]){ const sh=J(tor,s*0.29,0.56,0); m(S(0.085),C.ov,0,0,0,sh,true); m(B(0.13,0.08,0.14),C.vs,s*0.02,0.05,0,sh); m(Cy(0.07,0.06,0.3),C.ov,0,-0.16,0,sh,true); m(B(0.08,0.07,0.02),C.or,s*0.065,-0.08,0,sh);
     const el=J(sh,0,-0.31,0); m(S(0.06),C.ov2,0,0,0,el); m(Cy(0.058,0.05,0.27),C.ov,0,-0.14,0,el,true); m(Cy(0.062,0.062,0.05),C.ov2,0,-0.25,0,el);
     const wr=J(el,0,-0.29,0); m(B(0.1,0.1,0.07),C.gl,0,-0.05,0,wr,true); m(B(0.09,0.06,0.07),C.gl,0,-0.12,0.005,wr); m(B(0.03,0.06,0.03),C.gl,-s*0.055,-0.07,0.03,wr);
     arms.push({sh,el,wr}); }
   return {C,m,B,S,Cy,J,pel,tor,neck,head,legs,arms,lamp}; }
-function makeMechanic(x,z,ry,parent,o){ const g=new THREE.Group(), P=mechBody(g,o), {C,m,B}=P;
+function makeMechanic(x,z,ry,parent){ const g=new THREE.Group(), P=mechBody(g), {C,m,B}=P;
   /* rifle across the back, wrench in the right hand */
-  const rf=new THREE.Group(); if(o&&o.mei) rf.visible=false; rf.position.set(0,0.42,-0.33); rf.rotation.set(0,0,0.8); P.tor.add(rf); m(B(0.06,0.09,0.78),C.dk,0,0,0,rf); m(B(0.05,0.18,0.08),C.dk,0,-0.1,0.1,rf); m(B(0.03,0.03,0.3),C.mt,0,0.02,0.5,rf); rf.rotation.y=Math.PI/2;
+  const rf=new THREE.Group(); rf.position.set(0,0.42,-0.33); rf.rotation.set(0,0,0.8); P.tor.add(rf); m(B(0.06,0.09,0.78),C.dk,0,0,0,rf); m(B(0.05,0.18,0.08),C.dk,0,-0.1,0.1,rf); m(B(0.03,0.03,0.3),C.mt,0,0.02,0.5,rf); rf.rotation.y=Math.PI/2;
   const tool=new THREE.Group(); tool.position.set(0,-0.12,0.04); P.arms[1].wr.add(tool); m(B(0.035,0.035,0.42),C.mt,0,0,0.16,tool); m(B(0.11,0.035,0.07),C.mt,0,0,0.38,tool); m(B(0.05,0.04,0.035),C.dk,0,0,0.42,tool);
   const tab=new THREE.Group(); tab.position.set(0,-0.13,0.06); P.arms[0].wr.add(tab); m(B(0.2,0.012,0.28),C.dk,0,0,0.1,tab); m(B(0.17,0.014,0.2),C.gg,0,0.004,0.11,tab); tab.visible=false;
   g.position.set(x,0,z); g.rotation.y=ry; parent.add(g);
@@ -295,7 +291,7 @@ function renderGarage(){ if(GAR.mode==='park'){ renderPark(); return; } const mh
   h+=kitsCard(); $('#gUps').innerHTML=h; }
 $('#gpanel').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b||b.disabled) return;
   if(b.id==='gExit'){ closeGarage(); return; }
-  if(b.dataset.kit){ const k=b.dataset.kit; if(ST.kits[k]>=KIT_MAX||ST.scrap<KIT_COST[k]) return; ST.scrap-=KIT_COST[k]; ST.kits[k]++; sfxBuy(); renderGarage(); save(); meiBuy('kit'); return; }
+  if(b.dataset.kit){ const k=b.dataset.kit; if(ST.kits[k]>=KIT_MAX||ST.scrap<KIT_COST[k]) return; ST.scrap-=KIT_COST[k]; ST.kits[k]++; sfxBuy(); renderGarage(); save(); meiBuy('kit_'+k); return; }
   if(b.id==='gRepair'){ const mh=maxHP(), miss=Math.max(0,mh-TK.hp); const amt=Math.min(miss,ST.scrap/0.6); const frac=miss>0?amt/miss:1; ST.scrap=Math.max(0,ST.scrap-Math.ceil(amt*0.6-1e-6)); TK.hp+=amt; if(TK.hp>mh-0.5) TK.hp=mh;
     for(let i=0;i<5;i++) TK.dmgS[i]*=(1-frac); if(frac>=0.999) TK.dmgS.fill(0); sfxWrench(); renderGarage(); save(); if(amt>0) meiBuy('rep'); return; }
   if(b.dataset.buy){ const u=UPDEF.find(x=>x.k===b.dataset.buy), l=UP[u.k]; if(l>=u.max) return; const cost=u.cost[l]; if(ST.scrap<cost) return; ST.scrap-=cost; UP[u.k]=l+1;
@@ -314,7 +310,7 @@ function garUpdate(dt,t){ GAR.idle+=dt; garAmb(dt); if(GAR.idle>2.5&&!GAR.drag) 
   GAR.cam.position.set(Math.sin(GAR.ang)*r,GAR.hgt,Math.cos(GAR.ang)*r); GAR.cam.lookAt(0,1.15,0);
   const M_=GAR.model; if(M_){ for(const sp of M_.spinners) sp.rotation.y+=dt*2.5; for(const b of M_.barrels) b.rotation.z+=dt*0.6; M_.beacon.visible=(t%1200)<600; tankDamageUniforms(M_); }
   const ts=t/1000, park=GAR.mode==='park'; GAR.mech.g.visible=park; GAR.mech2.g.visible=park; for(const L of GAR.lie) L.g.visible=!park;
-  if(GAR.mei) mechIdle(GAR.mei,dt,ts); if(park){ mechIdle(GAR.mech,dt,ts); mechIdle(GAR.mech2,dt,ts); } else for(const L of GAR.lie) lyingUpdate(L,ts);
+  meiTick(dt); if(park){ mechIdle(GAR.mech,dt,ts); mechIdle(GAR.mech2,dt,ts); } else for(const L of GAR.lie) lyingUpdate(L,ts);
   garOcclude(dt); }
 
 /* v30.3: anything between the orbiting camera and the tank fades to see-through and comes back when the view is clear.

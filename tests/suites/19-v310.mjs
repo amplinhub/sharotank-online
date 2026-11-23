@@ -80,12 +80,23 @@ tests.push(
   { name: 'Mei in the garage: greets, advises an upgrade for the next mission, reacts to a purchase', timeout: 60, async run(ctx) {
     const a = await client({ name: 'st-mei' }); ctx.clients.push(a);
     await a.js(() => { const D = __dbg; D.MS.i = 1; D.MS.active = false; D.MS.mei = { met: 1 }; D.ST.scrap = 5000; D.openGarage('gar'); });
-    const t1 = await a.until(() => { const e = document.querySelector('#gMeiTx'); return !document.querySelector('#gMei').hidden && /брон/i.test(e.textContent) && e.textContent; }, null, { timeout: 15000 });
-    assert(t1 && /брон/i.test(t1), 'advice for the train mission should be armour: ' + t1);
+    const t1 = await a.until(() => { const e = document.querySelector('#gMeiTx'); return !document.querySelector('#gMei').hidden && e.textContent.length > 10 && e.textContent; }, null, { timeout: 15000 });
+    assert(t1, 'Mei says nothing on entering the garage');
+    const adv = await a.js(() => __dbg.meiAdvice());
+    assert(/брон/i.test(adv), 'advice for the train mission should be armour: ' + adv);
     await a.js(() => document.querySelector('#gpanel [data-buy="engine"]').click());
     const t2 = await a.until(o => { const e = document.querySelector('#gMeiTx').textContent; return e !== o && e.length > 10 && e; }, t1, { timeout: 6000 });
     assert(t2 && t2 !== t1, 'no reaction to the purchase');
-    assert(await a.js(() => !!__dbg.GAR.mei && __dbg.GAR.mei.g.visible !== false), 'no Mei figure in the garage');
+    assert(await a.js(() => !__dbg.GAR.mei), 'Mei has no figure in the garage (removed in v31.1)');
+    // v31.1: lines are varied, the tank descriptions are true (all tanks are wheeled), idle chatter appears by itself
+    const L = await a.js(() => { const D = __dbg, all = []; for (const k in D.MEI_TANK) all.push(...D.MEI_TANK[k]); for (const k in D.MEI_BUY) all.push(...D.MEI_BUY[k]); return { all, adv: new Set(Array.from({ length: 30 }, () => D.meiChat())).size, tk: Object.keys(D.MEI_TANK).length, buy: Object.keys(D.MEI_BUY).length }; });
+    assert(!L.all.some(t => /гусениц/i.test(t)), 'a tank line mentions tracks, but all tanks are wheeled');
+    assert(L.tk === 7 && L.all.length >= 70, 'Mei: too few lines ' + L.all.length);
+    assert(L.adv >= 10, 'Mei chatter is repetitive: ' + L.adv);
+    const t3 = await a.js(() => document.querySelector('#gMeiTx').textContent);
+    await a.js(() => { __dbg.MEI.idle = 0; });
+    const t4 = await a.until(o => { const e = document.querySelector('#gMeiTx').textContent; return e !== o && e.length > 10 && e; }, t3, { timeout: 8000 });
+    assert(t4, 'no idle chatter from Mei');
   } },
   { name: 'mission 2 «Последний состав»: zone → «ЗАЩИЩАЙ ПОЕЗД», robots only from the south, shots hurt the train, a lost train restarts, the train leaves', timeout: 150, async run(ctx) {
     const a = await client({ name: 'st-train' }); ctx.clients.push(a);

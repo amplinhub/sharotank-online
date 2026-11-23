@@ -85,7 +85,7 @@ function railShot(w){ if(tank&&tank.coilM) tank.coilT=0; for(let i=0;i<6;i++) se
 function railsUpdate(dt){ for(let i=RAILS.length-1;i>=0;i--){ const r=RAILS[i]; r.t+=dt; const k=1-r.t/0.35; if(k<=0){ RAILS.splice(i,1); continue; } LINES.push(r.a[0],r.a[1],r.a[2],r.b[0],r.b[1],r.b[2],0.55*k+0.3,0.9*k+0.1,1*k,0); } }
 /* ---- motor pool: buy and switch tanks ---- */
 $('#gpanel').addEventListener('click',e=>{ if(GAR.mode!=='park') return; const b=e.target.closest('button');
-  if(b&&!b.disabled&&b.dataset.tkbuy){ const id=b.dataset.tkbuy, c=CHASSIS[id]; if(ST.scrap<c.cost) return; ST.scrap-=c.cost; UP.tanks[id]=1; selectTank(id); GAR.pick=id; sfxBuy(); meiSay('Пригнали новенькую! '+(MEI_TANK[id]||'')); later(0.3,sfxAccept); toast(`${c.name} теперь твой`); garRebuildModel(); renderPark(); return; }
+  if(b&&!b.disabled&&b.dataset.tkbuy){ const id=b.dataset.tkbuy, c=CHASSIS[id]; if(ST.scrap<c.cost) return; ST.scrap-=c.cost; UP.tanks[id]=1; selectTank(id); GAR.pick=id; sfxBuy(); meiSay('Пригнали новенькую! '+meiTankLine(id,true)); later(0.3,sfxAccept); toast(`${c.name} теперь твой`); garRebuildModel(); renderPark(); return; }
   if(b&&!b.disabled&&b.dataset.tk){ selectTank(b.dataset.tk); GAR.pick=b.dataset.tk; sfxRev(b.dataset.tk); closeGarage(); return; } /* v30.8: «Выехать на нём» drives straight out */
   const s=e.target.closest('[data-pick]'); if(s&&!b&&GAR.pick!==s.dataset.pick){ GAR.pick=s.dataset.pick; sfxClick(); garRebuildModel(); renderPark(); meiPark(GAR.pick); } });
 /* ---- «Пчела»: kamikaze drone swarm launched from the hull hatch ---- */
