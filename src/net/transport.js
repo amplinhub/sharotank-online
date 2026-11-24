@@ -42,7 +42,7 @@ function netCfg() {
   const cfg = { ...(SIGNALING.host ? SIGNALING : {}), ...(typeof window !== 'undefined' && window.SHT_NET_CFG ? window.SHT_NET_CFG : {}) };
   try {
     const sig = new URLSearchParams(location.search).get('sig');
-    if (sig) { const [h, p] = sig.split(':'); Object.assign(cfg, { host: h, port: +p || 9000, path: '/', secure: false }); }
+    if (sig) { const [h, p] = sig.split(':'); const port = +p || 443; Object.assign(cfg, { host: h, port, path: '/', secure: port === 443 }); } // ?sig=домен → wss:443 (свой VPS), ?sig=127.0.0.1:9100 → ws (локально)
   } catch (e) { /* нет location — не страшно */ }
   return cfg;
 }
